@@ -786,7 +786,8 @@ table tr:hover { background: var(--hover-bg); }
   <div class="header">
     <div class="header-title"><span>Finanz</span>App</div>
     <div class="header-actions">
-      <button class="header-btn" id="profileBtn" title="Perfil">⚙️</button>
+      <button class="header-btn" id="roomBtn" title="Sala">🔗</button>
+      <span id="syncStatus" style="font-size:12px;color:var(--text-muted);display:flex;align-items:center">○</span>
       <button class="header-btn" id="modeToggle" title="Análisis">📊</button>
       <button class="header-btn" id="themeToggle" title="Tema">🌓</button>
     </div>
@@ -1031,23 +1032,25 @@ table tr:hover { background: var(--hover-bg); }
 
 <input type="file" id="fileInput" class="file-input-hidden" accept=".json">
 
-<!-- Profile Modal -->
-<div class="modal-overlay" id="profileModal">
+<!-- Room Modal -->
+<div class="modal-overlay" id="roomModal">
   <div class="modal">
-    <h2>Configurar perfiles</h2>
-    <form id="profileForm" autocomplete="off">
+    <h2>Sala de sincronización</h2>
+    <p style="margin-bottom:14px;color:var(--text-secondary);font-size:14px">
+      Código de sala actual: <strong id="roomCodeDisplay" style="color:var(--accent-gold)"></strong>
+    </p>
+    <form id="roomForm" autocomplete="off">
       <div class="form-group">
-        <label>Tu nombre *</label>
-        <input type="text" id="profileMyName" placeholder="Ej: David" maxlength="50" required>
-      </div>
-      <div class="form-group">
-        <label>Nombre de tu pareja *</label>
-        <input type="text" id="profilePartnerName" placeholder="Ej: Valentina" maxlength="50" required>
+        <label>Cambiar código de sala</label>
+        <input type="text" id="roomCodeInput" placeholder="Ej: Pareja2024" maxlength="50" required>
       </div>
       <div class="btn-row">
-        <button type="submit" class="btn btn-primary">Guardar</button>
+        <button type="submit" class="btn btn-primary">Cambiar sala</button>
       </div>
     </form>
+    <p style="margin-top:12px;font-size:12px;color:var(--text-muted)">
+      ⚡ Ambos dispositivos deben usar el <strong>mismo código</strong> para sincronizar.
+    </p>
   </div>
 </div>
 
@@ -1153,7 +1156,6 @@ const BUDGET_KEY = 'finanzas_budgets';
 const THEME_KEY = 'finanzas_theme';
 const MODE_KEY = 'finanzas_mode';
 const LAST_CAT_KEY = 'finanzas_last_cat';
-const PROFILE_KEY = 'finanzas_profile';
 const ROOM_KEY = 'finanzas_room';
 
 const FIREBASE_CONFIG = {
@@ -1174,28 +1176,33 @@ let pendingSyncs = 0;
 async function initFirebase() {
   if (firebaseInitialized) return;
   try {
+    updateSyncStatus(false);
     firebase.initializeApp(FIREBASE_CONFIG);
     await firebase.auth().signInAnonymously();
     db = firebase.firestore();
     roomCode = localStorage.getItem(ROOM_KEY);
     if (!roomCode) {
       roomCode = prompt('Código de sala (ej: "Pareja2024" — ambos deben usar el mismo):');
-      if (!roomCode) { firebaseInitialized = true; return; }
+      if (!roomCode) { firebaseInitialized = true; updateSyncStatus(false); return; }
       localStorage.setItem(ROOM_KEY, roomCode);
     }
+    updateSyncStatus(true);
     await subscribeFirestore();
     firebaseInitialized = true;
     flushPendingSyncs();
   } catch (e) {
     console.warn('Firebase no disponible, modo offline:', e.message);
     firebaseInitialized = true;
+    updateSyncStatus(false);
+    showToast('Sin conexión — modo offline');
   }
 }
 
 function subscribeFirestore() {
   return new Promise(resolve => {
     const ref = db.collection('rooms').doc(roomCode);
-    firestoreUnsub = ref.onSnapshot(async snap => {
+    firestoreUnsub = ref.onSnapshot(snap => {
+      updateSyncStatus(true);
       if (snap.exists) {
         const data = snap.data();
         if (data.transactions) {
@@ -1212,16 +1219,20 @@ function subscribeFirestore() {
         }
         refreshAll(false);
       } else {
-        await ref.set({
+        ref.set({
           transactions: transactions,
           budgets: budgets,
           categories: categoriesData,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true });
+        }, { merge: true }).catch(() => {});
         refreshAll(false);
       }
       resolve();
-    }, () => resolve());
+    }, err => {
+      console.warn('Firestore snapshot error:', err.message);
+      updateSyncStatus(false);
+      resolve();
+    });
   });
 }
 
@@ -1237,6 +1248,7 @@ async function syncToFirestore() {
     }, { merge: true });
   } catch (e) {
     console.warn('Error syncing to Firestore:', e.message);
+    updateSyncStatus(false);
   }
 }
 
@@ -1278,31 +1290,34 @@ const formatCOPShort = n => {
   return formatCOP(n);
 };
 
-// ===== PROFILE =====
-function getProfile() {
-  const raw = localStorage.getItem(PROFILE_KEY);
-  return raw ? JSON.parse(raw) : null;
+// ===== SYNC STATUS =====
+function updateSyncStatus(connected) {
+  const el = $('syncStatus');
+  if (connected) {
+    el.textContent = '●';
+    el.style.color = 'var(--accent-green)';
+    el.title = 'Conectado';
+  } else {
+    el.textContent = '○';
+    el.style.color = 'var(--text-muted)';
+    el.title = 'Sin conexión';
+  }
 }
 
-function saveProfile(data) {
-  localStorage.setItem(PROFILE_KEY, JSON.stringify(data));
+function openRoomModal() {
+  $('roomCodeDisplay').textContent = roomCode || '—';
+  $('roomCodeInput').value = roomCode || '';
+  $('roomModal').classList.add('active');
 }
 
-function openProfileModal() {
-  const profile = getProfile();
-  $('profileMyName').value = profile ? profile.myName : '';
-  $('profilePartnerName').value = profile ? profile.partnerName : '';
-  $('profileModal').classList.add('active');
+function closeRoomModal() {
+  $('roomModal').classList.remove('active');
 }
 
-function closeProfileModal() {
-  $('profileModal').classList.remove('active');
-}
-
+// ===== NAMES =====
 function getWhoLabel(who) {
-  const profile = getProfile();
-  if (who === 'yo') return profile ? profile.myName : 'Yo';
-  if (who === 'pareja') return profile ? profile.partnerName : 'Pareja';
+  if (who === 'yo') return 'David';
+  if (who === 'pareja') return 'Laura';
   return 'Compartido 👥';
 }
 
@@ -1670,9 +1685,6 @@ function renderCharts() {
 
   const ctxD = $('doughnutChart').getContext('2d');
   if (doughnutChart) doughnutChart.destroy();
-  const profile = getProfile();
-  const myName = profile ? profile.myName : 'Yo';
-  const partnerName = profile ? profile.partnerName : 'Pareja';
   doughnutChart = new Chart(ctxD, {
     type: 'doughnut',
     data: { labels: donaLabels, datasets: [{ data: donaData, backgroundColor: colors.slice(0, donaLabels.length), borderWidth: 0 }] },
@@ -1687,8 +1699,8 @@ function renderCharts() {
               const w = whoMap[cat];
               if (!w) return '';
               const parts = [];
-              if (w.yo) parts.push(`${myName}: ${formatCOP(w.yo)}`);
-              if (w.pareja) parts.push(`${partnerName}: ${formatCOP(w.pareja)}`);
+              if (w.yo) parts.push(`David: ${formatCOP(w.yo)}`);
+              if (w.pareja) parts.push(`Laura: ${formatCOP(w.pareja)}`);
               if (w.compartido) parts.push(`Compartido: ${formatCOP(w.compartido)}`);
               return parts.join('\n');
             }
@@ -1864,9 +1876,6 @@ function renderStats() {
     vsPrev = { diff: Math.abs(diff), pct: Math.abs(pct), up: diff > 0 };
   }
 
-  const profile = getProfile();
-  const myName = profile ? profile.myName : 'Yo';
-  const partnerName = profile ? profile.partnerName : 'Pareja';
   const gastosYo = gastos.filter(tx => (tx.who || 'yo') === 'yo').reduce((s, t) => s + t.amount, 0);
   const gastosPareja = gastos.filter(tx => (tx.who || 'yo') === 'pareja').reduce((s, t) => s + t.amount, 0);
 
@@ -1892,11 +1901,11 @@ function renderStats() {
     </div>
     <div class="stat-card">
       <div class="stat-value">${formatCOP(gastosYo)}</div>
-      <div class="stat-label">Gastos de ${myName}</div>
+      <div class="stat-label">Gastos de David</div>
     </div>
     <div class="stat-card">
       <div class="stat-value">${formatCOP(gastosPareja)}</div>
-      <div class="stat-label">Gastos de ${partnerName}</div>
+      <div class="stat-label">Gastos de Laura</div>
     </div>
   `;
 }
@@ -2122,7 +2131,7 @@ function init() {
     refreshAll();
   });
 
-  $('profileBtn').addEventListener('click', openProfileModal);
+  $('roomBtn').addEventListener('click', openRoomModal);
   $('modeToggle').addEventListener('click', () => setMode(!isDailyMode));
   $('themeToggle').addEventListener('click', toggleTheme);
 
@@ -2178,19 +2187,20 @@ function init() {
     if (e.key === 'Enter') addDailyTx();
   });
 
-  // Profile form
-  $('profileForm').addEventListener('submit', e => {
+  // Room form
+  $('roomForm').addEventListener('submit', e => {
     e.preventDefault();
-    const myName = $('profileMyName').value.trim();
-    const partnerName = $('profilePartnerName').value.trim();
-    if (!myName || !partnerName) return showToast('Completa ambos nombres');
-    saveProfile({ myName, partnerName });
-    closeProfileModal();
-    refreshAll();
-    showToast('Perfiles guardados');
+    const newCode = $('roomCodeInput').value.trim();
+    if (!newCode) return showToast('Ingresa un código de sala');
+    roomCode = newCode;
+    localStorage.setItem(ROOM_KEY, roomCode);
+    closeRoomModal();
+    if (firestoreUnsub) { firestoreUnsub(); firestoreUnsub = null; }
+    subscribeFirestore();
+    showToast(`Sala cambiada a: ${roomCode}`);
   });
-  $('profileModal').addEventListener('click', e => {
-    if (e.target === $('profileModal')) closeProfileModal();
+  $('roomModal').addEventListener('click', e => {
+    if (e.target === $('roomModal')) closeRoomModal();
   });
 
   // Category manager

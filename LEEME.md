@@ -327,7 +327,11 @@ Luego abre `http://localhost:8080` en el navegador. Usar `file://` directo no fu
 - Se agregaron los iconos SVG al cache del Service Worker
 **Por qué:** Los botones de editar/eliminar no funcionaban porque `dataset` devuelve strings y los IDs de ejemplo eran números (`===` fallaba). `crypto.randomUUID()` lanza excepción en `file://`.
 
-## Bugs conocidos (no corregidos)
-- **Race condition Firebase**: Si agregas una transacción antes de que Firebase termine de sincronizar, la snapshot puede sobrescribir tus datos locales
-- **Undo frágil**: `undoData` es una sola variable; si eliminas 2 transacciones seguidas, el undo de la primera restaura la segunda
-- **Sin notificación de error de sync**: Si Firestore rechaza una escritura, el error se silencia y los datos quedan desincronizados
+## 21. Nombres fijos + Sala visible + Estado de sync
+**Archivos:** `index.html`  
+**Qué:**
+- Se eliminó el sistema de perfiles (modal y configuración). Los nombres ahora son fijos: **David**, **Laura**, **Compartido 👥**
+- Se agregó indicador de sincronización en el header: ● conectado / ○ desconectado
+- El botón de ajustes ahora muestra la sala actual y permite cambiar el código
+- Se agregaron toasts de error cuando Firebase falla
+**Por qué:** Los perfiles no se sincronizaban entre dispositivos, causando confusión. Ahora los nombres son consistentes. El indicador de sync permite saber si los cambios se están guardando online.
