@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0e1a">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://identitytoolkit.googleapis.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; img-src 'self' data:; font-src 'self'; manifest-src 'self'">
 <link rel="manifest" href="manifest.json">
 <title>FinanzApp</title>
 <script src="chart.min.js"></script>
@@ -1290,6 +1291,8 @@ resetMonthYear();
 
 const $ = id => document.getElementById(id);
 
+const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+
 const formatCOP = n => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 
 const formatCOPShort = n => {
@@ -1440,7 +1443,7 @@ function showToast(message, actionLabel, actionFn) {
   const container = $('toastContainer');
   const toast = document.createElement('div');
   toast.className = 'toast';
-  toast.innerHTML = `<span>${message}</span>`;
+  toast.innerHTML = `<span>${esc(message)}</span>`;
   if (actionLabel && actionFn) {
     const btn = document.createElement('button');
     btn.className = 'toast-btn';
@@ -1490,9 +1493,9 @@ function renderDailyCategories() {
     selectedCategory = saved;
   }
   grid.innerHTML = cats.map(c => `
-    <button class="cat-btn ${selectedCategory === c ? 'selected' : ''}" data-cat="${c}">
-      <span class="emoji">${getCatEmoji(c)}</span>
-      <span class="name">${c}</span>
+    <button class="cat-btn ${selectedCategory === c ? 'selected' : ''}" data-cat="${esc(c)}">
+      <span class="emoji">${esc(getCatEmoji(c))}</span>
+      <span class="name">${esc(c)}</span>
     </button>
   `).join('');
 
@@ -1594,10 +1597,10 @@ function renderDailyFeed() {
       const whoLabel = getWhoLabel(tx.who || 'yo');
       html += `
         <div class="feed-item">
-          <div class="feed-emoji">${emoji}</div>
+          <div class="feed-emoji">${esc(emoji)}</div>
           <div class="feed-info">
-            <div class="feed-cat">${tx.category}</div>
-            <div class="feed-desc">${tx.description || '—'} · ${whoLabel}</div>
+            <div class="feed-cat">${esc(tx.category)}</div>
+            <div class="feed-desc">${esc(tx.description || '—')} · ${esc(whoLabel)}</div>
           </div>
           <div class="feed-amount ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${tx.type === 'ingreso' ? '+' : '-'}${formatCOPShort(tx.amount)}</div>
           <button class="feed-del-btn" data-edit="${tx.id}" title="Editar">✏️</button>
@@ -1658,8 +1661,8 @@ function renderTable() {
     <tr class="fade-in">
       <td>${tx.date}</td>
       <td><span class="badge badge-${tx.type}">${tx.type === 'ingreso' ? 'Ingreso' : 'Gasto'}</span></td>
-      <td>${tx.category}</td>
-      <td>${tx.description || '—'}</td>
+      <td>${esc(tx.category)}</td>
+      <td>${esc(tx.description || '—')}</td>
       <td><span class="badge badge-${whoVal}">${getWhoLabel(whoVal)}</span></td>
       <td class="monto ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${formatCOP(tx.amount)}</td>
       <td>
@@ -1945,32 +1948,66 @@ function exportJSON() {
   URL.revokeObjectURL(a.href);
 }
 
+function isValidTx(tx) {
+  return tx && typeof tx.id !== 'undefined' && typeof tx.type === 'string' && (tx.type === 'ingreso' || tx.type === 'gasto')
+    && typeof tx.amount === 'number' && tx.amount > 0 && tx.amount <= 999999999
+    && typeof tx.category === 'string' && tx.category.length <= 50
+    && typeof tx.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(tx.date)
+    && (!tx.who || ['yo','pareja','compartido'].includes(tx.who))
+    && (!tx.description || typeof tx.description === 'string');
+}
+
+function isValidCategories(cats) {
+  if (!cats || typeof cats !== 'object') return false;
+  for (const type of ['ingreso','gasto']) {
+    const arr = cats[type];
+    if (!Array.isArray(arr)) return false;
+    for (const c of arr) {
+      if (!c || typeof c.name !== 'string' || !c.name || typeof c.emoji !== 'string') return false;
+    }
+  }
+  return true;
+}
+
+function isValidBudgets(budgets) {
+  if (!budgets || typeof budgets !== 'object') return false;
+  for (const [cat, amount] of Object.entries(budgets)) {
+    if (typeof cat !== 'string' || typeof amount !== 'number' || amount <= 0) return false;
+  }
+  return true;
+}
+
 function importJSON(file) {
   showToast('Importando…');
   const reader = new FileReader();
   reader.onload = e => {
     try {
       const data = JSON.parse(e.target.result);
-      if (data.transactions && Array.isArray(data.transactions)) {
-        if (!confirm(`¿Importar ${data.transactions.length} transacciones? Se reemplazarán los datos actuales.`)) {
-          dismissAllToasts();
-          return;
-        }
-        transactions = data.transactions;
-        if (data.budgets) budgets = data.budgets;
-        if (data.categories) { categoriesData = data.categories; saveCategories(); }
-        saveData();
-        saveBudgets();
-        refreshAll();
-        dismissAllToasts();
-        showToast(`Importadas ${data.transactions.length} transacciones`);
-      } else {
-        dismissAllToasts();
-        showToast('Archivo JSON inválido');
+      if (!data || typeof data !== 'object') throw new Error('Datos inválidos');
+      if (!Array.isArray(data.transactions) || !data.transactions.every(isValidTx)) {
+        throw new Error('Transacciones inválidas');
       }
-    } catch {
+      if (data.budgets && !isValidBudgets(data.budgets)) {
+        throw new Error('Presupuestos inválidos');
+      }
+      if (data.categories && !isValidCategories(data.categories)) {
+        throw new Error('Categorías inválidas');
+      }
+      if (!confirm(`¿Importar ${data.transactions.length} transacciones? Se reemplazarán los datos actuales.`)) {
+        dismissAllToasts();
+        return;
+      }
+      transactions = data.transactions;
+      if (data.budgets) budgets = data.budgets;
+      if (data.categories) { categoriesData = data.categories; saveCategories(); }
+      saveData();
+      saveBudgets();
+      refreshAll();
       dismissAllToasts();
-      showToast('Error al leer el archivo');
+      showToast(`Importadas ${data.transactions.length} transacciones`);
+    } catch (e) {
+      dismissAllToasts();
+      showToast('Error: ' + (e.message || 'Archivo inválido'));
     }
   };
   reader.readAsText(file);
@@ -1998,13 +2035,13 @@ function closeEditModal() {
 function updateEditCategories() {
   const type = $('editType').value;
   const sel = $('editCategory');
-  sel.innerHTML = getCatNames(type).map(c => `<option value="${c}">${c}</option>`).join('');
+  sel.innerHTML = getCatNames(type).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
 }
 
 function updateCategories() {
   const type = $('txType').value;
   const catSel = $('txCategory');
-  catSel.innerHTML = '<option value="">Seleccionar</option>' + getCatNames(type).map(c => `<option value="${c}">${c}</option>`).join('');
+  catSel.innerHTML = '<option value="">Seleccionar</option>' + getCatNames(type).map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
 }
 
 function updateBudgetCategorySelect() {
@@ -2013,7 +2050,7 @@ function updateBudgetCategorySelect() {
   const available = getAllGastoNames().filter(c => !used.has(c));
   sel.innerHTML = available.length === 0
     ? '<option value="">Todos tienen presupuesto</option>'
-    : available.map(c => `<option value="${c}">${c}</option>`).join('');
+    : available.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
 }
 
 function renderCatManager() {
@@ -2024,8 +2061,8 @@ function renderCatManager() {
     cats.forEach((c, i) => {
       html += `
         <div class="cat-manager-item">
-          <span class="cm-emoji">${c.emoji}</span>
-          <span class="cm-name">${c.name}</span>
+          <span class="cm-emoji">${esc(c.emoji)}</span>
+          <span class="cm-name">${esc(c.name)}</span>
           <span class="cm-type">${type === 'gasto' ? 'Gasto' : 'Ingreso'}</span>
           <span class="cm-actions">
             <button class="cm-edit" data-type="${type}" data-idx="${i}">✏️</button>
@@ -2200,6 +2237,7 @@ function init() {
     e.preventDefault();
     const newCode = $('roomCodeInput').value.trim();
     if (!newCode) return showToast('Ingresa un código de sala');
+    if (newCode.length < 6) return showToast('El código debe tener al menos 6 caracteres');
     roomCode = newCode;
     localStorage.setItem(ROOM_KEY, roomCode);
     closeRoomModal();
@@ -2244,8 +2282,8 @@ function init() {
 
   $('catManagerSave').addEventListener('click', () => {
     const type = $('catManagerType').value;
-    const name = $('catManagerName').value.trim();
-    const emoji = $('catManagerEmoji').value.trim() || '📋';
+    const name = $('catManagerName').value.trim().replace(/<[^>]*>/g, '');
+    const emoji = ($('catManagerEmoji').value.trim() || '📋').replace(/<[^>]*>/g, '');
     if (!name) return showToast('Escribe un nombre para la categoría');
     const editId = $('catManagerEditId').value;
     if (editId) {
