@@ -6,12 +6,14 @@ App web 100% offline para gestionar ingresos y gastos personales. Single-page ap
 
 ```
 Presupuesto/
-├── index.html        # App completa (HTML + CSS + JS) (~2260 líneas)
+├── index.html        # App completa (HTML + CSS + JS) (~2356 líneas)
 ├── chart.min.js      # Chart.js v4.4.7 local (202KB)
 ├── manifest.json     # PWA manifest para instalación
 ├── sw.js             # Service Worker (caching offline)
 ├── icon-192.svg      # Icono PWA 192x192
 ├── icon-512.svg      # Icono PWA 512x512
+├── firebase.json     # Config Firebase Hosting (ignore reglas)
+├── .gitignore        # Archivos ignorados por Git
 └── LEEME.md          # Este archivo
 ```
 
@@ -48,11 +50,17 @@ Presupuesto/
 
 ## Cómo usar
 
+### Local
 Abrir `index.html` en cualquier navegador. Los datos se guardan automáticamente en localStorage.
 
-Para compartir en red local:
+### Online (Firebase Hosting)
+La app está desplegada en:
+[https://presupuesto-cddeb.web.app](https://presupuesto-cddeb.web.app)
+
+Para actualizar:
 ```bash
-npx serve .
+cd /home/david/Presupuesto
+firebase deploy --only hosting
 ```
 
 ## Uso diario
@@ -62,14 +70,19 @@ npx serve .
 3. Botón 📊 para ver análisis completo (gráficos, presupuestos, estadísticas)
 4. Navegar entre meses con ◀ ▶
 
-## Firebase — integración completada
+## Firebase — servicios usados
 
-Firebase ya está configurado y funciona. Resumen de la integración:
+### Firestore (base de datos en tiempo real)
 - SDKs cargados vía CDN (compat, sin build tools)
 - Anonymous Auth automático al iniciar
 - Código de sala compartida (se pide una vez, se guarda en localStorage)
 - `onSnapshot` en tiempo real para sync bidireccional
 - Fallback offline: si Firebase no está disponible, la app funciona igual con localStorage
+
+### Hosting (despliegue web)
+- Hosteado en Firebase Hosting → [presupuesto-cddeb.web.app](https://presupuesto-cddeb.web.app)
+- `firebase.json` con reglas `ignore` para no subir archivos innecesarios
+- Un solo comando para actualizar: `firebase deploy --only hosting`
 
 ### Para cambiar el código de sala
 Abre la consola del navegador (F12) y ejecuta:
@@ -175,6 +188,7 @@ localStorage.removeItem('finanzas_room'); location.reload();
 
 - [x] Categorías personalizables por el usuario
 - [x] Sincronización Firebase/multi-dispositivo
+- [x] Firebase Hosting (despliegue online)
 - [ ] Paginación o virtual scroll en tabla de transacciones
 - [ ] Reportes anuales (PDF)
 - [ ] Alertas de presupuesto (notificación)
@@ -286,3 +300,15 @@ const FIREBASE_CONFIG = {
   ```js
   localStorage.removeItem('finanzas_room'); location.reload();
   ```
+
+---
+
+## 19. Firebase Hosting + Git
+**Archivos:** `firebase.json`, `.gitignore` (nuevos), `manifest.json` (corregido)  
+**Qué:**
+- Se creó `firebase.json` con `public: "."` y `ignore` para excluir `node_modules/`, archivos ocultos, y `LEEME.md`
+- Se corrigió `manifest.json` para que apunte a los iconos `.svg` en lugar de `.png`
+- Se instaló `firebase-tools` y se desplegó la app en Firebase Hosting
+- Se inicializó repositorio Git con `.gitignore`
+- URL pública: [https://presupuesto-cddeb.web.app](https://presupuesto-cddeb.web.app)
+**Por qué:** La app ahora está disponible online. Para actualizar solo hay que ejecutar `firebase deploy --only hosting`.
