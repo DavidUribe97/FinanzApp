@@ -1,0 +1,12 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebase/**",
+      "**/.*",
+      "**/node_modules/**",
+      "LEEME.md"
+    ]
+  }
+}
