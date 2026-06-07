@@ -301,6 +301,12 @@ const FIREBASE_CONFIG = {
   localStorage.removeItem('finanzas_room'); location.reload();
   ```
 
+### Probar localmente (sin deploy)
+```bash
+cd /home/david/Presupuesto && python3 -m http.server 8080
+```
+Luego abre `http://localhost:8080` en el navegador. Usar `file://` directo no funciona bien porque `crypto.randomUUID()` requiere un contexto seguro (HTTPS o localhost).
+
 ---
 
 ## 19. Firebase Hosting + Git
@@ -312,3 +318,16 @@ const FIREBASE_CONFIG = {
 - Se inicializó repositorio Git con `.gitignore`
 - URL pública: [https://presupuesto-cddeb.web.app](https://presupuesto-cddeb.web.app)
 **Por qué:** La app ahora está disponible online. Para actualizar solo hay que ejecutar `firebase deploy --only hosting`.
+
+## 20. Bugfixes — Comparación de IDs, randomUUID, SW cache
+**Archivos:** `index.html`, `sw.js`  
+**Qué:**
+- Se normalizaron las comparaciones de IDs con `String(t.id) === String(id)` para que funcionen tanto con IDs numéricos (datos de ejemplo) como string (`crypto.randomUUID()`)
+- Se creó `generateId()` como fallback cuando `crypto.randomUUID()` no está disponible (protocolo `file://`)
+- Se agregaron los iconos SVG al cache del Service Worker
+**Por qué:** Los botones de editar/eliminar no funcionaban porque `dataset` devuelve strings y los IDs de ejemplo eran números (`===` fallaba). `crypto.randomUUID()` lanza excepción en `file://`.
+
+## Bugs conocidos (no corregidos)
+- **Race condition Firebase**: Si agregas una transacción antes de que Firebase termine de sincronizar, la snapshot puede sobrescribir tus datos locales
+- **Undo frágil**: `undoData` es una sola variable; si eliminas 2 transacciones seguidas, el undo de la primera restaura la segunda
+- **Sin notificación de error de sync**: Si Firestore rechaza una escritura, el error se silencia y los datos quedan desincronizados

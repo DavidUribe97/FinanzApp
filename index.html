@@ -1257,6 +1257,9 @@ let undoData = null;
 let isDailyMode = true;
 
 function getToday() { return new Date(); }
+function generateId() {
+  try { return crypto.randomUUID(); } catch { return Date.now() + '-' + Math.random().toString(36).slice(2, 9); }
+}
 let currentMonth, currentYear;
 function resetMonthYear() {
   const t = getToday();
@@ -1386,7 +1389,7 @@ function addTransaction(data) {
 }
 
 function editTransaction(id, data) {
-  const idx = transactions.findIndex(tx => tx.id === id);
+  const idx = transactions.findIndex(tx => String(tx.id) === String(id));
   if (idx === -1) return;
   transactions[idx] = { ...transactions[idx], ...data };
   saveData();
@@ -1394,10 +1397,10 @@ function editTransaction(id, data) {
 }
 
 function deleteTransaction(id) {
-  const tx = transactions.find(t => t.id === id);
+  const tx = transactions.find(t => String(t.id) === String(id));
   if (!tx) return;
   undoData = { ...tx };
-  transactions = transactions.filter(t => t.id !== id);
+  transactions = transactions.filter(t => String(t.id) !== String(id));
   saveData();
   refreshAll();
   showToast(`"${tx.description || tx.category}" eliminado`, 'Deshacer', () => {
@@ -1957,7 +1960,7 @@ function importJSON(file) {
 }
 
 function openEditModal(id) {
-  const tx = transactions.find(t => t.id === id);
+  const tx = transactions.find(t => String(t.id) === String(id));
   if (!tx) return;
   editingId = id;
   $('editType').value = tx.type;
@@ -2161,7 +2164,7 @@ function init() {
     if (!selectedCategory) return showToast('Elige una categoría');
     const desc = dailyDesc.value.trim().replace(/<[^>]*>/g, '').slice(0, 100);
     const date = getToday().toISOString().slice(0, 10);
-    addTransaction({ id: crypto.randomUUID(), type: selectedType, amount, category: selectedCategory, description: desc, date, who: selectedWho });
+    addTransaction({ id: generateId(), type: selectedType, amount, category: selectedCategory, description: desc, date, who: selectedWho });
     saveLastCategory(selectedType, selectedCategory);
     dailyAmount.value = '';
     dailyDesc.value = '';
@@ -2265,7 +2268,7 @@ function init() {
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
     const sanitizedDesc = description.replace(/<[^>]*>/g, '').slice(0, 100);
-    addTransaction({ id: crypto.randomUUID(), type, amount, category, description: sanitizedDesc, date, who });
+    addTransaction({ id: generateId(), type, amount, category, description: sanitizedDesc, date, who });
     $('txForm').reset();
     $('txDate').valueAsDate = new Date();
     $('txCategory').value = '';

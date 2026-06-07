@@ -2,7 +2,9 @@ const CACHE = 'finanzapp-v1';
 const ASSETS = [
   'index.html',
   'chart.min.js',
-  'manifest.json'
+  'manifest.json',
+  'icon-192.svg',
+  'icon-512.svg'
 ];
 
 self.addEventListener('install', e => {
