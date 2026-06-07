@@ -1,4 +1,4 @@
-const CACHE = 'finanzapp-v1';
+const CACHE = 'finanzapp-v2';
 const ASSETS = [
   'index.html',
   'chart.min.js',

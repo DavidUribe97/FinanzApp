@@ -817,9 +817,9 @@ table tr:hover { background: var(--hover-bg); }
     </div>
 
     <div class="who-toggle" id="whoToggle">
-      <button data-who="yo" id="dailyWhoYo">Yo</button>
-      <button data-who="pareja" id="dailyWhoPareja">Pareja</button>
-      <button data-who="compartido" id="dailyWhoCompartido">Compartido</button>
+      <button data-who="yo" id="dailyWhoYo">David</button>
+      <button data-who="pareja" id="dailyWhoPareja">Laura</button>
+      <button data-who="compartido" id="dailyWhoCompartido">Compartido 👥</button>
     </div>
 
     <div class="cat-grid" id="catGrid"></div>
@@ -872,9 +872,9 @@ table tr:hover { background: var(--hover-bg); }
       </select>
       <select id="filterWho">
         <option value="todos">Todos</option>
-        <option value="yo">Yo</option>
-        <option value="pareja">Pareja</option>
-        <option value="compartido">Compartido</option>
+        <option value="yo">David</option>
+        <option value="pareja">Laura</option>
+        <option value="compartido">Compartido 👥</option>
       </select>
     </div>
 
@@ -902,9 +902,9 @@ table tr:hover { background: var(--hover-bg); }
           <div class="form-group">
             <label>Quién</label>
             <select id="txWho">
-              <option value="yo">Yo</option>
-              <option value="pareja">Pareja</option>
-              <option value="compartido">Compartido</option>
+              <option value="yo">David</option>
+              <option value="pareja">Laura</option>
+              <option value="compartido">Compartido 👥</option>
             </select>
           </div>
           <div class="form-group">
@@ -1041,11 +1041,12 @@ table tr:hover { background: var(--hover-bg); }
     </p>
     <form id="roomForm" autocomplete="off">
       <div class="form-group">
-        <label>Cambiar código de sala</label>
+        <label>Código de sala</label>
         <input type="text" id="roomCodeInput" placeholder="Ej: Pareja2024" maxlength="50" required>
       </div>
       <div class="btn-row">
-        <button type="submit" class="btn btn-primary">Cambiar sala</button>
+        <button type="submit" class="btn btn-primary">Entrar a sala</button>
+        <button type="button" class="btn btn-secondary" id="roomSkipBtn">Sin sincronización</button>
       </div>
     </form>
     <p style="margin-top:12px;font-size:12px;color:var(--text-muted)">
@@ -1079,9 +1080,9 @@ table tr:hover { background: var(--hover-bg); }
       <div class="form-group">
         <label>Quién</label>
         <select id="editWho">
-          <option value="yo">Yo</option>
-          <option value="pareja">Pareja</option>
-          <option value="compartido">Compartido</option>
+          <option value="yo">David</option>
+          <option value="pareja">Laura</option>
+          <option value="compartido">Compartido 👥</option>
         </select>
       </div>
       <div class="form-group">
@@ -1173,6 +1174,8 @@ let db = null;
 let roomCode = null;
 let pendingSyncs = 0;
 
+let roomCodeResolver = null;
+
 async function initFirebase() {
   if (firebaseInitialized) return;
   try {
@@ -1182,9 +1185,10 @@ async function initFirebase() {
     db = firebase.firestore();
     roomCode = localStorage.getItem(ROOM_KEY);
     if (!roomCode) {
-      roomCode = prompt('Código de sala (ej: "Pareja2024" — ambos deben usar el mismo):');
+      openRoomModal();
+      await new Promise(resolve => { roomCodeResolver = resolve; });
+      roomCode = localStorage.getItem(ROOM_KEY);
       if (!roomCode) { firebaseInitialized = true; updateSyncStatus(false); return; }
-      localStorage.setItem(ROOM_KEY, roomCode);
     }
     updateSyncStatus(true);
     await subscribeFirestore();
@@ -1198,9 +1202,13 @@ async function initFirebase() {
   }
 }
 
+function safeRoomCode(code) {
+  return encodeURIComponent(code);
+}
+
 function subscribeFirestore() {
   return new Promise(resolve => {
-    const ref = db.collection('rooms').doc(roomCode);
+    const ref = db.collection('rooms').doc(safeRoomCode(roomCode));
     firestoreUnsub = ref.onSnapshot(snap => {
       updateSyncStatus(true);
       if (snap.exists) {
@@ -1240,7 +1248,7 @@ async function syncToFirestore() {
   if (!db || !roomCode) return;
   if (!firebaseInitialized) { pendingSyncs++; return; }
   try {
-    await db.collection('rooms').doc(roomCode).set({
+    await db.collection('rooms').doc(safeRoomCode(roomCode)).set({
       transactions: transactions,
       budgets: budgets,
       categories: categoriesData,
@@ -1327,8 +1335,8 @@ function loadData() {
   transactions = raw ? JSON.parse(raw) : generateSampleData();
   const bRaw = localStorage.getItem(BUDGET_KEY);
   budgets = bRaw ? JSON.parse(bRaw) : {};
-  saveData();
-  saveBudgets();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+  localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets));
 }
 
 function saveData() {
@@ -2196,11 +2204,17 @@ function init() {
     localStorage.setItem(ROOM_KEY, roomCode);
     closeRoomModal();
     if (firestoreUnsub) { firestoreUnsub(); firestoreUnsub = null; }
-    subscribeFirestore();
-    showToast(`Sala cambiada a: ${roomCode}`);
+    if (roomCodeResolver) { roomCodeResolver(); roomCodeResolver = null; }
+    else { subscribeFirestore(); }
+    showToast(`Sala: ${roomCode}`);
+  });
+  $('roomSkipBtn').addEventListener('click', () => {
+    closeRoomModal();
+    if (roomCodeResolver) { roomCodeResolver(); roomCodeResolver = null; }
+    showToast('Modo offline — sin sincronización');
   });
   $('roomModal').addEventListener('click', e => {
-    if (e.target === $('roomModal')) closeRoomModal();
+    if (e.target === $('roomModal')) { closeRoomModal(); if (roomCodeResolver) { roomCodeResolver(); roomCodeResolver = null; } }
   });
 
   // Category manager
@@ -2359,6 +2373,8 @@ function init() {
   });
 
   if ('serviceWorker' in navigator) {
+    caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('finanzapp')).map(k => caches.delete(k))));
+    navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister())));
     navigator.serviceWorker.register('sw.js');
   }
 }
