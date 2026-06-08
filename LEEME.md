@@ -368,3 +368,13 @@ Luego abre `http://localhost:8080` en el navegador. Usar `file://` directo no fu
 - La tarjeta "Saldo total" en el modo análisis también refleja el acumulado
 - **No genera lecturas/escrituras extras a Firestore** — el cálculo es 100% local sobre los datos ya cargados en memoria
 **Por qué:** Para ver la situación financiera real acumulada, no solo el neto del mes aislado.
+
+## 24. GitHub — control de versiones
+
+**Archivos:** `.gitignore`
+**Qué:**
+- Se creó repositorio Git con historial completo (6 commits hasta v1.0.0)
+- Se agregó remote a GitHub: `https://github.com/DavidUribe97/FinanzApp`
+- Se subió la rama `master` y el tag `v1.0.0` (versión base funcional)
+- El remote URL se mantiene limpio (sin token), la autenticación se hizo con token de acceso personal (classic) con permiso `repo`
+**Por qué:** Backup del código, historial de cambios, y posibilidad de colaborar.
