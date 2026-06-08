@@ -408,6 +408,20 @@ Luego abre `http://localhost:8080` en el navegador. Usar `file://` directo no fu
 
 **Por qué:** Código más mantenible, legible y tolerante a errores sin cambiar el comportamiento externo.
 
+## 26. Refinamiento UI/UX + Bugfix
+
+**Archivo:** `index.html`
+
+**Qué:**
+- **Modo diario:** se eliminó el botón ✕ (eliminar). Solo queda ✏️ (editar). Eliminar solo desde modo análisis.
+- **Editar desde modo diario:** ya no cambia a modo análisis después de editar.
+- **Categorías en modo diario:** ahora son una fila horizontal deslizable (touch + drag con mouse), sin scrollbar visible. Se agregó `setupCategoryDragScroll()` para arrastrar con click sostenido.
+- **Selector de emojis:** reemplazó el input de texto por una cuadrícula de 8 columnas con ~160 emojis predefinidos (incluye streaming, transporte, salud, etc.). Al seleccionar un emoji, el picker se cierra automáticamente.
+- **Bugfix categorías:** al editar una categoría y cambiar su tipo (Gasto ↔ Ingreso), ahora la categoría se mueve al array correcto. Antes se quedaba pegada al tipo original ignorando el cambio.
+- **Emoji picker:** se oculta al seleccionar, se muestra al abrir el formulario. La cuadrícula filtra visualmente sin barra de scroll.
+
+**Por qué:** Mejora de experiencia de uso diario y corrección de bug que impedía cambiar el tipo de una categoría existente.
+
 ## 24. GitHub — control de versiones
 
 **Archivos:** `.gitignore`

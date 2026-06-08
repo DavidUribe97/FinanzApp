@@ -221,31 +221,36 @@ body {
 
 /* Category grid */
 .cat-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  display: flex;
   gap: 8px;
   margin-bottom: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
 }
-@media (max-width: 360px) {
-  .cat-grid { grid-template-columns: repeat(3, 1fr); }
-}
+.cat-grid::-webkit-scrollbar { display: none; }
 .cat-btn {
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 14px;
-  padding: 12px 4px;
+  padding: 10px 14px;
   text-align: center;
   cursor: pointer;
   transition: all 0.15s;
   font-family: inherit;
+  flex-shrink: 0;
+  min-width: 72px;
 }
 .cat-btn:active { transform: scale(0.94); }
 .cat-btn.selected {
   border-color: var(--accent-blue);
   background: rgba(79, 142, 247, 0.1);
 }
-.cat-btn .emoji { font-size: 26px; display: block; margin-bottom: 2px; }
-.cat-btn .name { font-size: 11px; color: var(--text-secondary); font-weight: 500; display: block; }
+.cat-btn .emoji { font-size: 22px; display: block; margin-bottom: 1px; }
+.cat-btn .name { font-size: 10px; color: var(--text-secondary); font-weight: 500; display: block; white-space: nowrap; }
 
 /* Amount input row */
 .amount-row {
@@ -774,6 +779,30 @@ table tr:hover { background: var(--hover-bg); }
 .cat-manager-item .cm-actions .cm-del:active { color: var(--accent-red); }
 .cat-manager-item .cm-actions .cm-edit:active { color: var(--accent-blue); }
 #catManagerList { max-height: 320px; overflow-y: auto; }
+.emoji-picker {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+  max-height: 140px;
+  overflow-y: auto;
+  padding: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-top: 4px;
+}
+.emoji-picker button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 2px;
+  border-radius: 6px;
+  transition: background 0.1s;
+  line-height: 1;
+}
+.emoji-picker button:hover { background: var(--hover-bg); }
+.emoji-picker button.selected { background: rgba(79, 142, 247, 0.2); }
 .file-input-hidden { display: none; }
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
@@ -991,7 +1020,8 @@ table tr:hover { background: var(--hover-bg); }
             </div>
             <div class="form-group" style="flex:0.3">
               <label>Icono</label>
-              <input type="text" id="catManagerEmoji" placeholder="🍕" maxlength="2" style="text-align:center;font-size:20px">
+              <input type="text" id="catManagerEmoji" placeholder="🍕" maxlength="2" style="text-align:center;font-size:20px;display:none">
+              <div class="emoji-picker" id="emojiPicker"></div>
             </div>
           </div>
           <div class="form-row">
@@ -1332,6 +1362,26 @@ const ANIMATION_INTERVAL_MS = 20;
 const CHART_COLORS = ['#00d4aa','#ff4d6d','#f5c842','#4f8ef7','#a855f7','#f97316','#06b6d4','#e11d48','#84cc16','#d946ef','#14b8a6','#f43f5e','#8b5cf6'];
 const FIRESTORE_COLLECTION = 'rooms';
 
+const EMOJIS = [
+  '🍕','🥩','🥗','🥦','🍎','🥑','🍞','🧀','🥤','☕','🍷',
+  '🏠','🏢','🛋️','🛏️','🚿','🧹','🔧','💡','🔌',
+  '🚌','🚗','🚕','✈️','🚂','🛵','⛽','🅿️','🚲',
+  '💊','🏥','🩺','🧬','🦷','👁️','💪','🧠',
+  '📚','📖','🎓','✏️','📝','💻','🖥️','📱','⌨️',
+  '🎮','🎬','🎵','🎧','📺','🎤','🎸','🎳','🎯',
+  '👕','👖','👗','👟','🧢','💍','⌚','👜',
+  '🐷','💰','💳','📈','🏦','📊','💎','🏆',
+  '📦','🛒','🎁','📮','📋','📌','✂️','🖍️',
+  '💼','👔','📞','📨','🤝','📅','🗂️','📎',
+  '🏘️','🌳','🐾','🌸','🌞','🌙','⭐','🌈',
+  '🎂','🎉','🎊','🎀','🕯️','🪴','🧸','📸',
+  '🏋️','⚽','🏀','🎾','🏃','🧘','⛰️','🏖️',
+  '🐶','🐱','🐰','🦊','🐻','🐼','🐨','🦁',
+  '🚽','🧻','🪥','🧴','🪒','💄','🛁','🧽',
+  '🍺','🍹','🥂','🍸','🧊','🎪','🎠','🎡',
+  '🎲','♟️','🧩','🎭','🎨','🎼','🎹','🥁'
+];
+
 /**
  * Elimina etiquetas HTML y trunca a longitud máxima.
  * @param {string} str
@@ -1364,6 +1414,27 @@ function downloadBlob(blob, filename) {
   a.download = filename;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+/**
+ * Renderiza el selector de emojis para categorías personalizadas.
+ * @param {string} [selected='📋'] - Emoji actualmente seleccionado
+ */
+function renderEmojiPicker(selected) {
+  const picker = $('emojiPicker');
+  if (!picker) return;
+  picker.style.display = 'grid';
+  picker.innerHTML = EMOJIS.map(e =>
+    `<button data-emoji="${e}" class="${e === (selected || '📋') ? 'selected' : ''}">${e}</button>`
+  ).join('');
+  picker.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      picker.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      $('catManagerEmoji').value = btn.dataset.emoji;
+      picker.style.display = 'none';
+    });
+  });
 }
 
 // ===== SYNC STATUS =====
@@ -1618,6 +1689,32 @@ function renderDailyCategories() {
       $('dailyAmount').focus();
     });
   });
+  setupCategoryDragScroll(grid);
+}
+
+function setupCategoryDragScroll(container) {
+  let isDown = false, startX, scrollLeft;
+  container.addEventListener('mousedown', e => {
+    isDown = true;
+    startX = e.pageX - container.offsetLeft;
+    scrollLeft = container.scrollLeft;
+    container.style.cursor = 'grabbing';
+  });
+  container.addEventListener('mouseleave', () => {
+    isDown = false;
+    container.style.cursor = '';
+  });
+  container.addEventListener('mouseup', () => {
+    isDown = false;
+    container.style.cursor = '';
+  });
+  container.addEventListener('mousemove', e => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - container.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    container.scrollLeft = scrollLeft - walk;
+  });
 }
 
 function updateTypeToggle() {
@@ -1729,19 +1826,14 @@ function renderDailyFeed() {
           </div>
           <div class="feed-amount ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${tx.type === 'ingreso' ? '+' : '-'}${formatCOPShort(tx.amount)}</div>
           <button class="feed-del-btn" data-edit="${tx.id}" title="Editar">✏️</button>
-          <button class="feed-del-btn" data-del="${tx.id}" title="Eliminar">✕</button>
         </div>
       `;
     });
   });
   list.innerHTML = html;
 
-  list.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', () => deleteTransaction(btn.dataset.del));
-  });
   list.querySelectorAll('[data-edit]').forEach(btn => {
     btn.addEventListener('click', () => {
-      if (isDailyMode) setMode(false);
       openEditModal(btn.dataset.edit);
     });
   });
@@ -2227,6 +2319,7 @@ function renderCatManager() {
       $('catManagerName').value = cat.name;
       $('catManagerEditId').value = `${type}:${idx}`;
       $('catManagerForm').style.display = 'block';
+      renderEmojiPicker(cat.emoji);
       $('catManagerName').focus();
     });
   });
@@ -2381,6 +2474,7 @@ function setupCategoryManager() {
     $('catManagerEmoji').value = '📋';
     $('catManagerName').value = '';
     $('catManagerEditId').value = '';
+    renderEmojiPicker('📋');
     $('catManagerName').focus();
   });
   $('catManagerCancel').addEventListener('click', () => {
@@ -2391,12 +2485,18 @@ function setupCategoryManager() {
     const name = sanitizeStr($('catManagerName').value, 50);
     const emoji = sanitizeStr($('catManagerEmoji').value || '📋', 10);
     if (!name) return showToast('Escribe un nombre para la categoría');
+    if (!emoji) return showToast('Selecciona un icono');
     const editId = $('catManagerEditId').value;
     if (editId) {
-      const [editType, editIdx] = editId.split(':');
-      const idx = parseInt(editIdx);
-      const oldName = categoriesData[editType][idx]?.name;
-      categoriesData[editType][idx] = { name, emoji };
+      const [origType, origIdx] = editId.split(':');
+      const idx = parseInt(origIdx);
+      const oldName = categoriesData[origType][idx]?.name;
+      if (origType !== type) {
+        categoriesData[origType].splice(idx, 1);
+        categoriesData[type].push({ name, emoji });
+      } else {
+        categoriesData[origType][idx] = { name, emoji };
+      }
       saveCategories();
       if (oldName && oldName !== name) {
         transactions.forEach(tx => {
