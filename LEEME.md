@@ -13,7 +13,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 
 | Componente | Detalle |
 |---|---|
-| HTML | Un solo archivo (`index.html`, ~3050 líneas) |
+| HTML | Un solo archivo (`index.html`, ~3090 líneas) |
 | CSS | Variables CSS, tema oscuro/claro, responsive, animaciones |
 | JS | JavaScript vanilla, sin frameworks ni build tools |
 | Charts | Chart.js v4.4.7 local (`chart.min.js`, 202KB) |
@@ -150,88 +150,89 @@ Organizadas por tipo para que un agente encuentre rápido lo que necesita modifi
 
 | Función | Archivo:línea | Qué hace |
 |---------|--------------|----------|
-| `loadData()` | `index.html:~1400` | Carga transactions/budgets desde localStorage. Si está corrupto, genera datos de ejemplo |
-| `saveData()` | `index.html:~1410` | Guarda transactions en localStorage + sync a Firestore |
-| `saveBudgets()` | `index.html:~1415` | Guarda budgets en localStorage + sync a Firestore |
-| `saveCategories()` | — | Guarda categoriesData en localStorage + sync a Firestore |
-| `generateSampleData()` | `index.html:~1434` | Genera 10 transacciones de ejemplo para el mes actual |
-| `getFilteredTransactions(month, year)` | `index.html:~1391` | Filtra transactions por mes/año |
-| `getCumulativeBalance(month, year)` | `index.html:~1415` | Calcula saldo acumulado de TODOS los meses anteriores |
-| `addTransaction(data)` | `index.html:~1411` | Agrega transacción, guarda y refresca |
-| `editTransaction(id, data)` | `index.html:~1417` | Edita transacción por ID, guarda y refresca |
-| `deleteTransaction(id)` | `index.html:~1446` | Elimina con deshacer vía toast |
-| `generateId()` | `index.html:~1291` | `crypto.randomUUID()` con fallback para `file://` |
-| `isValidTx(tx)` | `index.html:~1983` | Valida estructura de una transacción |
-| `isValidCategories(cats)` | `index.html:~2405` | Valida estructura de categorías (incluye subcats como `{name, emoji}`) |
-| `updateSubcategories(typeId, catId, subcatId)` | `index.html:~2508` | Actualiza `<select>` de subcategorías al cambiar tipo/categoría |
-| `renderSubcatList(type, idx)` | `index.html:~2584` | Lista inline de subcategorías con emoji + ✏️ + × |
-| `importJSON(file)` | `index.html:~2090` | Importa respaldo JSON con validación de esquema completa |
+| `loadData()` | `index.html:~1677` | Carga transactions/budgets desde localStorage. Si está corrupto, genera datos de ejemplo |
+| `saveData()` | `index.html:~1697` | Guarda transactions en localStorage + sync a Firestore |
+| `saveBudgets()` | `index.html:~1705` | Guarda budgets en localStorage + sync a Firestore |
+| `saveCategories()` | `index.html:~1336` | Guarda categoriesData en localStorage + sync a Firestore |
+| `generateSampleData()` | `index.html:~1714` | Genera 10 transacciones de ejemplo para el mes actual |
+| `getFilteredTransactions(month, year)` | `index.html:~1746` | Filtra transactions por mes/año |
+| `getCumulativeBalance(month, year)` | `index.html:~1777` | Calcula saldo acumulado de TODOS los meses anteriores |
+| `addTransaction(data)` | `index.html:~1794` | Agrega transacción, guarda y refresca |
+| `editTransaction(id, data)` | `index.html:~1800` | Edita transacción por ID, guarda y refresca |
+| `deleteTransaction(id)` | `index.html:~1808` | Elimina con deshacer vía toast |
+| `generateId()` | `index.html:~1511` | `crypto.randomUUID()` con fallback para `file://` |
+| `isValidTx(tx)` | `index.html:~2432` | Valida estructura de una transacción |
+| `isValidCategories(cats)` | `index.html:~2442` | Valida estructura de categorías (incluye subcats como `{name, emoji}`) |
+| `updateSubcategories(typeId, catId, subcatId)` | `index.html:~2544` | Actualiza `<select>` de subcategorías al cambiar tipo/categoría |
+| `renderSubcatList(type, idx)` | `index.html:~2622` | Lista inline de subcategorías con emoji + ✏️ + × |
+| `importJSON(file)` | `index.html:~2474` | Importa respaldo JSON con validación de esquema completa |
 
 ### Firebase / Sync
 
 | Función | Archivo:línea | Qué hace |
 |---------|--------------|----------|
-| `initFirebase()` | `index.html:~1190` | Inicializa Firebase Auth + Firestore. Si falla, modo offline |
-| `subscribeFirestore()` | `index.html:~1220` | `onSnapshot` en tiempo real. No sobreescribe si hay `pendingSyncs` |
-| `syncToFirestore()` | `index.html:~1258` | Sube transactions+budgets+categories a Firestore |
-| `flushPendingSyncs()` | `index.html:~1274` | Vacía cola de syncs pendientes cuando Firebase se conecta |
-| `safeRoomCode(code)` | `index.html:~1216` | `encodeURIComponent` para códigos de sala con caracteres especiales |
-| `firstTimeSetup(ref, resolve)` | `index.html:~1244` | Crea el documento Firestore la primera vez que se abre una sala |
-| `updateSyncStatus(connected)` | `index.html:~1315` | Actualiza indicador visual ● conectado / ○ desconectado |
-| `openRoomModal()` / `closeRoomModal()` | `index.html:~1328` | Modal para ingresar/cambiar código de sala |
+| `initFirebase()` | `index.html:~1400` | Inicializa Firebase Auth + Firestore. Si falla, modo offline |
+| `subscribeFirestore()` | `index.html:~1430` | `onSnapshot` en tiempo real. No sobreescribe si hay `pendingSyncs` |
+| `syncToFirestore()` | `index.html:~1478` | Sube transactions+budgets+categories a Firestore |
+| `flushPendingSyncs()` | `index.html:~1494` | Vacía cola de syncs pendientes cuando Firebase se conecta |
+| `safeRoomCode(code)` | `index.html:~1426` | `encodeURIComponent` para códigos de sala con caracteres especiales |
+| `firstTimeSetup(ref, resolve)` | `index.html:~1463` | Crea el documento Firestore la primera vez que se abre una sala |
+| `updateSyncStatus(connected)` | `index.html:~1642` | Actualiza indicador visual ● conectado / ○ desconectado |
+| `openRoomModal()` / `closeRoomModal()` | `index.html:~1655` / `~1661` | Modal para ingresar/cambiar código de sala |
 
 ### Renderizado (UI)
 
 | Función | Archivo:línea | Qué hace |
 |---------|--------------|----------|
-| `renderDailyBalance(animate)` | `index.html:~1639` | Tarjeta de saldo total con arrastre de meses anteriores |
-| `renderDailyFeed()` | `index.html:~1685` | Feed del modo diario agrupado por fecha (Hoy/Ayer/fecha) |
-| `renderDailyCategories()` | `index.html:~1598` | Categorías en fila horizontal deslizable |
-| `renderDailySubcategories()` | `index.html:~1893` | Subcategorías en fila horizontal debajo de la categoría seleccionada |
-| `renderSummary()` | `index.html:~1756` | Tarjetas de resumen (ingresos, gastos, saldo total) del modo análisis |
-| `renderTable()` | `index.html:~1790` | Tabla de transacciones con búsqueda y filtros |
-| `renderCharts()` | `index.html:~1828` | Gráfico dona (gastos por categoría) + barras (ingresos/gastos semanal) |
-| `renderLineChart()` | `index.html:~1912` | Gráfico de línea: evolución del saldo 12 meses |
-| `renderBudgets()` | `index.html:~1962` | Barras de progreso de presupuestos por categoría |
-| `renderStats()` | `index.html:~2008` | Estadísticas (gasto diario, top categoría, vs mes anterior) |
-| `renderCatManager()` | `index.html:~2276` | Lista de categorías con opciones editar/eliminar |
-| `renderEmojiPicker(selected)` | `index.html:~1396` | Selector visual de emojis en cuadrícula |
-| `setupCategoryDragScroll(container)` | `index.html:~1656` | Drag-to-scroll con mouse para categorías |
-| `refreshAll(animate)` | `index.html:~2116` | Refresca TODAS las vistas |
+| `renderDailyBalance(animate)` | `index.html:~1998` | Tarjeta de saldo total con arrastre de meses anteriores |
+| `renderDailyFeed()` | `index.html:~2035` | Feed del modo diario agrupado por fecha (Hoy/Ayer/fecha) |
+| `renderDailyCategories()` | `index.html:~1885` | Categorías en fila horizontal deslizable |
+| `renderDailySubcategories()` | `index.html:~1928` | Subcategorías en fila horizontal debajo de la categoría seleccionada |
+| `renderSummary()` | `index.html:~2113` | Tarjetas de resumen (ingresos, gastos, saldo total) del modo análisis |
+| `renderTable()` | `index.html:~2129` | Tabla de transacciones con búsqueda y filtros |
+| `renderCharts()` | `index.html:~2166` | Gráfico dona (gastos por categoría) + barras (ingresos/gastos semanal) |
+| `renderLineChart()` | `index.html:~2250` | Gráfico de línea: evolución del saldo 12 meses |
+| `renderBudgets()` | `index.html:~2300` | Barras de progreso de presupuestos por categoría |
+| `renderStats()` | `index.html:~2344` | Estadísticas (gasto diario, top categoría, vs mes anterior) |
+| `renderCatManager()` | `index.html:~2565` | Lista de categorías con opciones editar/eliminar |
+| `renderEmojiPicker(selected, onSelect, pickerId)` | `index.html:~1620` | Selector visual de emojis en cuadrícula |
+| `setupCategoryDragScroll(container)` | `index.html:~1951` | Drag-to-scroll con mouse para categorías |
+| `refreshAll(animate)` | `index.html:~2717` | Refresca TODAS las vistas |
 
 ### Inicialización (event listeners)
 
 | Función | Archivo:línea | Qué hace |
 |---------|--------------|----------|
-| `init()` | `index.html:~2402` | Punto de entrada. Carga datos, Firebase, renderiza, registra eventos |
-| `setupNavigation()` | `index.html:~2343` | Navegación meses, botones sala/modo/tema |
-| `setupDailyMode()` | `index.html:~2359` | Toggles tipo/quién + agregar transacción diaria |
-| `setupRoomModal()` | `index.html:~2436` | Formulario código de sala |
-| `setupCategoryManager()` | `index.html:~2460` | CRUD de categorías |
-| `setupAnalysisForm()` | `index.html:~2520` | Formularios análisis, edición, filtros, presupuestos, export/import |
-| `registerServiceWorker()` | `index.html:~2610` | Registra SW + limpia caches viejas |
+| `init()` | `index.html:~3066` | Punto de entrada. Carga datos, Firebase, renderiza, registra eventos |
+| `setupNavigation()` | `index.html:~2738` | Navegación meses, botones sala/modo/tema |
+| `setupDailyMode()` | `index.html:~2754` | Toggles tipo/quién + agregar transacción diaria |
+| `setupRoomModal()` | `index.html:~2802` | Formulario código de sala |
+| `setupCategoryManager()` | `index.html:~2826` | CRUD de categorías |
+| `setupAnalysisForm()` | `index.html:~2953` | Formularios análisis, edición, filtros, presupuestos, export/import |
+| `registerServiceWorker()` | `index.html:~3058` | Registra SW + limpia caches viejas |
 
 ### Helpers
 
 | Función | Archivo:línea | Qué hace |
 |---------|--------------|----------|
-| `$(id)` | `index.html:~1302` | Atajo para `document.getElementById(id)` |
-| `esc(s)` | `index.html:~1304` | Escape HTML (XSS prevention) |
-| `formatCOP(n)` | `index.html:~1306` | Formatea número a COP usando `Intl.NumberFormat` |
-| `formatCOPShort(n)` | `index.html:~1308` | Versión corta (1.5M, 250K, etc.) |
-| `sanitizeStr(str, maxLen)` | `index.html:~1332` | Elimina HTML + trunca |
-| `validateAmount(amount)` | `index.html:~1340` | Valida monto positivo dentro del límite |
-| `downloadBlob(blob, filename)` | `index.html:~1356` | Descarga un Blob como archivo |
-| `getToday()` | `index.html:~1290` | `new Date()` fresco (evita desfase al pasar medianoche) |
-| `showToast(msg, label, fn)` | `index.html:~1542` | Toast con opción de acción (ej. Deshacer) |
-| `dismissAllToasts()` | `index.html:~1576` | Cierra todos los toasts activos |
-| `getWhoLabel(who)` | `index.html:~1339` | Traduce 'yo'/'pareja'/'compartido' a 'David'/'Laura'/'Compartido 👥' |
-| `loadTheme()` / `toggleTheme()` | `index.html:~2328` | Tema oscuro/claro con persistencia |
-| `getCatNames(type)` | `index.html:~1317` | Lista de nombres de categorías por tipo |
-| `getCatEmoji(name)` | `index.html:~1321` | Emoji de una categoría por nombre |
-| `getSubCatNames(type, catName)` | `index.html:~1329` | Lista de nombres de subcategorías por categoría |
-| `getSubCatEmoji(type, catName, subName)` | `index.html:~1335` | Emoji de una subcategoría (fallback al emoji de categoría) |
-| `migrateSubcats()` | `index.html:~1301` | Migra subcats de string[] a {name, emoji}[] (retrocompatible) |
+| `$(id)` | `index.html:~1522` | Atajo para `document.getElementById(id)` |
+| `esc(s)` | `index.html:~1524` | Escape HTML (XSS prevention) |
+| `formatCOP(n)` | `index.html:~1526` | Formatea número a COP usando `Intl.NumberFormat` |
+| `formatCOPShort(n)` | `index.html:~1528` | Versión corta (1.5M, 250K, etc.) |
+| `sanitizeStr(str, maxLen)` | `index.html:~1588` | Elimina HTML + trunca |
+| `validateAmount(amount)` | `index.html:~1597` | Valida monto positivo dentro del límite |
+| `downloadBlob(blob, filename)` | `index.html:~1608` | Descarga un Blob como archivo |
+| `getToday()` | `index.html:~1510` | `new Date()` fresco (evita desfase al pasar medianoche) |
+| `showToast(msg, label, fn)` | `index.html:~1825` | Toast con opción de acción (ej. Deshacer) |
+| `dismissAllToasts()` | `index.html:~1849` | Cierra todos los toasts activos |
+| `showConfirmModal(msg)` | `index.html:~1853` | Modal de confirmación personalizado (retorna Promise<boolean>) |
+| `getWhoLabel(who)` | `index.html:~1666` | Traduce 'yo'/'pareja'/'compartido' a 'David'/'Laura'/'Compartido 👥' |
+| `loadTheme()` / `toggleTheme()` | `index.html:~2688` / `~2693` | Tema oscuro/claro con persistencia |
+| `getCatNames(type)` | `index.html:~1341` | Lista de nombres de categorías por tipo |
+| `getCatEmoji(name)` | `index.html:~1345` | Emoji de una categoría por nombre |
+| `getSubCatNames(type, catName)` | `index.html:~1353` | Lista de nombres de subcategorías por categoría |
+| `getSubCatEmoji(type, catName, subName)` | `index.html:~1359` | Emoji de una subcategoría (fallback al emoji de categoría) |
+| `migrateSubcats()` | `index.html:~1325` | Migra subcats de string[] a {name, emoji}[] (retrocompatible) |
 
 ---
 
@@ -296,6 +297,7 @@ Organizadas por tipo para que un agente encuentre rápido lo que necesita modifi
 | `getSubCatEmoji()` retorna `''` si no encuentra categoría | Feed muestra emoji vacío en transacciones huérfanas | Fallback a `getCatEmoji()` | — |
 | Acumulación de listeners drag-scroll en `catGrid`/`subcatGrid` | Scroll se vuelve errático al navegar entre modos | Guard `dataset.dragInit` para inicializar una sola vez | — |
 | Emoji picker no se cierra al cancelar/guardar edición | Picker queda abierto tapando la UI | `style.display: 'none'` en todos los flujos de salida | — |
+| `confirm()` nativo rompe estética de la app | Diálogos del navegador (alert/confirm) en medio de la UI | `showConfirmModal()` — modal personalizado con promesas | — |
 
 ---
 
@@ -460,6 +462,7 @@ R: No. La data en Firestore persiste. Solo la cuenta anónima se limpia, pero al
 - [x] ~~Subcategorías jerárquicas (nombre + emoji) en categorías~~
 - [x] ~~Subcategorías seleccionables en modo diario y análisis~~
 - [x] ~~Feed muestra subcategoría (emoji + nombre) en transacciones~~
+- [x] ~~`confirm()` nativo reemplazado por modal personalizado `showConfirmModal()`~~
 - [ ] **Layout análisis responsive** — mejorar distribución en pantallas muy pequeñas
 - [ ] **Alertas de presupuesto** — notificación al superar 80%/100%
 - [ ] **Exportar reporte anual** (PDF o HTML)

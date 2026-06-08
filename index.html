@@ -288,6 +288,12 @@ body {
 .subcat-btn .name { font-size: 9px; color: var(--text-muted); font-weight: 400; display: block; white-space: nowrap; }
 
 /* Amount input row */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
 .amount-row {
   display: flex;
   gap: 8px;
@@ -746,6 +752,7 @@ table tr:hover { background: var(--hover-bg); }
   font-weight: 700;
   color: var(--accent-gold);
 }
+button, select, input[type=submit] { touch-action: manipulation; }
 .stat-card .stat-label {
   font-size: 11px;
   color: var(--text-secondary);
@@ -788,6 +795,12 @@ table tr:hover { background: var(--hover-bg); }
   border: 1px solid var(--border);
 }
 .btn-secondary:hover { border-color: var(--accent-blue); }
+.btn-danger {
+  background: var(--accent-red);
+  color: #fff;
+  border: none;
+}
+.btn-danger:hover { opacity: 0.9; }
 .cat-manager-item {
   display: flex;
   align-items: center;
@@ -1015,7 +1028,7 @@ table tr:hover { background: var(--hover-bg); }
     <div class="content-grid">
       <div class="panel">
         <h3>Nueva transacción</h3>
-        <form id="txForm" autocomplete="off">
+        <form id="txForm" autocomplete="off" novalidate>
           <div class="form-row">
             <div class="form-group">
               <label>Tipo</label>
@@ -1191,7 +1204,7 @@ table tr:hover { background: var(--hover-bg); }
     <p style="margin-bottom:14px;color:var(--text-secondary);font-size:14px">
       Código de sala actual: <strong id="roomCodeDisplay" style="color:var(--accent-gold)"></strong>
     </p>
-    <form id="roomForm" autocomplete="off">
+    <form id="roomForm" autocomplete="off" novalidate>
       <div class="form-group">
         <label>Código de sala</label>
         <input type="text" id="roomCodeInput" placeholder="Ej: Pareja2024" maxlength="50" required>
@@ -1211,7 +1224,7 @@ table tr:hover { background: var(--hover-bg); }
 <div class="modal-overlay" id="editModal">
   <div class="modal">
     <h2>Editar transacción</h2>
-    <form id="editForm" autocomplete="off">
+    <form id="editForm" autocomplete="off" novalidate>
       <div class="form-row">
         <div class="form-group">
           <label>Tipo</label>
@@ -1254,6 +1267,17 @@ table tr:hover { background: var(--hover-bg); }
         <button type="submit" class="btn btn-primary">Guardar</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <p id="confirmMsg" style="font-size:15px;line-height:1.5;margin-bottom:20px"></p>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="confirmCancel">Cancelar</button>
+      <button class="btn btn-danger" id="confirmOk">Aceptar</button>
+    </div>
   </div>
 </div>
 
@@ -1823,7 +1847,18 @@ function dismiss(el) {
 }
 
 function dismissAllToasts() {
-  document.querySelectorAll('.toast').forEach(dismiss);
+  $('toastContainer').querySelectorAll('.toast').forEach(dismiss);
+}
+
+function showConfirmModal(msg) {
+  return new Promise(resolve => {
+    $('confirmMsg').textContent = msg;
+    $('confirmModal').classList.add('active');
+    const cleanup = () => { $('confirmModal').classList.remove('active'); };
+    $('confirmOk').onclick = () => { cleanup(); resolve(true); };
+    $('confirmCancel').onclick = () => { cleanup(); resolve(false); };
+    $('confirmModal').onclick = e => { if (e.target === $('confirmModal')) { cleanup(); resolve(false); } };
+  });
 }
 
 // ===== DAILY MODE =====
@@ -2439,7 +2474,7 @@ function isValidBudgets(budgets) {
 function importJSON(file) {
   showToast('Importando…');
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     try {
       const data = JSON.parse(e.target.result);
       if (!data || typeof data !== 'object') throw new Error('Datos inválidos');
@@ -2452,10 +2487,9 @@ function importJSON(file) {
       if (data.categories && !isValidCategories(data.categories)) {
         throw new Error('Categorías inválidas');
       }
-      if (!confirm(`¿Importar ${data.transactions.length} transacciones? Se reemplazarán los datos actuales.`)) {
-        dismissAllToasts();
-        return;
-      }
+      dismissAllToasts();
+      const ok = await showConfirmModal(`¿Importar ${data.transactions.length} transacciones? Se reemplazarán los datos actuales.`);
+      if (!ok) return;
       transactions = data.transactions;
       if (data.budgets) budgets = data.budgets;
       if (data.categories) { categoriesData = data.categories; saveCategories(); }
@@ -2550,12 +2584,13 @@ function renderCatManager() {
   list.innerHTML = html || '<div class="empty-msg" style="padding:12px">Sin categorías</div>';
 
   list.querySelectorAll('.cm-del').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const type = btn.dataset.type;
       const idx = parseInt(btn.dataset.idx);
       const cat = categoriesData[type][idx];
       if (!cat) return;
-      if (!confirm(`¿Eliminar "${cat.name}"? Las transacciones con esta categoría no se modificarán.`)) return;
+      const ok = await showConfirmModal(`¿Eliminar "${cat.name}"? Las transacciones con esta categoría no se modificarán.`);
+      if (!ok) return;
       categoriesData[type].splice(idx, 1);
       saveCategories();
       renderCatManager();
@@ -2789,8 +2824,9 @@ function setupRoomModal() {
 }
 
 function setupCategoryManager() {
-  $('resetCategoriesBtn').addEventListener('click', () => {
-    if (!confirm('¿Restaurar categorías por defecto? Se perderán las personalizadas.')) return;
+  $('resetCategoriesBtn').addEventListener('click', async () => {
+    const ok = await showConfirmModal('¿Restaurar categorías por defecto? Se perderán las personalizadas.');
+    if (!ok) return;
     categoriesData = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
     saveCategories();
     renderCatManager();
@@ -2972,8 +3008,9 @@ function setupAnalysisForm() {
     showToast(`Presupuesto de ${cat}: ${formatCOP(amount)}`);
   });
 
-  $('resetBudgets').addEventListener('click', () => {
-    if (!confirm('¿Resetear todos los presupuestos?')) return;
+  $('resetBudgets').addEventListener('click', async () => {
+    const ok = await showConfirmModal('¿Resetear todos los presupuestos?');
+    if (!ok) return;
     budgets = {};
     saveBudgets();
     updateBudgetCategorySelect();
