@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0e1a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://identitytoolkit.googleapis.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; img-src 'self' data:; font-src 'self'; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://identitytoolkit.googleapis.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com; img-src 'self' data:; font-src 'self'; manifest-src 'self'">
 <link rel="manifest" href="manifest.json">
 <title>FinanzApp</title>
 <script src="chart.min.js"></script>
@@ -152,6 +152,15 @@ body {
 .balance-mini-item { display: flex; align-items: center; gap: 4px; }
 .balance-mini-item .up { color: var(--accent-green); font-weight: 600; }
 .balance-mini-item .down { color: var(--accent-red); font-weight: 600; }
+.balance-carried {
+  font-size: 13px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+}
+.balance-carried .positive { color: var(--accent-green); }
+.balance-carried .negative { color: var(--accent-red); }
 
 /* Type toggle */
 .type-toggle {
@@ -804,12 +813,13 @@ table tr:hover { background: var(--hover-bg); }
   <!-- ===== DAILY VIEW ===== -->
   <div id="dailyView">
     <div class="balance-card">
-      <div class="balance-label">Saldo del mes</div>
+      <div class="balance-label">Saldo total</div>
       <div class="balance-amount" id="dailyBalance">$0</div>
       <div class="balance-mini">
         <div class="balance-mini-item">↑ <span class="up" id="dailyIngresos">$0</span></div>
         <div class="balance-mini-item">↓ <span class="down" id="dailyGastos">$0</span></div>
       </div>
+      <div class="balance-carried" id="balanceCarried" style="display:none"></div>
     </div>
 
     <div class="type-toggle" id="typeToggle">
@@ -855,7 +865,7 @@ table tr:hover { background: var(--hover-bg); }
         <div class="value" id="totalGastos">$0</div>
       </div>
       <div class="card saldo">
-        <div class="label">Saldo</div>
+        <div class="label">Saldo total</div>
         <div class="value" id="saldoNeto">$0</div>
       </div>
       <div class="card count">
@@ -1402,6 +1412,17 @@ function getDisplayTransactions() {
   }).sort((a, b) => b.date.localeCompare(a.date));
 }
 
+function getCumulativeBalance(month, year) {
+  let balance = 0;
+  transactions.forEach(tx => {
+    const d = new Date(tx.date + 'T00:00:00');
+    if (d.getFullYear() < year || (d.getFullYear() === year && d.getMonth() < month)) {
+      balance += tx.type === 'ingreso' ? tx.amount : -tx.amount;
+    }
+  });
+  return balance;
+}
+
 function getMonthRange(month, year) {
   const start = new Date(year, month, 1);
   const end = new Date(year, month + 1, 0);
@@ -1529,14 +1550,24 @@ function renderDailyBalance(animate = false) {
   const filtered = getFilteredTransactions(currentMonth, currentYear);
   const totalIngresos = filtered.filter(tx => tx.type === 'ingreso').reduce((s, t) => s + t.amount, 0);
   const totalGastos = filtered.filter(tx => tx.type === 'gasto').reduce((s, t) => s + t.amount, 0);
-  const saldo = totalIngresos - totalGastos;
+  const carryBalance = getCumulativeBalance(currentMonth, currentYear);
+  const saldoTotal = carryBalance + totalIngresos - totalGastos;
   const el = $('dailyBalance');
   $('dailyIngresos').textContent = formatCOP(totalIngresos);
   $('dailyGastos').textContent = formatCOP(totalGastos);
+  const carriedEl = $('balanceCarried');
+  if (carryBalance !== 0) {
+    const label = carryBalance > 0 ? 'Saldo a favor mes anterior' : 'Deuda mes anterior';
+    const cls = carryBalance > 0 ? 'positive' : 'negative';
+    carriedEl.innerHTML = `<span class="${cls}">${label}: ${formatCOP(Math.abs(carryBalance))}</span>`;
+    carriedEl.style.display = 'block';
+  } else {
+    carriedEl.style.display = 'none';
+  }
   if (animate) {
     const oldText = el.textContent;
     const oldVal = parseInt(oldText.replace(/[^0-9-]/g, '')) || 0;
-    const diff = saldo - oldVal;
+    const diff = saldoTotal - oldVal;
     const steps = 20;
     let i = 0;
     const interval = setInterval(() => {
@@ -1544,11 +1575,11 @@ function renderDailyBalance(animate = false) {
       const current = oldVal + (diff * i / steps);
       el.textContent = formatCOP(Math.round(current));
       el.style.color = current >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
-      if (i >= steps) { clearInterval(interval); el.textContent = formatCOP(saldo); }
+      if (i >= steps) { clearInterval(interval); el.textContent = formatCOP(saldoTotal); }
     }, 20);
   } else {
-    el.textContent = formatCOP(saldo);
-    el.style.color = saldo >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
+    el.textContent = formatCOP(saldoTotal);
+    el.style.color = saldoTotal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
   }
 }
 
@@ -1632,7 +1663,8 @@ function renderSummary() {
   const filtered = getFilteredTransactions(currentMonth, currentYear);
   const totalIngresos = filtered.filter(tx => tx.type === 'ingreso').reduce((s, t) => s + t.amount, 0);
   const totalGastos = filtered.filter(tx => tx.type === 'gasto').reduce((s, t) => s + t.amount, 0);
-  const saldo = totalIngresos - totalGastos;
+  const carryBalance = getCumulativeBalance(currentMonth, currentYear);
+  const saldo = carryBalance + totalIngresos - totalGastos;
   $('totalIngresos').textContent = formatCOP(totalIngresos);
   $('totalGastos').textContent = formatCOP(totalGastos);
   const saldoEl = $('saldoNeto');

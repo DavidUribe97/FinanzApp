@@ -6,7 +6,7 @@ App web 100% offline para gestionar ingresos y gastos personales. Single-page ap
 
 ```
 Presupuesto/
-├── index.html        # App completa (HTML + CSS + JS) (~2356 líneas)
+├── index.html        # App completa (HTML + CSS + JS) (~2455 líneas)
 ├── chart.min.js      # Chart.js v4.4.7 local (202KB)
 ├── manifest.json     # PWA manifest para instalación
 ├── sw.js             # Service Worker (caching offline)
@@ -33,6 +33,9 @@ Presupuesto/
 - Importar respaldo JSON
 - Modo oscuro/claro
 - 10 transacciones de ejemplo precargadas
+- **Saldo acumulado entre meses** (arrastra deuda/saldo a favor)
+- **Seguridad:** CSP, XSS sanitization, validación de esquema en import JSON
+- **Código de sala mínimo 6 caracteres** + `encodeURIComponent` para caracteres especiales
 - **Offline total** (sin dependencias externas)
 - **PWA** (instalable desde el navegador)
 
@@ -335,3 +338,33 @@ Luego abre `http://localhost:8080` en el navegador. Usar `file://` directo no fu
 - El botón de ajustes ahora muestra la sala actual y permite cambiar el código
 - Se agregaron toasts de error cuando Firebase falla
 **Por qué:** Los perfiles no se sincronizaban entre dispositivos, causando confusión. Ahora los nombres son consistentes. El indicador de sync permite saber si los cambios se están guardando online.
+
+## 22. Seguridad: CSP, XSS sanitization, validación de esquema en importación
+
+**Archivos:** `index.html`, `firestore.rules`
+**Qué:**
+- Se agregó meta tag **CSP** (Content-Security-Policy) restringiendo scripts solo a `'self'` y `www.gstatic.com`, y conexiones solo a Firebase/Google APIs
+- Se creó función `esc()` para escapar HTML en toda interpolación con `innerHTML` (categorías, descripciones, toasts)
+- Se sanitizan nombres de categorías y emojis al guardar con `.replace(/<[^>]*>/g, '')`
+- Se agregaron funciones `isValidTx()`, `isValidCategories()`, `isValidBudgets()` que validan el esquema completo antes de importar JSON
+- Se actualizaron las **reglas de Firestore** para validar que:
+  - `transactions` sea un array
+  - `budgets` sea un map
+  - `categories` sea un map
+  - `transactions.size() <= 10000`
+- El formulario de código de sala exige mínimo **6 caracteres**
+**Por qué:** Evitar inyección XSS, datos corruptos en importación, y escrituras maliciosas a Firestore.
+
+## 23. Arrastre de saldo entre meses (saldo acumulado)
+
+**Archivo:** `index.html`
+**Qué:**
+- Se agregó función `getCumulativeBalance(month, year)` que suma el neto (ingresos - gastos) de **todos los meses anteriores** al mes actual
+- La tarjeta de "Saldo total" en el dashboard ahora muestra: `saldo anterior + (ingresos - gastos del mes)`
+- Si hay deuda o saldo a favor del mes anterior, se muestra una línea adicional:
+  - **"Deuda mes anterior: -$X"** en rojo
+  - **"Saldo a favor mes anterior: +$X"** en verde
+- Si no hay arrastre, la línea no se muestra
+- La tarjeta "Saldo total" en el modo análisis también refleja el acumulado
+- **No genera lecturas/escrituras extras a Firestore** — el cálculo es 100% local sobre los datos ya cargados en memoria
+**Por qué:** Para ver la situación financiera real acumulada, no solo el neto del mes aislado.
