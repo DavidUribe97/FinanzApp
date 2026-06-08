@@ -369,6 +369,45 @@ Luego abre `http://localhost:8080` en el navegador. Usar `file://` directo no fu
 - **No genera lecturas/escrituras extras a Firestore** — el cálculo es 100% local sobre los datos ya cargados en memoria
 **Por qué:** Para ver la situación financiera real acumulada, no solo el neto del mes aislado.
 
+## 25. Refactorización — código base mejorado
+
+**Archivo:** `index.html`
+
+**Qué se mejoró:**
+
+### ✅ DRY — código repetido extraído a funciones
+- `sanitizeStr(str, maxLen)` — reemplaza 5 apariciones de `.replace(/<[^>]*>/g, '').slice(0, 100)`
+- `validateAmount(amount)` — reemplaza 3 apariciones de la misma validación de monto
+- `downloadBlob(blob, filename)` — reemplaza el patrón `Blob → URL.createObjectURL → a.click() → revoke` en `exportCSV` y `exportJSON`
+
+### ✅ Manejo de errores
+- `loadData()` ahora envuelve `JSON.parse` en `try/catch` — si localStorage está corrupto, genera datos de ejemplo en lugar de romper la app
+- `showToast()` verifica que el contenedor exista antes de usarlo
+
+### ✅ Protección de datos en sync remoto
+- `subscribeFirestore()` ya no reemplaza ciegamente `transactions` cuando hay `pendingSyncs` pendientes
+- Los datos del snapshot se clonan con `JSON.parse(JSON.stringify(...))` para evitar mutaciones por referencia
+
+### ✅ init() dividido en 7 funciones
+- `setupNavigation()` — navegación entre meses, botones sala/modo/tema
+- `setupDailyMode()` — toggle gasto/ingreso/quién + agregar transacción
+- `setupRoomModal()` — formulario de código de sala
+- `setupCategoryManager()` — CRUD de categorías
+- `setupAnalysisForm()` — formulario de análisis, tabla, filtros, presupuestos, export/import, edición
+- `registerServiceWorker()` — registro del SW
+
+### ✅ Constantes nombradas
+- `MAX_AMOUNT = 999999999` (antes número mágico repetido 3 veces)
+- `MAX_DESC_LENGTH = 100`
+- `ANIMATION_STEPS = 20` y `ANIMATION_INTERVAL_MS = 20` (antes números mágicos en renderDailyBalance)
+- `CHART_COLORS` (antes array inline en renderCharts)
+- `FIRESTORE_COLLECTION = 'rooms'` (antes string repetido)
+
+### ✅ JSDoc añadido
+`loadData`, `saveData`, `saveBudgets`, `getFilteredTransactions`, `getCumulativeBalance`, `generateSampleData`, `renderDailyBalance`, `refreshAll`, `importJSON`, `isValidTx`, `initFirebase`, `syncToFirestore`
+
+**Por qué:** Código más mantenible, legible y tolerante a errores sin cambiar el comportamiento externo.
+
 ## 24. GitHub — control de versiones
 
 **Archivos:** `.gitignore`

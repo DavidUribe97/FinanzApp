@@ -1187,6 +1187,10 @@ let pendingSyncs = 0;
 
 let roomCodeResolver = null;
 
+/**
+ * Inicializa Firebase (Anonymous Auth + Firestore suscripción).
+ * Si falla, la app opera en modo offline.
+ */
 async function initFirebase() {
   if (firebaseInitialized) return;
   try {
@@ -1219,33 +1223,28 @@ function safeRoomCode(code) {
 
 function subscribeFirestore() {
   return new Promise(resolve => {
-    const ref = db.collection('rooms').doc(safeRoomCode(roomCode));
+    const ref = db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(roomCode));
     firestoreUnsub = ref.onSnapshot(snap => {
       updateSyncStatus(true);
-      if (snap.exists) {
-        const data = snap.data();
-        if (data.transactions) {
-          transactions = data.transactions;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
-        }
-        if (data.budgets) {
-          budgets = data.budgets;
-          localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets));
-        }
-        if (data.categories) {
-          categoriesData = data.categories;
-          localStorage.setItem(CATS_KEY, JSON.stringify(categoriesData));
-        }
-        refreshAll(false);
-      } else {
-        ref.set({
-          transactions: transactions,
-          budgets: budgets,
-          categories: categoriesData,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        }, { merge: true }).catch(() => {});
-        refreshAll(false);
+      if (!snap.exists) {
+        firstTimeSetup(ref, resolve);
+        return;
       }
+      if (pendingSyncs > 0) { resolve(); return; }
+      const data = snap.data();
+      if (data.transactions) {
+        transactions = JSON.parse(JSON.stringify(data.transactions));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+      }
+      if (data.budgets) {
+        budgets = JSON.parse(JSON.stringify(data.budgets));
+        localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets));
+      }
+      if (data.categories) {
+        categoriesData = JSON.parse(JSON.stringify(data.categories));
+        localStorage.setItem(CATS_KEY, JSON.stringify(categoriesData));
+      }
+      refreshAll(false);
       resolve();
     }, err => {
       console.warn('Firestore snapshot error:', err.message);
@@ -1255,11 +1254,26 @@ function subscribeFirestore() {
   });
 }
 
+function firstTimeSetup(ref, resolve) {
+  ref.set({
+    transactions: transactions,
+    budgets: budgets,
+    categories: categoriesData,
+    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+  }, { merge: true }).catch(() => {});
+  refreshAll(false);
+  resolve();
+}
+
+/**
+ * Sincroniza transactions + budgets + categories con Firestore.
+ * No hace nada si Firebase no está iniciado.
+ */
 async function syncToFirestore() {
   if (!db || !roomCode) return;
   if (!firebaseInitialized) { pendingSyncs++; return; }
   try {
-    await db.collection('rooms').doc(safeRoomCode(roomCode)).set({
+    await db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(roomCode)).set({
       transactions: transactions,
       budgets: budgets,
       categories: categoriesData,
@@ -1311,6 +1325,47 @@ const formatCOPShort = n => {
   return formatCOP(n);
 };
 
+const MAX_AMOUNT = 999999999;
+const MAX_DESC_LENGTH = 100;
+const ANIMATION_STEPS = 20;
+const ANIMATION_INTERVAL_MS = 20;
+const CHART_COLORS = ['#00d4aa','#ff4d6d','#f5c842','#4f8ef7','#a855f7','#f97316','#06b6d4','#e11d48','#84cc16','#d946ef','#14b8a6','#f43f5e','#8b5cf6'];
+const FIRESTORE_COLLECTION = 'rooms';
+
+/**
+ * Elimina etiquetas HTML y trunca a longitud máxima.
+ * @param {string} str
+ * @param {number} [maxLen=MAX_DESC_LENGTH]
+ * @returns {string}
+ */
+function sanitizeStr(str, maxLen = MAX_DESC_LENGTH) {
+  return String(str).replace(/<[^>]*>/g, '').trim().slice(0, maxLen);
+}
+
+/**
+ * Valida que amount sea un número positivo dentro del límite.
+ * @param {number} amount
+ * @returns {string|null} Mensaje de error o null si es válido.
+ */
+function validateAmount(amount) {
+  if (!amount || amount <= 0) return 'Ingresa un monto válido';
+  if (amount > MAX_AMOUNT) return 'El monto no puede superar $' + MAX_AMOUNT.toLocaleString('es-CO');
+  return null;
+}
+
+/**
+ * Descarga un Blob como archivo.
+ * @param {Blob} blob
+ * @param {string} filename
+ */
+function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 // ===== SYNC STATUS =====
 function updateSyncStatus(connected) {
   const el = $('syncStatus');
@@ -1343,25 +1398,47 @@ function getWhoLabel(who) {
 }
 
 // ===== DATA =====
+/**
+ * Carga transacciones y presupuestos desde localStorage.
+ * Si no hay datos o están corruptos, genera datos de ejemplo.
+ */
 function loadData() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  transactions = raw ? JSON.parse(raw) : generateSampleData();
-  const bRaw = localStorage.getItem(BUDGET_KEY);
-  budgets = bRaw ? JSON.parse(bRaw) : {};
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    transactions = raw ? JSON.parse(raw) : generateSampleData();
+  } catch {
+    transactions = generateSampleData();
+  }
+  try {
+    const bRaw = localStorage.getItem(BUDGET_KEY);
+    budgets = bRaw ? JSON.parse(bRaw) : {};
+  } catch {
+    budgets = {};
+  }
   localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
   localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets));
 }
 
+/**
+ * Guarda transacciones en localStorage y sincroniza con Firestore.
+ */
 function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
   syncToFirestore();
 }
 
+/**
+ * Guarda presupuestos en localStorage y sincroniza con Firestore.
+ */
 function saveBudgets() {
   localStorage.setItem(BUDGET_KEY, JSON.stringify(budgets));
   syncToFirestore();
 }
 
+/**
+ * Genera 10 transacciones de ejemplo para el mes actual.
+ * @returns {Array}
+ */
 function generateSampleData() {
   const sample = [];
   const t = new Date();
@@ -1388,6 +1465,12 @@ function generateSampleData() {
   return sample;
 }
 
+/**
+ * Filtra transacciones por mes y año.
+ * @param {number} month - Mes (0-11)
+ * @param {number} year
+ * @returns {Array}
+ */
 function getFilteredTransactions(month, year) {
   return transactions.filter(tx => {
     const d = new Date(tx.date + 'T00:00:00');
@@ -1412,6 +1495,12 @@ function getDisplayTransactions() {
   }).sort((a, b) => b.date.localeCompare(a.date));
 }
 
+/**
+ * Calcula el saldo acumulado de todos los meses anteriores al dado.
+ * @param {number} month - Mes actual (0-11)
+ * @param {number} year
+ * @returns {number} Saldo acumulado (positivo = saldo a favor, negativo = deuda)
+ */
 function getCumulativeBalance(month, year) {
   let balance = 0;
   transactions.forEach(tx => {
@@ -1462,6 +1551,7 @@ function deleteTransaction(id) {
 
 function showToast(message, actionLabel, actionFn) {
   const container = $('toastContainer');
+  if (!container) return;
   const toast = document.createElement('div');
   toast.className = 'toast';
   toast.innerHTML = `<span>${esc(message)}</span>`;
@@ -1546,6 +1636,10 @@ function updateWhoToggle() {
   comp.className = selectedWho === 'compartido' ? 'active-who-compartido' : '';
 }
 
+/**
+ * Renderiza la tarjeta de saldo total con arrastre de meses anteriores.
+ * @param {boolean} [animate=false] - Animar el contador del saldo
+ */
 function renderDailyBalance(animate = false) {
   const filtered = getFilteredTransactions(currentMonth, currentYear);
   const totalIngresos = filtered.filter(tx => tx.type === 'ingreso').reduce((s, t) => s + t.amount, 0);
@@ -1568,7 +1662,7 @@ function renderDailyBalance(animate = false) {
     const oldText = el.textContent;
     const oldVal = parseInt(oldText.replace(/[^0-9-]/g, '')) || 0;
     const diff = saldoTotal - oldVal;
-    const steps = 20;
+    const steps = ANIMATION_STEPS;
     let i = 0;
     const interval = setInterval(() => {
       i++;
@@ -1576,7 +1670,7 @@ function renderDailyBalance(animate = false) {
       el.textContent = formatCOP(Math.round(current));
       el.style.color = current >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
       if (i >= steps) { clearInterval(interval); el.textContent = formatCOP(saldoTotal); }
-    }, 20);
+    }, ANIMATION_INTERVAL_MS);
   } else {
     el.textContent = formatCOP(saldoTotal);
     el.style.color = saldoTotal >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
@@ -1724,7 +1818,7 @@ function renderCharts() {
   });
   const donaLabels = Object.keys(catMap);
   const donaData = Object.values(catMap);
-  const colors = ['#00d4aa','#ff4d6d','#f5c842','#4f8ef7','#a855f7','#f97316','#06b6d4','#e11d48','#84cc16','#d946ef','#14b8a6','#f43f5e','#8b5cf6'];
+  const colors = CHART_COLORS.slice(0, donaLabels.length);
 
   const ctxD = $('doughnutChart').getContext('2d');
   if (doughnutChart) doughnutChart.destroy();
@@ -1963,23 +2057,20 @@ function exportCSV() {
   });
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `finanzas_${MONTHS[currentMonth]}_${currentYear}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  downloadBlob(blob, `finanzas_${MONTHS[currentMonth]}_${currentYear}.csv`);
 }
 
 function exportJSON() {
   const data = { transactions, budgets, categories: categoriesData, exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `finanzas_backup_${currentYear}-${String(currentMonth+1).padStart(2,'0')}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
+  downloadBlob(blob, `finanzas_backup_${currentYear}-${String(currentMonth+1).padStart(2,'0')}.json`);
 }
 
+/**
+ * Valida que un objeto tenga la estructura de una transacción.
+ * @param {*} tx
+ * @returns {boolean}
+ */
 function isValidTx(tx) {
   return tx && typeof tx.id !== 'undefined' && typeof tx.type === 'string' && (tx.type === 'ingreso' || tx.type === 'gasto')
     && typeof tx.amount === 'number' && tx.amount > 0 && tx.amount <= 999999999
@@ -2009,6 +2100,11 @@ function isValidBudgets(budgets) {
   return true;
 }
 
+/**
+ * Importa un archivo JSON de respaldo. Valida el esquema completo
+ * antes de reemplazar los datos locales.
+ * @param {File} file
+ */
 function importJSON(file) {
   showToast('Importando…');
   const reader = new FileReader();
@@ -2161,6 +2257,10 @@ function refreshAnalysis() {
   renderStats();
 }
 
+/**
+ * Refresca todas las vistas del dashboard y análisis.
+ * @param {boolean} [animate=true] - Animar el saldo
+ */
 function refreshAll(animate = true) {
   updateMonthLabel();
   refreshDaily(animate);
@@ -2182,21 +2282,7 @@ function setMode(daily) {
   }
 }
 
-function init() {
-  loadTheme();
-  loadCategories();
-  loadData();
-  initFirebase();
-
-  const savedMode = localStorage.getItem(MODE_KEY);
-  setMode(savedMode !== 'analysis');
-
-  updateMonthLabel();
-  renderDailyCategories();
-  updateTypeToggle();
-  updateWhoToggle();
-  refreshDaily();
-
+function setupNavigation() {
   $('prevMonth').addEventListener('click', () => {
     currentMonth--;
     if (currentMonth < 0) { currentMonth = 11; currentYear--; }
@@ -2207,11 +2293,12 @@ function init() {
     if (currentMonth > 11) { currentMonth = 0; currentYear++; }
     refreshAll();
   });
-
   $('roomBtn').addEventListener('click', openRoomModal);
   $('modeToggle').addEventListener('click', () => setMode(!isDailyMode));
   $('themeToggle').addEventListener('click', toggleTheme);
+}
 
+function setupDailyMode() {
   $('dailyTypeGasto').addEventListener('click', () => {
     selectedType = 'gasto';
     selectedCategory = null;
@@ -2224,31 +2311,19 @@ function init() {
     updateTypeToggle();
     renderDailyCategories();
   });
-
-  // Who toggle in daily mode
-  $('dailyWhoYo').addEventListener('click', () => {
-    selectedWho = 'yo';
-    updateWhoToggle();
-  });
-  $('dailyWhoPareja').addEventListener('click', () => {
-    selectedWho = 'pareja';
-    updateWhoToggle();
-  });
-  $('dailyWhoCompartido').addEventListener('click', () => {
-    selectedWho = 'compartido';
-    updateWhoToggle();
-  });
+  $('dailyWhoYo').addEventListener('click', () => { selectedWho = 'yo'; updateWhoToggle(); });
+  $('dailyWhoPareja').addEventListener('click', () => { selectedWho = 'pareja'; updateWhoToggle(); });
+  $('dailyWhoCompartido').addEventListener('click', () => { selectedWho = 'compartido'; updateWhoToggle(); });
 
   const dailyAmount = $('dailyAmount');
-  const dailyAddBtn = $('dailyAddBtn');
   const dailyDesc = $('dailyDesc');
 
   function addDailyTx() {
     const amount = parseFloat(dailyAmount.value);
-    if (!amount || amount <= 0) return showToast('Ingresa un monto');
-    if (amount > 999999999) return showToast('Monto muy alto');
+    const err = validateAmount(amount);
+    if (err) return showToast(err);
     if (!selectedCategory) return showToast('Elige una categoría');
-    const desc = dailyDesc.value.trim().replace(/<[^>]*>/g, '').slice(0, 100);
+    const desc = sanitizeStr(dailyDesc.value);
     const date = getToday().toISOString().slice(0, 10);
     addTransaction({ id: generateId(), type: selectedType, amount, category: selectedCategory, description: desc, date, who: selectedWho });
     saveLastCategory(selectedType, selectedCategory);
@@ -2259,12 +2334,13 @@ function init() {
     dailyAmount.focus();
   }
 
-  dailyAddBtn.addEventListener('click', addDailyTx);
+  $('dailyAddBtn').addEventListener('click', addDailyTx);
   dailyAmount.addEventListener('keydown', e => {
     if (e.key === 'Enter') addDailyTx();
   });
+}
 
-  // Room form
+function setupRoomModal() {
   $('roomForm').addEventListener('submit', e => {
     e.preventDefault();
     const newCode = $('roomCodeInput').value.trim();
@@ -2286,8 +2362,9 @@ function init() {
   $('roomModal').addEventListener('click', e => {
     if (e.target === $('roomModal')) { closeRoomModal(); if (roomCodeResolver) { roomCodeResolver(); roomCodeResolver = null; } }
   });
+}
 
-  // Category manager
+function setupCategoryManager() {
   $('resetCategoriesBtn').addEventListener('click', () => {
     if (!confirm('¿Restaurar categorías por defecto? Se perderán las personalizadas.')) return;
     categoriesData = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
@@ -2298,7 +2375,6 @@ function init() {
     refreshAll();
     showToast('Categorías restauradas');
   });
-
   $('addCategoryBtn').addEventListener('click', () => {
     $('catManagerForm').style.display = 'block';
     $('catManagerType').value = 'gasto';
@@ -2307,15 +2383,13 @@ function init() {
     $('catManagerEditId').value = '';
     $('catManagerName').focus();
   });
-
   $('catManagerCancel').addEventListener('click', () => {
     $('catManagerForm').style.display = 'none';
   });
-
   $('catManagerSave').addEventListener('click', () => {
     const type = $('catManagerType').value;
-    const name = $('catManagerName').value.trim().replace(/<[^>]*>/g, '');
-    const emoji = ($('catManagerEmoji').value.trim() || '📋').replace(/<[^>]*>/g, '');
+    const name = sanitizeStr($('catManagerName').value, 50);
+    const emoji = sanitizeStr($('catManagerEmoji').value || '📋', 10);
     if (!name) return showToast('Escribe un nombre para la categoría');
     const editId = $('catManagerEditId').value;
     if (editId) {
@@ -2342,10 +2416,10 @@ function init() {
     refreshAll();
     showToast(editId ? 'Categoría actualizada' : 'Categoría añadida');
   });
+}
 
-  // Analysis form
+function setupAnalysisForm() {
   updateCategories();
-
   $('txType').addEventListener('change', updateCategories);
   $('txDate').valueAsDate = new Date();
 
@@ -2353,15 +2427,15 @@ function init() {
     e.preventDefault();
     const type = $('txType').value;
     const amount = parseFloat($('txAmount').value);
+    const err = validateAmount(amount);
+    if (err) return showToast(err);
     const category = $('txCategory').value;
-    const description = $('txDescription').value.trim();
+    const description = $('txDescription').value;
     const date = $('txDate').value;
     const who = $('txWho').value;
-    if (!amount || amount <= 0) return showToast('Ingresa un monto válido');
-    if (amount > 999999999) return showToast('El monto no puede superar $999,999,999');
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
-    const sanitizedDesc = description.replace(/<[^>]*>/g, '').slice(0, 100);
+    const sanitizedDesc = sanitizeStr(description);
     addTransaction({ id: generateId(), type, amount, category, description: sanitizedDesc, date, who });
     $('txForm').reset();
     $('txDate').valueAsDate = new Date();
@@ -2423,15 +2497,15 @@ function init() {
     if (editingId === null) return;
     const type = $('editType').value;
     const amount = parseFloat($('editAmount').value);
+    const err = validateAmount(amount);
+    if (err) return showToast(err);
     const category = $('editCategory').value;
-    const description = $('editDescription').value.trim();
+    const description = $('editDescription').value;
     const date = $('editDate').value;
     const who = $('editWho').value;
-    if (!amount || amount <= 0) return showToast('Monto inválido');
-    if (amount > 999999999) return showToast('El monto no puede superar $999,999,999');
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
-    const sanitizedDesc = description.replace(/<[^>]*>/g, '').slice(0, 100);
+    const sanitizedDesc = sanitizeStr(description);
     editTransaction(editingId, { type, amount, category, description: sanitizedDesc, date, who });
     closeEditModal();
     showToast('Transacción actualizada');
@@ -2441,12 +2515,37 @@ function init() {
   $('editModal').addEventListener('click', e => {
     if (e.target === $('editModal')) closeEditModal();
   });
+}
 
+function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('finanzapp')).map(k => caches.delete(k))));
     navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister())));
     navigator.serviceWorker.register('sw.js');
   }
+}
+
+function init() {
+  loadTheme();
+  loadCategories();
+  loadData();
+  initFirebase();
+
+  const savedMode = localStorage.getItem(MODE_KEY);
+  setMode(savedMode !== 'analysis');
+
+  updateMonthLabel();
+  renderDailyCategories();
+  updateTypeToggle();
+  updateWhoToggle();
+  refreshDaily();
+
+  setupNavigation();
+  setupDailyMode();
+  setupRoomModal();
+  setupCategoryManager();
+  setupAnalysisForm();
+  registerServiceWorker();
 }
 
 document.addEventListener('DOMContentLoaded', init);
