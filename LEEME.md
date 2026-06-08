@@ -13,7 +13,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 
 | Componente | Detalle |
 |---|---|
-| HTML | Un solo archivo (`index.html`, ~2650 líneas) |
+| HTML | Un solo archivo (`index.html`, ~3050 líneas) |
 | CSS | Variables CSS, tema oscuro/claro, responsive, animaciones |
 | JS | JavaScript vanilla, sin frameworks ni build tools |
 | Charts | Chart.js v4.4.7 local (`chart.min.js`, 202KB) |
@@ -85,12 +85,12 @@ git push origin master --tags
 Usuario → index.html (UI + JS)
                │
                ├── localStorage (persistencia local)
-               │      ├── finanzas_data        → transactions[]
+               │      ├── finanzas_data        → transactions[]  (cada tx puede tener subcategory)
                │      ├── finanzas_budgets      → budgets{}
-               │      ├── finanzas_categories   → categoriesData{}
+               │      ├── finanzas_categories   → categoriesData{} (cada categoría puede tener subcats[])
                │      ├── finanzas_theme        → 'dark' | 'light'
                │      ├── finanzas_mode         → 'daily' | 'analysis'
-               │      ├── finanzas_last_cat     → última categoría usada
+               │      ├── finanzas_last_cat     → última categoría + subcategoría usada
                │      └── finanzas_room         → código de sala
                │
                └── Firebase Firestore (sync opcional)
@@ -102,8 +102,8 @@ Usuario → index.html (UI + JS)
 
 ### Ciclo de vida de una transacción
 
-1. **Usuario agrega gasto** → `addTransaction()` en `index.html`
-2. → `transactions.push(data)` (array global en memoria)
+1. **Usuario agrega gasto** (modo diario: selecciona categoría → opcional: subcategoría → monto → ✓; modo análisis: formulario completo con selector de subcategoría)
+2. → `addTransaction(data)` en `index.html` (data incluye `subcategory: ''` si no se seleccionó)
 3. → `saveData()` → `localStorage.setItem(...)` (persistencia local inmediata)
 4. → `syncToFirestore()` → escribe a Firestore (si hay conexión)
 5. → `refreshAll(true)` → re-renderiza toda la UI
@@ -124,7 +124,7 @@ Usuario → index.html (UI + JS)
 rooms/{roomCode}:
   - transactions: [...]   (array, máx 10.000 items - validado en firestore.rules)
   - budgets: {cat1: monto, ...}
-  - categories: {ingreso: [...], gasto: [...]}
+  - categories: {ingreso: [...], gasto: [...]}  (cada categoría puede tener subcats: [{name, emoji}, ...])
   - createdAt: timestamp
   - updatedAt: timestamp
 ```
@@ -136,8 +136,8 @@ Esto es intencional (simplicidad) pero implica:
 
 ### Dos modos de vista
 
-- **Modo diario** (`#dailyView`) — interfaz táctil rápida: seleccionar categoría → monto → ✓. Ideal para el día a día.
-- **Modo análisis** (`#analysisView`) — tabla, gráficos, presupuestos, estadísticas, exportación. Para revisión detallada.
+- **Modo diario** (`#dailyView`) — interfaz táctil rápida: seleccionar categoría → (opcional: subcategoría) → monto → ✓. Ideal para el día a día.
+- **Modo análisis** (`#analysisView`) — tabla con columna de subcategoría, gráficos, presupuestos, estadísticas, exportación. Para revisión detallada.
 - Se cambia con el botón 📊/◀ en el header. El modo se persiste en localStorage (`finanzas_mode`).
 
 ---
@@ -162,6 +162,9 @@ Organizadas por tipo para que un agente encuentre rápido lo que necesita modifi
 | `deleteTransaction(id)` | `index.html:~1446` | Elimina con deshacer vía toast |
 | `generateId()` | `index.html:~1291` | `crypto.randomUUID()` con fallback para `file://` |
 | `isValidTx(tx)` | `index.html:~1983` | Valida estructura de una transacción |
+| `isValidCategories(cats)` | `index.html:~2405` | Valida estructura de categorías (incluye subcats como `{name, emoji}`) |
+| `updateSubcategories(typeId, catId, subcatId)` | `index.html:~2508` | Actualiza `<select>` de subcategorías al cambiar tipo/categoría |
+| `renderSubcatList(type, idx)` | `index.html:~2584` | Lista inline de subcategorías con emoji + ✏️ + × |
 | `importJSON(file)` | `index.html:~2090` | Importa respaldo JSON con validación de esquema completa |
 
 ### Firebase / Sync
@@ -184,6 +187,7 @@ Organizadas por tipo para que un agente encuentre rápido lo que necesita modifi
 | `renderDailyBalance(animate)` | `index.html:~1639` | Tarjeta de saldo total con arrastre de meses anteriores |
 | `renderDailyFeed()` | `index.html:~1685` | Feed del modo diario agrupado por fecha (Hoy/Ayer/fecha) |
 | `renderDailyCategories()` | `index.html:~1598` | Categorías en fila horizontal deslizable |
+| `renderDailySubcategories()` | `index.html:~1893` | Subcategorías en fila horizontal debajo de la categoría seleccionada |
 | `renderSummary()` | `index.html:~1756` | Tarjetas de resumen (ingresos, gastos, saldo total) del modo análisis |
 | `renderTable()` | `index.html:~1790` | Tabla de transacciones con búsqueda y filtros |
 | `renderCharts()` | `index.html:~1828` | Gráfico dona (gastos por categoría) + barras (ingresos/gastos semanal) |
@@ -223,8 +227,11 @@ Organizadas por tipo para que un agente encuentre rápido lo que necesita modifi
 | `dismissAllToasts()` | `index.html:~1576` | Cierra todos los toasts activos |
 | `getWhoLabel(who)` | `index.html:~1339` | Traduce 'yo'/'pareja'/'compartido' a 'David'/'Laura'/'Compartido 👥' |
 | `loadTheme()` / `toggleTheme()` | `index.html:~2328` | Tema oscuro/claro con persistencia |
-| `getCatNames(type)` | `index.html:~1150` | Lista de nombres de categorías por tipo |
-| `getCatEmoji(name)` | `index.html:~1154` | Emoji de una categoría por nombre |
+| `getCatNames(type)` | `index.html:~1317` | Lista de nombres de categorías por tipo |
+| `getCatEmoji(name)` | `index.html:~1321` | Emoji de una categoría por nombre |
+| `getSubCatNames(type, catName)` | `index.html:~1329` | Lista de nombres de subcategorías por categoría |
+| `getSubCatEmoji(type, catName, subName)` | `index.html:~1335` | Emoji de una subcategoría (fallback al emoji de categoría) |
+| `migrateSubcats()` | `index.html:~1301` | Migra subcats de string[] a {name, emoji}[] (retrocompatible) |
 
 ---
 
@@ -267,6 +274,12 @@ Organizadas por tipo para que un agente encuentre rápido lo que necesita modifi
 - **Lección:** Tras modificar la API key en Google Cloud Console y hacer deploy a Firebase, la app dejó de funcionar (Firebase Auth roto, sin acceso a salas). El error solo se detectó al probar en producción.
 - **Regla:** Cualquier cambio en configuración externa (API keys, Firebase, CSP, reglas) debe probarse primero en localhost (`python3 -m http.server 8080`). Si el cambio rompe algo local, no hacer deploy.
 
+### Por qué subcategorías como objetos `{name, emoji}` en lugar de strings planas
+- **Decisión:** Se almacenan como `{name: string, emoji: string}` dentro del array `subcats[]` de cada categoría.
+- **Retrocompatibilidad:** `migrateSubcats()` convierte automáticamente strings legacy (`"Subcategoría"`) a objetos (`{name: "Subcategoría", emoji: "📋"}`) al cargar datos.
+- **Dos emoji-pickers separados:** `#emojiPicker` para categorías, `#subcatEmojiPicker` para subcategorías, para evitar ambigüedad visual al editar.
+- **Click-toggle:** Click en el emoji abre el picker; otro click lo cierra (`display: grid`/`display: none`).
+
 ---
 
 | Bug | Síntoma | Solución | Commit |
@@ -280,6 +293,9 @@ Organizadas por tipo para que un agente encuentre rápido lo que necesita modifi
 | Snapshot Firestore sobreescribe cambios locales | Se pierde la transacción que estabas escribiendo | Deep clone + skip si `pendingSyncs > 0` | `c620ba4` |
 | Editar categoría no permitía cambiar tipo | El dropdown de tipo se ignoraba al guardar | Mover categoría entre arrays si cambia tipo | `d44d66e` |
 | API key restringida por HTTP referrer bloquea Auth anónimo | Firebase Auth falla, no se puede acceder a la sala | Quitar restricción HTTP referrers de la API key | — |
+| `getSubCatEmoji()` retorna `''` si no encuentra categoría | Feed muestra emoji vacío en transacciones huérfanas | Fallback a `getCatEmoji()` | — |
+| Acumulación de listeners drag-scroll en `catGrid`/`subcatGrid` | Scroll se vuelve errático al navegar entre modos | Guard `dataset.dragInit` para inicializar una sola vez | — |
+| Emoji picker no se cierra al cancelar/guardar edición | Picker queda abierto tapando la UI | `style.display: 'none'` en todos los flujos de salida | — |
 
 ---
 
@@ -382,7 +398,7 @@ ANIMATION_STEPS = 20;
 ANIMATION_INTERVAL_MS = 20;
 CHART_COLORS = ['#00d4aa','#ff4d6d','#f5c842','#4f8ef7', ...];
 FIRESTORE_COLLECTION = 'rooms';
-EMOJIS = ['🍕','🥩','🥗', ...];  // ~160 emojis para el picker
+EMOJIS = ['🍕','🥩','🥗', ...];  // ~300 emojis para el picker
 ```
 
 ### Móneda
@@ -441,6 +457,9 @@ R: No. La data en Firestore persiste. Solo la cuenta anónima se limpia, pero al
 - [x] ~~Firebase Hosting~~
 - [x] ~~Saldo acumulado entre meses~~
 - [x] ~~Emoji picker~~
+- [x] ~~Subcategorías jerárquicas (nombre + emoji) en categorías~~
+- [x] ~~Subcategorías seleccionables en modo diario y análisis~~
+- [x] ~~Feed muestra subcategoría (emoji + nombre) en transacciones~~
 - [ ] **Layout análisis responsive** — mejorar distribución en pantallas muy pequeñas
 - [ ] **Alertas de presupuesto** — notificación al superar 80%/100%
 - [ ] **Exportar reporte anual** (PDF o HTML)
@@ -456,3 +475,4 @@ R: No. La data en Firestore persiste. Solo la cuenta anónima se limpia, pero al
 |-----|-------|-------------|
 | `v1.0.0` | 2026-06-07 | Versión base funcional: CSP, XSS, saldo acumulado, Firebase |
 | `v1.1.0` | 2026-06-08 | Scroll horizontal categorías, emoji picker, bugfix tipo categoría, solo editar en diario |
+| `v1.2.0` | 2026-06-08 | Subcategorías jerárquicas (emoji + nombre), retrocompatible con datos existentes |
