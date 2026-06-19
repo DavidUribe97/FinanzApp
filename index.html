@@ -202,10 +202,20 @@ body {
   border-radius: 12px;
   padding: 3px;
   margin-bottom: 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+.who-toggle::-webkit-scrollbar { display: none; }
+.who-toggle::before, .who-toggle::after {
+  content: '';
+  margin: auto;
 }
 .who-toggle button {
-  flex: 1;
-  padding: 10px;
+  flex-shrink: 0;
+  padding: 10px 14px;
   border: none;
   border-radius: 10px;
   font-family: inherit;
@@ -215,10 +225,13 @@ body {
   transition: all 0.2s;
   background: transparent;
   color: var(--text-secondary);
+  white-space: nowrap;
 }
+.who-toggle.fill button { flex: 1; flex-shrink: 1; }
 .who-toggle button.active-who-yo { background: var(--accent-blue); color: #fff; }
 .who-toggle button.active-who-pareja { background: var(--accent-gold); color: #fff; }
 .who-toggle button.active-who-compartido { background: var(--accent-green); color: #fff; }
+.who-extra-btn.active-who-color { color: #fff; }
 
 /* Category grid */
 .cat-grid {
@@ -933,6 +946,7 @@ button, select, input[type=submit] { touch-action: manipulation; }
     <div class="header-title"><span>Finanz</span>App</div>
     <div class="header-actions">
       <button class="header-btn" id="roomBtn" title="Sala">🔗</button>
+      <span id="roomCodeLabel" style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
       <span id="syncStatus" style="font-size:12px;color:var(--text-muted);display:flex;align-items:center">○</span>
       <button class="header-btn" id="modeToggle" title="Análisis">📊</button>
       <button class="header-btn" id="themeToggle" title="Tema">🌓</button>
@@ -964,8 +978,8 @@ button, select, input[type=submit] { touch-action: manipulation; }
     </div>
 
     <div class="who-toggle" id="whoToggle">
-      <button data-who="yo" id="dailyWhoYo">David</button>
-      <button data-who="pareja" id="dailyWhoPareja">Laura</button>
+      <button data-who="yo" id="dailyWhoYo">Él</button>
+      <button data-who="pareja" id="dailyWhoPareja">Ella</button>
       <button data-who="compartido" id="dailyWhoCompartido">Compartido 👥</button>
     </div>
 
@@ -1020,9 +1034,6 @@ button, select, input[type=submit] { touch-action: manipulation; }
       </select>
       <select id="filterWho">
         <option value="todos">Todos</option>
-        <option value="yo">David</option>
-        <option value="pareja">Laura</option>
-        <option value="compartido">Compartido 👥</option>
       </select>
     </div>
 
@@ -1053,11 +1064,7 @@ button, select, input[type=submit] { touch-action: manipulation; }
           </div>
           <div class="form-group">
             <label>Quién</label>
-            <select id="txWho">
-              <option value="yo">David</option>
-              <option value="pareja">Laura</option>
-              <option value="compartido">Compartido 👥</option>
-            </select>
+            <select id="txWho"></select>
           </div>
           <div class="form-group">
             <label>Descripción</label>
@@ -1110,6 +1117,26 @@ button, select, input[type=submit] { touch-action: manipulation; }
       <div class="panel">
         <h3>Ingresos vs Gastos semanal</h3>
         <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+      </div>
+
+      <div class="panel" id="membersPanel">
+        <div class="panel-header">
+          <h3>Miembros</h3>
+          <div style="display:flex;gap:6px">
+            <button class="btn-sm" id="addMemberBtn">+ Añadir</button>
+          </div>
+        </div>
+        <div id="membersList"></div>
+        <div id="memberForm" style="display:none;margin-top:10px">
+          <div class="form-row">
+            <div class="form-group" style="flex:1">
+              <input type="text" id="memberNameInput" placeholder="Nombre del miembro" maxlength="30">
+            </div>
+            <button class="btn-sm success" id="saveMemberBtn" style="align-self:flex-end;margin-bottom:12px">Guardar</button>
+            <button class="btn-sm" id="cancelMemberBtn" style="align-self:flex-end;margin-bottom:12px">✕</button>
+          </div>
+          <input type="hidden" id="memberEditId">
+        </div>
       </div>
 
       <div class="panel" id="catManagerPanel">
@@ -1203,20 +1230,35 @@ button, select, input[type=submit] { touch-action: manipulation; }
   <div class="modal">
     <h2>Sala de sincronización</h2>
     <p style="margin-bottom:14px;color:var(--text-secondary);font-size:14px">
-      Código de sala actual: <strong id="roomCodeDisplay" style="color:var(--accent-gold)"></strong>
+      Conectado a: <strong id="roomCodeDisplay" style="color:var(--accent-gold)"></strong>
     </p>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <button class="btn btn-sm" id="roomTabCreate" style="flex:1;background:var(--accent-blue);color:#fff;font-weight:600">Crear sala</button>
+      <button class="btn btn-sm" id="roomTabJoin" style="flex:1;background:var(--bg-card);color:var(--text-secondary)">Unirse a sala</button>
+    </div>
     <form id="roomForm" autocomplete="off" novalidate>
       <div class="form-group">
         <label>Código de sala</label>
         <input type="text" id="roomCodeInput" placeholder="Ej: Pareja2024" maxlength="50" required>
       </div>
+      <div class="form-group">
+        <label>Contraseña</label>
+        <input type="password" id="roomPasswordInput" placeholder="Contraseña (opcional en salas existentes sin clave)" maxlength="100">
+      </div>
+      <div class="form-group" id="roomConfirmGroup" style="display:none">
+        <label>Confirmar contraseña</label>
+        <input type="password" id="roomPasswordConfirm" placeholder="Repite la contraseña" maxlength="100">
+      </div>
       <div class="btn-row">
-        <button type="submit" class="btn btn-primary">Entrar a sala</button>
+        <button type="submit" class="btn btn-primary" id="roomSubmitBtn">Crear sala</button>
         <button type="button" class="btn btn-secondary" id="roomSkipBtn">Sin sincronización</button>
       </div>
     </form>
+    <div class="btn-row" id="roomLeaveRow" style="display:none;margin-top:10px">
+      <button type="button" class="btn btn-danger" id="roomLeaveBtn">Salir de esta sala</button>
+    </div>
     <p style="margin-top:12px;font-size:12px;color:var(--text-muted)">
-      ⚡ Ambos dispositivos deben usar el <strong>mismo código</strong> para sincronizar.
+      ⚡ La contraseña protege la sala. Sin contraseña, cualquiera con el código puede unirse.
     </p>
   </div>
 </div>
@@ -1249,11 +1291,7 @@ button, select, input[type=submit] { touch-action: manipulation; }
       </div>
       <div class="form-group">
         <label>Quién</label>
-        <select id="editWho">
-          <option value="yo">David</option>
-          <option value="pareja">Laura</option>
-          <option value="compartido">Compartido 👥</option>
-        </select>
+        <select id="editWho"></select>
       </div>
       <div class="form-group">
         <label>Descripción</label>
@@ -1376,6 +1414,7 @@ const THEME_KEY = 'finanzas_theme';
 const MODE_KEY = 'finanzas_mode';
 const LAST_CAT_KEY = 'finanzas_last_cat';
 const ROOM_KEY = 'finanzas_room';
+const MEMBERS_KEY = 'finanzas_members';
 
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBI4ZQJU2N7Tqht9eCLt1YXzMEbpV6-L7Q",
@@ -1412,6 +1451,8 @@ async function initFirebase() {
       roomCode = localStorage.getItem(ROOM_KEY);
       if (!roomCode) { firebaseInitialized = true; updateSyncStatus(false); return; }
     }
+    roomPassword = localStorage.getItem(ROOM_KEY + '_pwd');
+    isCreatingRoom = false;
     updateSyncStatus(true);
     await subscribeFirestore();
     firebaseInitialized = true;
@@ -1429,8 +1470,26 @@ function safeRoomCode(code) {
 }
 
 function subscribeFirestore() {
-  return new Promise(resolve => {
+  return new Promise(async resolve => {
     const ref = db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(roomCode));
+
+    if (!isCreatingRoom) {
+      const snap = await ref.get().catch(() => null);
+      if (snap && snap.exists) {
+        const data = snap.data();
+        if (data.passwordHash && roomPassword) {
+          const hash = await sha256(roomPassword);
+          if (hash !== data.passwordHash) {
+            updateSyncStatus(false);
+            showToast('Contraseña incorrecta — modo offline');
+            if (roomCodeResolver) { roomCodeResolver(); roomCodeResolver = null; }
+            resolve();
+            return;
+          }
+        }
+      }
+    }
+
     firestoreUnsub = ref.onSnapshot(snap => {
       updateSyncStatus(true);
       if (!snap.exists) {
@@ -1451,6 +1510,10 @@ function subscribeFirestore() {
         categoriesData = JSON.parse(JSON.stringify(data.categories));
         localStorage.setItem(CATS_KEY, JSON.stringify(categoriesData));
       }
+      if (data.members) {
+        members = JSON.parse(JSON.stringify(data.members));
+        localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
+      }
       refreshAll(false);
       resolve();
     }, err => {
@@ -1461,13 +1524,18 @@ function subscribeFirestore() {
   });
 }
 
-function firstTimeSetup(ref, resolve) {
-  ref.set({
+async function firstTimeSetup(ref, resolve) {
+  const data = {
     transactions: transactions,
     budgets: budgets,
     categories: categoriesData,
+    members: members,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true }).catch(() => {});
+  };
+  if (isCreatingRoom && roomPassword) {
+    data.passwordHash = await sha256(roomPassword);
+  }
+  ref.set(data, { merge: true }).catch(() => {});
   refreshAll(false);
   resolve();
 }
@@ -1484,6 +1552,7 @@ async function syncToFirestore() {
       transactions: transactions,
       budgets: budgets,
       categories: categoriesData,
+      members: members,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
   } catch (e) {
@@ -1501,6 +1570,8 @@ function flushPendingSyncs() {
 
 let transactions = [];
 let budgets = {};
+let members = {};
+const DEFAULT_MEMBERS = { yo: 'Él', pareja: 'Ella', compartido: 'Compartido 👥' };
 let doughnutChart = null;
 let barChart = null;
 let lineChart = null;
@@ -1651,11 +1722,59 @@ function updateSyncStatus(connected) {
     el.style.color = 'var(--text-muted)';
     el.title = 'Sin conexión';
   }
+  updateRoomLabel();
+}
+
+function updateRoomLabel() {
+  const label = $('roomCodeLabel');
+  if (roomCode) {
+    label.textContent = roomCode;
+    label.title = 'Sala: ' + roomCode;
+  } else {
+    label.textContent = '';
+    label.title = '';
+  }
+}
+
+function leaveRoom() {
+  if (firestoreUnsub) { firestoreUnsub(); firestoreUnsub = null; }
+  roomCode = null;
+  roomPassword = null;
+  localStorage.removeItem(ROOM_KEY);
+  localStorage.removeItem(ROOM_KEY + '_pwd');
+  updateSyncStatus(false);
+  updateRoomLabel();
+  closeRoomModal();
+  showToast('Has salido de la sala');
 }
 
 function openRoomModal() {
   $('roomCodeDisplay').textContent = roomCode || '—';
   $('roomCodeInput').value = roomCode || '';
+  $('roomPasswordInput').value = '';
+  $('roomPasswordConfirm').value = '';
+  $('roomLeaveRow').style.display = roomCode ? 'block' : 'none';
+  if (roomCode) {
+    isCreatingRoom = false;
+    $('roomTabJoin').style.background = 'var(--accent-blue)';
+    $('roomTabJoin').style.color = '#fff';
+    $('roomTabCreate').style.background = 'var(--bg-card)';
+    $('roomTabCreate').style.color = 'var(--text-secondary)';
+    $('roomConfirmGroup').style.display = 'none';
+    $('roomSubmitBtn').textContent = 'Unirse a sala';
+    $('roomPasswordInput').placeholder = 'Contraseña (opcional si la sala no tiene clave)';
+    $('roomPasswordInput').required = false;
+  } else {
+    isCreatingRoom = true;
+    $('roomTabCreate').style.background = 'var(--accent-blue)';
+    $('roomTabCreate').style.color = '#fff';
+    $('roomTabJoin').style.background = 'var(--bg-card)';
+    $('roomTabJoin').style.color = 'var(--text-secondary)';
+    $('roomConfirmGroup').style.display = 'block';
+    $('roomSubmitBtn').textContent = 'Crear sala';
+    $('roomPasswordInput').placeholder = 'Contraseña';
+    $('roomPasswordInput').required = true;
+  }
   $('roomModal').classList.add('active');
 }
 
@@ -1663,11 +1782,52 @@ function closeRoomModal() {
   $('roomModal').classList.remove('active');
 }
 
-// ===== NAMES =====
+// ===== MEMBERS =====
+function loadMembers() {
+  try {
+    const raw = localStorage.getItem(MEMBERS_KEY);
+    members = raw ? JSON.parse(raw) : { ...DEFAULT_MEMBERS };
+  } catch {
+    members = { ...DEFAULT_MEMBERS };
+  }
+}
+
+function saveMembers() {
+  localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
+  syncToFirestore();
+}
+
+function getMemberIds() {
+  return Object.keys(members);
+}
+
+function getMemberList() {
+  return Object.entries(members).map(([id, name]) => ({ id, name }));
+}
+
 function getWhoLabel(who) {
-  if (who === 'yo') return 'David';
-  if (who === 'pareja') return 'Laura';
-  return 'Compartido 👥';
+  return members[who] || members['compartido'] || 'Compartido 👥';
+}
+
+const MEMBER_COLORS = [
+  { bg: 'rgba(79,142,247,0.15)', text: 'var(--accent-blue)' },
+  { bg: 'rgba(245,200,66,0.15)', text: 'var(--accent-gold)' },
+  { bg: 'rgba(0,212,170,0.15)', text: 'var(--accent-green)' },
+  { bg: 'rgba(168,85,247,0.15)', text: '#a855f7' },
+  { bg: 'rgba(249,115,22,0.15)', text: '#f97316' },
+  { bg: 'rgba(6,182,212,0.15)', text: '#06b6d4' },
+  { bg: 'rgba(225,29,72,0.15)', text: '#e11d48' },
+  { bg: 'rgba(132,204,22,0.15)', text: '#84cc16' },
+  { bg: 'rgba(217,70,239,0.15)', text: '#d946ef' },
+  { bg: 'rgba(20,184,166,0.15)', text: '#14b8a6' },
+];
+
+function getMemberBadgeStyle(who) {
+  const ids = Object.keys(members);
+  const idx = ids.indexOf(who);
+  if (idx === -1) return { bg: 'rgba(0,212,170,0.15)', color: 'var(--accent-green)' };
+  const c = MEMBER_COLORS[idx % MEMBER_COLORS.length];
+  return { bg: c.bg, color: c.text };
 }
 
 // ===== DATA =====
@@ -1678,9 +1838,9 @@ function getWhoLabel(who) {
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    transactions = raw ? JSON.parse(raw) : generateSampleData();
+    transactions = raw ? JSON.parse(raw) : [];
   } catch {
-    transactions = generateSampleData();
+    transactions = [];
   }
   try {
     const bRaw = localStorage.getItem(BUDGET_KEY);
@@ -1712,32 +1872,6 @@ function saveBudgets() {
  * Genera 10 transacciones de ejemplo para el mes actual.
  * @returns {Array}
  */
-function generateSampleData() {
-  const sample = [];
-  const t = new Date();
-  const y = t.getFullYear();
-  const m = t.getMonth();
-  const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-  const d = (daysAgo) => {
-    const dt = new Date(y, m, rand(1, 28) - daysAgo);
-    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
-  };
-
-  let idCounter = Date.now();
-  const nextId = () => ++idCounter;
-  sample.push({ id: nextId(), type: 'ingreso', amount: 2500000, category: 'Salario', description: 'Salario mensual', date: d(0), who: 'yo' });
-  sample.push({ id: nextId(), type: 'ingreso', amount: 600000, category: 'Freelance', description: 'Proyecto web', date: d(2), who: 'yo' });
-  sample.push({ id: nextId(), type: 'ingreso', amount: 200000, category: 'Inversión', description: 'Dividendos', date: d(1), who: 'compartido' });
-  sample.push({ id: nextId(), type: 'gasto', amount: 800000, category: 'Vivienda', description: 'Arriendo', date: d(0), who: 'compartido' });
-  sample.push({ id: nextId(), type: 'gasto', amount: 350000, category: 'Alimentación', description: 'Mercado mensual', date: d(1), who: 'compartido' });
-  sample.push({ id: nextId(), type: 'gasto', amount: 120000, category: 'Transporte', description: 'Gasolina y bus', date: d(3), who: 'pareja' });
-  sample.push({ id: nextId(), type: 'gasto', amount: 150000, category: 'Servicios públicos', description: 'Luz y agua', date: d(0), who: 'compartido' });
-  sample.push({ id: nextId(), type: 'gasto', amount: 80000, category: 'Entretenimiento', description: 'Streaming', date: d(1), who: 'yo' });
-  sample.push({ id: nextId(), type: 'gasto', amount: 200000, category: 'Salud', description: 'Seguro médico', date: d(2), who: 'pareja' });
-  sample.push({ id: nextId(), type: 'gasto', amount: 100000, category: 'Ahorro', description: 'Ahorro mensual', date: d(0), who: 'yo' });
-  return sample;
-}
-
 /**
  * Filtra transacciones por mes y año.
  * @param {number} month - Mes (0-11)
@@ -1984,12 +2118,48 @@ function updateTypeToggle() {
 }
 
 function updateWhoToggle() {
+  const toggle = $('whoToggle');
   const yo = $('dailyWhoYo');
   const pareja = $('dailyWhoPareja');
   const comp = $('dailyWhoCompartido');
+  yo.textContent = members.yo || 'Él';
+  pareja.textContent = members.pareja || 'Ella';
+  comp.textContent = (members.compartido || 'Compartido') + ' 👥';
   yo.className = selectedWho === 'yo' ? 'active-who-yo' : '';
   pareja.className = selectedWho === 'pareja' ? 'active-who-pareja' : '';
   comp.className = selectedWho === 'compartido' ? 'active-who-compartido' : '';
+  const extraMembers = Object.entries(members).filter(([id]) => !['yo','pareja','compartido'].includes(id));
+  const used = new Set();
+  extraMembers.forEach(([id, name]) => {
+    let btn = toggle.querySelector(`.who-extra-btn[data-who="${id}"]`);
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.className = 'who-extra-btn';
+      btn.addEventListener('click', () => {
+        selectedWho = btn.dataset.who;
+        updateWhoToggle();
+      });
+      toggle.appendChild(btn);
+    }
+    used.add(btn);
+    btn.dataset.who = id;
+    btn.textContent = name;
+    const col = MEMBER_COLORS[Object.keys(members).indexOf(id) % MEMBER_COLORS.length];
+    if (selectedWho === id) {
+      btn.className = 'who-extra-btn active-who-color';
+      btn.style.background = col.text;
+      btn.style.color = '#fff';
+    } else {
+      btn.className = 'who-extra-btn';
+      btn.style.background = '';
+      btn.style.color = '';
+    }
+  });
+  toggle.querySelectorAll('.who-extra-btn').forEach(btn => {
+    if (!used.has(btn)) btn.remove();
+  });
+  toggle.classList.toggle('fill', Object.keys(members).length <= 3);
+  setupCategoryDragScroll(toggle);
 }
 
 /**
@@ -2148,7 +2318,7 @@ function renderTable() {
       <td>${esc(tx.category)}</td>
       <td>${tx.subcategory ? getSubCatEmoji(tx.type, tx.category, tx.subcategory) + ' ' + esc(tx.subcategory) : '—'}</td>
       <td>${esc(tx.description || '—')}</td>
-      <td><span class="badge badge-${whoVal}">${getWhoLabel(whoVal)}</span></td>
+      <td><span class="badge" style="background:${getMemberBadgeStyle(whoVal).bg};color:${getMemberBadgeStyle(whoVal).color}">${getWhoLabel(whoVal)}</span></td>
       <td class="monto ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${formatCOP(tx.amount)}</td>
       <td>
         <button class="btn-sm" data-edit="${tx.id}" title="Editar">✏️</button>
@@ -2195,9 +2365,9 @@ function renderCharts() {
               const w = whoMap[cat];
               if (!w) return '';
               const parts = [];
-              if (w.yo) parts.push(`David: ${formatCOP(w.yo)}`);
-              if (w.pareja) parts.push(`Laura: ${formatCOP(w.pareja)}`);
-              if (w.compartido) parts.push(`Compartido: ${formatCOP(w.compartido)}`);
+              Object.entries(w).forEach(([id, amt]) => {
+                parts.push(`${members[id] || getWhoLabel(id)}: ${formatCOP(amt)}`);
+              });
               return parts.join('\n');
             }
           }
@@ -2372,8 +2542,14 @@ function renderStats() {
     vsPrev = { diff: Math.abs(diff), pct: Math.abs(pct), up: diff > 0 };
   }
 
-  const gastosYo = gastos.filter(tx => (tx.who || 'yo') === 'yo').reduce((s, t) => s + t.amount, 0);
-  const gastosPareja = gastos.filter(tx => (tx.who || 'yo') === 'pareja').reduce((s, t) => s + t.amount, 0);
+  const memberStatsHtml = Object.entries(members).filter(([id]) => id !== 'compartido').map(([id, name]) => {
+    const total = gastos.filter(tx => (tx.who || 'yo') === id).reduce((s, t) => s + t.amount, 0);
+    return `
+    <div class="stat-card">
+      <div class="stat-value">${formatCOP(total)}</div>
+      <div class="stat-label">Gastos de ${esc(name)}</div>
+    </div>`;
+  }).join('');
 
   $('statsGrid').innerHTML = `
     <div class="stat-card">
@@ -2395,14 +2571,7 @@ function renderStats() {
       <div class="stat-label">Total ingresos este mes</div>
       <div class="stat-sub">Saldo: ${formatCOP(totalIngresos - totalGastos)}</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-value">${formatCOP(gastosYo)}</div>
-      <div class="stat-label">Gastos de David</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value">${formatCOP(gastosPareja)}</div>
-      <div class="stat-label">Gastos de Laura</div>
-    </div>
+    ${memberStatsHtml}
   `;
 }
 
@@ -2435,7 +2604,7 @@ function isValidTx(tx) {
     && typeof tx.amount === 'number' && tx.amount > 0 && tx.amount <= 999999999
     && typeof tx.category === 'string' && tx.category.length <= 50
     && typeof tx.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(tx.date)
-    && (!tx.who || ['yo','pareja','compartido'].includes(tx.who))
+    && (!tx.who || typeof tx.who === 'string')
     && (!tx.description || typeof tx.description === 'string')
     && (!tx.subcategory || typeof tx.subcategory === 'string');
 }
@@ -2515,6 +2684,7 @@ function openEditModal(id) {
   $('editAmount').value = tx.amount;
   $('editDescription').value = tx.description || '';
   $('editDate').value = tx.date;
+  updateWhoSelects();
   $('editWho').value = tx.who || 'yo';
   updateEditCategories();
   $('editCategory').value = tx.category;
@@ -2561,6 +2731,89 @@ function updateBudgetCategorySelect() {
   sel.innerHTML = available.length === 0
     ? '<option value="">Todos tienen presupuesto</option>'
     : available.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+}
+
+// ===== MEMBERS MANAGEMENT =====
+function renderMembers() {
+  const list = $('membersList');
+  list.innerHTML = Object.entries(members).map(([id, name]) => {
+    const isDefault = ['yo','pareja','compartido'].includes(id);
+    return `
+    <div class="cat-manager-item">
+      <span class="cm-name">${esc(name)}</span>
+      <span class="cm-type" style="font-size:10px">${id}</span>
+      <span class="cm-actions">
+        <button class="cm-edit" data-member="${id}" title="Editar">✏️</button>
+        ${!isDefault ? `<button class="cm-del" data-member="${id}" title="Eliminar">🗑️</button>` : ''}
+      </span>
+    </div>`;
+  }).join('');
+
+  list.querySelectorAll('.cm-edit').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.member;
+      $('memberNameInput').value = members[id];
+      $('memberEditId').value = id;
+      $('memberForm').style.display = 'block';
+      $('memberNameInput').focus();
+    });
+  });
+  list.querySelectorAll('.cm-del').forEach(async btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.member;
+      const name = members[id];
+      const ok = await showConfirmModal(`¿Eliminar a "${name}"? Sus transacciones pasarán a "Compartido".`);
+      if (!ok) return;
+      transactions.forEach(tx => {
+        if ((tx.who || 'yo') === id) tx.who = 'compartido';
+      });
+      delete members[id];
+      saveMembers();
+      saveData();
+      renderMembers();
+      updateWhoToggle();
+      refreshAll();
+    });
+  });
+}
+
+function setupMembersPanel() {
+  $('addMemberBtn').addEventListener('click', () => {
+    $('memberNameInput').value = '';
+    $('memberEditId').value = '';
+    $('memberForm').style.display = 'block';
+    $('memberNameInput').focus();
+  });
+  $('cancelMemberBtn').addEventListener('click', () => {
+    $('memberForm').style.display = 'none';
+  });
+  $('saveMemberBtn').addEventListener('click', () => {
+    const name = sanitizeStr($('memberNameInput').value, 50);
+    if (!name) return showToast('Escribe un nombre');
+    const editId = $('memberEditId').value;
+    if (editId) {
+      members[editId] = name;
+    } else {
+      let newId = 'm4';
+      let counter = 4;
+      while (members[newId]) { counter++; newId = 'm' + counter; }
+      members[newId] = name;
+    }
+    saveMembers();
+    $('memberForm').style.display = 'none';
+    renderMembers();
+    updateWhoToggle();
+    updateWhoSelects();
+    refreshAll();
+    showToast(editId ? 'Miembro actualizado' : 'Miembro añadido');
+  });
+}
+
+function updateWhoSelects() {
+  const opts = Object.entries(members).map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join('');
+  $('txWho').innerHTML = opts;
+  $('editWho').innerHTML = opts;
+  $('filterWho').innerHTML = '<option value="todos">Todos</option>' + opts;
 }
 
 function renderCatManager() {
@@ -2732,6 +2985,7 @@ function setMode(daily) {
     $('filterType').value = 'todos';
     $('filterWho').value = 'todos';
     renderCatManager();
+    renderMembers();
     refreshAnalysis();
   }
 }
@@ -2800,14 +3054,61 @@ function setupDailyMode() {
   });
 }
 
+async function sha256(str) {
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+let roomPassword = null;
+let isCreatingRoom = true;
+
 function setupRoomModal() {
-  $('roomForm').addEventListener('submit', e => {
+  $('roomTabCreate').addEventListener('click', () => {
+    isCreatingRoom = true;
+    $('roomTabCreate').style.background = 'var(--accent-blue)';
+    $('roomTabCreate').style.color = '#fff';
+    $('roomTabJoin').style.background = 'var(--bg-card)';
+    $('roomTabJoin').style.color = 'var(--text-secondary)';
+    $('roomConfirmGroup').style.display = 'block';
+    $('roomSubmitBtn').textContent = 'Crear sala';
+    $('roomPasswordInput').placeholder = 'Contraseña';
+    $('roomPasswordInput').required = true;
+  });
+  $('roomTabJoin').addEventListener('click', () => {
+    isCreatingRoom = false;
+    $('roomTabJoin').style.background = 'var(--accent-blue)';
+    $('roomTabJoin').style.color = '#fff';
+    $('roomTabCreate').style.background = 'var(--bg-card)';
+    $('roomTabCreate').style.color = 'var(--text-secondary)';
+    $('roomConfirmGroup').style.display = 'none';
+    $('roomSubmitBtn').textContent = 'Unirse a sala';
+    $('roomPasswordInput').placeholder = 'Contraseña (opcional si la sala no tiene clave)';
+    $('roomPasswordInput').required = false;
+  });
+
+  $('roomForm').addEventListener('submit', async e => {
     e.preventDefault();
     const newCode = $('roomCodeInput').value.trim();
     if (!newCode) return showToast('Ingresa un código de sala');
     if (newCode.length < 6) return showToast('El código debe tener al menos 6 caracteres');
+    const password = $('roomPasswordInput').value;
+
+    if (isCreatingRoom) {
+      if (!password) return showToast('Ingresa una contraseña para la sala');
+      if (password.length < 4) return showToast('La contraseña debe tener al menos 4 caracteres');
+      const confirm = $('roomPasswordConfirm').value;
+      if (password !== confirm) return showToast('Las contraseñas no coinciden');
+      roomPassword = password;
+    } else {
+      roomPassword = password || null;
+    }
+
     roomCode = newCode;
     localStorage.setItem(ROOM_KEY, roomCode);
+    if (roomPassword) localStorage.setItem(ROOM_KEY + '_pwd', roomPassword);
+    else localStorage.removeItem(ROOM_KEY + '_pwd');
+
     closeRoomModal();
     if (firestoreUnsub) { firestoreUnsub(); firestoreUnsub = null; }
     if (roomCodeResolver) { roomCodeResolver(); roomCodeResolver = null; }
@@ -2822,6 +3123,7 @@ function setupRoomModal() {
   $('roomModal').addEventListener('click', e => {
     if (e.target === $('roomModal')) { closeRoomModal(); if (roomCodeResolver) { roomCodeResolver(); roomCodeResolver = null; } }
   });
+  $('roomLeaveBtn').addEventListener('click', leaveRoom);
 }
 
 function setupCategoryManager() {
@@ -2952,6 +3254,7 @@ function setupCategoryManager() {
 }
 
 function setupAnalysisForm() {
+  updateWhoSelects();
   updateCategories();
   $('txType').addEventListener('change', updateCategories);
   $('txCategory').addEventListener('change', () => updateSubcategories('txType', 'txCategory', 'txSubcategory'));
@@ -2976,7 +3279,7 @@ function setupAnalysisForm() {
     $('txDate').valueAsDate = new Date();
     $('txCategory').value = '';
     $('txSubcategory').innerHTML = '<option value="">Sin subcategoría</option>';
-    $('txWho').value = 'yo';
+    $('txWho').value = Object.keys(members)[0] || 'yo';
   });
 
   $('txAmount').addEventListener('input', function() {
@@ -3066,6 +3369,7 @@ function registerServiceWorker() {
 
 function init() {
   loadTheme();
+  loadMembers();
   loadCategories();
   loadData();
   initFirebase();
@@ -3083,6 +3387,7 @@ function init() {
   setupDailyMode();
   setupRoomModal();
   setupCategoryManager();
+  setupMembersPanel();
   setupAnalysisForm();
   registerServiceWorker();
 }
