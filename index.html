@@ -2342,7 +2342,10 @@ function renderCharts() {
   const whoMap = {};
   gastos.forEach(tx => {
     catMap[tx.category] = (catMap[tx.category] || 0) + tx.amount;
-    if (!whoMap[tx.category]) whoMap[tx.category] = { yo: 0, pareja: 0, compartido: 0 };
+    if (!whoMap[tx.category]) {
+      whoMap[tx.category] = {};
+      Object.keys(members).forEach(id => { whoMap[tx.category][id] = 0; });
+    }
     whoMap[tx.category][tx.who || 'yo'] += tx.amount;
   });
   const donaLabels = Object.keys(catMap);
