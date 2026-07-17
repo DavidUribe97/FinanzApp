@@ -1,6 +1,18 @@
 # v1.3.0 — Miembros editables, clave de salas, identidad visual por miembro
 
-Versión **local** (sin deploy). Rama `master`, commit `de41ca5`.
+> ⚠️ **VERSIÓN EN PRUEBAS - NO DESPLEGAR A PRODUCCIÓN**
+> 
+> Esta versión está en la rama `v1.3.0-beta` y **NO está desplegada en Firebase Hosting**.
+> La versión estable en producción es `v1.2.1` (rama `master`).
+> 
+> **Para probar localmente:**
+> ```bash
+> git checkout v1.3.0-beta
+> python3 -m http.server 8080
+> # Abrir http://localhost:8080
+> ```
+
+Versión **local** (sin deploy). Rama `v1.3.0-beta`, commit `de41ca5`.
 
 > Este documento detalla los cambios de v1.3.0 respecto a v1.2.1. Cada sección explica **qué** cambió,
 > **por qué** y **cómo** está implementado, para que un agente (o tú mismo) pueda retomar el trabajo

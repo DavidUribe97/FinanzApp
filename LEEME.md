@@ -452,6 +452,33 @@ R: No. La data en Firestore persiste. Solo la cuenta anónima se limpia, pero al
 
 ---
 
+## Flujo de trabajo con ramas
+
+### Rama `master` (Producción)
+- Contiene la versión **estable** desplegada en Firebase Hosting
+- **NUNCA** hacer push de cambios experimentales directamente a esta rama
+- Antes de desplegar: probar exhaustivamente en local
+- Deploy: `firebase deploy --only hosting,firestore:rules`
+
+### Rama `v1.3.0-beta` (Pruebas)
+- Contiene la versión **en desarrollo** con nuevas funcionalidades
+- Segura para experimentar sin afectar producción
+- Para trabajar en esta rama:
+  ```bash
+  git checkout v1.3.0-beta
+  python3 -m http.server 8080
+  # Probar en http://localhost:8080
+  ```
+- **NO desplegar a Firebase** hasta que esté estabilizada
+
+### Flujo típico
+1. Crear rama feature desde `master`: `git checkout -b feature/nueva-funcionalidad`
+2. Desarrollar y probar localmente
+3. Merge a `v1.3.0-beta` para pruebas continuas
+4. Cuando esté lista: merge a `master` y desplegar
+
+---
+
 ## Próximas mejoras sugeridas (pendientes)
 
 - [x] ~~Categorías personalizables~~
@@ -474,8 +501,13 @@ R: No. La data en Firestore persiste. Solo la cuenta anónima se limpia, pero al
 
 ## Tags (versiones)
 
-| Tag | Fecha | Descripción |
-|-----|-------|-------------|
-| `v1.0.0` | 2026-06-07 | Versión base funcional: CSP, XSS, saldo acumulado, Firebase |
-| `v1.1.0` | 2026-06-08 | Scroll horizontal categorías, emoji picker, bugfix tipo categoría, solo editar en diario |
-| `v1.2.0` | 2026-06-08 | Subcategorías jerárquicas (emoji + nombre), retrocompatible con datos existentes |
+| Tag | Fecha | Descripción | Estado |
+|-----|-------|-------------|--------|
+| `v1.0.0` | 2026-06-07 | Versión base funcional: CSP, XSS, saldo acumulado, Firebase | ✅ Estable |
+| `v1.1.0` | 2026-06-08 | Scroll horizontal categorías, emoji picker, bugfix tipo categoría, solo editar en diario | ✅ Estable |
+| `v1.2.0` | 2026-06-08 | Subcategorías jerárquicas (emoji + nombre), retrocompatible con datos existentes | ✅ Estable |
+| `v1.2.1` | 2026-06-09 | Versión estable actual en Firebase Hosting | ✅ Producción |
+| `v1.3.0-beta` | 2026-06-10 | Miembros editables, clave de salas, colores por miembro | 🧪 En pruebas |
+
+> **Nota:** La versión `v1.3.0` está en la rama `v1.3.0-beta` y **NO está desplegada en Firebase**.
+> Para ver la versión de pruebas, usar `git checkout v1.3.0-beta` y ejecutar localmente.
