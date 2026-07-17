@@ -163,6 +163,85 @@ body {
 .balance-carried .positive { color: var(--accent-green); }
 .balance-carried .negative { color: var(--accent-red); }
 
+/* Balance breakdown (efectivo/digital) */
+.balance-breakdown {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+}
+.breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.breakdown-label { color: var(--text-secondary); }
+.breakdown-value {
+  font-weight: 600;
+  font-family: 'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+}
+
+/* Account selector */
+.account-select-row {
+  margin-bottom: 10px;
+}
+.account-select-row select {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 14px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%238892a4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+/* Accounts panel */
+.accounts-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.accounts-list-item:last-child { border-bottom: none; }
+.accounts-member-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  margin-top: 10px;
+  margin-bottom: 4px;
+  padding-left: 4px;
+}
+.accounts-member-label:first-child { margin-top: 0; }
+.account-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  margin: 2px;
+}
+.account-tag.cash { border-color: var(--accent-green); color: var(--accent-green); }
+.account-tag.digital { border-color: var(--accent-blue); color: var(--accent-blue); }
+.account-tag-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 6px;
+}
+
 /* Type toggle */
 .type-toggle {
   display: flex;
@@ -969,6 +1048,16 @@ button, select, input[type=submit] { touch-action: manipulation; }
         <div class="balance-mini-item">↑ <span class="up" id="dailyIngresos">$0</span></div>
         <div class="balance-mini-item">↓ <span class="down" id="dailyGastos">$0</span></div>
       </div>
+      <div class="balance-breakdown" id="balanceBreakdown">
+        <div class="breakdown-item">
+          <span class="breakdown-label">💵 Efectivo</span>
+          <span class="breakdown-value" id="dailyCash">$0</span>
+        </div>
+        <div class="breakdown-item">
+          <span class="breakdown-label">🏦 Digital</span>
+          <span class="breakdown-value" id="dailyDigital">$0</span>
+        </div>
+      </div>
       <div class="balance-carried" id="balanceCarried" style="display:none"></div>
     </div>
 
@@ -981,6 +1070,10 @@ button, select, input[type=submit] { touch-action: manipulation; }
       <button data-who="yo" id="dailyWhoYo">Él</button>
       <button data-who="pareja" id="dailyWhoPareja">Ella</button>
       <button data-who="compartido" id="dailyWhoCompartido">Compartido 👥</button>
+    </div>
+
+    <div class="account-select-row">
+      <select id="dailyAccount"></select>
     </div>
 
     <div class="cat-grid" id="catGrid"></div>
@@ -1067,6 +1160,10 @@ button, select, input[type=submit] { touch-action: manipulation; }
             <select id="txWho"></select>
           </div>
           <div class="form-group">
+            <label>Cuenta</label>
+            <select id="txAccount"></select>
+          </div>
+          <div class="form-group">
             <label>Descripción</label>
             <textarea id="txDescription" placeholder="Descripción opcional" maxlength="100"></textarea>
           </div>
@@ -1139,6 +1236,31 @@ button, select, input[type=submit] { touch-action: manipulation; }
         </div>
       </div>
 
+      <div class="panel" id="accountsPanel">
+        <div class="panel-header">
+          <h3>Cuentas por miembro</h3>
+          <button class="btn-sm" id="addAccountBtn">+ Añadir</button>
+        </div>
+        <div id="accountsList"></div>
+        <div id="accountForm" style="display:none;margin-top:10px">
+          <div class="form-row">
+            <div class="form-group" style="flex:0.5">
+              <label>Miembro</label>
+              <select id="accountMemberSelect"></select>
+            </div>
+            <div class="form-group" style="flex:0.5">
+              <label>Nombre cuenta</label>
+              <input type="text" id="accountNameInput" placeholder="Ej: Bancolombia" maxlength="30">
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:6px">
+            <button class="btn-sm success" id="saveAccountBtn">Guardar</button>
+            <button class="btn-sm" id="cancelAccountBtn">✕</button>
+          </div>
+          <input type="hidden" id="accountEditIdx" value="-1">
+        </div>
+      </div>
+
       <div class="panel" id="catManagerPanel">
         <div class="panel-header">
           <h3>Gestionar categorías</h3>
@@ -1208,6 +1330,7 @@ button, select, input[type=submit] { touch-action: manipulation; }
                 <th>Subcategoría</th>
                 <th>Descripción</th>
                 <th>Quién</th>
+                <th>Cuenta</th>
                 <th>Monto</th>
                 <th style="width:70px"></th>
               </tr>
@@ -1292,6 +1415,10 @@ button, select, input[type=submit] { touch-action: manipulation; }
       <div class="form-group">
         <label>Quién</label>
         <select id="editWho"></select>
+      </div>
+      <div class="form-group">
+        <label>Cuenta</label>
+        <select id="editAccount"></select>
       </div>
       <div class="form-group">
         <label>Descripción</label>
@@ -1415,6 +1542,14 @@ const MODE_KEY = 'finanzas_mode';
 const LAST_CAT_KEY = 'finanzas_last_cat';
 const ROOM_KEY = 'finanzas_room';
 const MEMBERS_KEY = 'finanzas_members';
+const ACCOUNTS_KEY = 'finanzas_accounts';
+const DEFAULT_ACCOUNTS = {
+  yo: ['Bancolombia', 'Nequi', 'Efectivo'],
+  pareja: ['Bancolombia', 'Daviplata', 'Efectivo'],
+  compartido: ['Bancolombia', 'Efectivo']
+};
+const CASH_ACCOUNTS = ['efectivo', 'cash', 'efec', 'billete', 'plata'];
+let accounts = {};
 
 const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBI4ZQJU2N7Tqht9eCLt1YXzMEbpV6-L7Q",
@@ -1514,6 +1649,10 @@ function subscribeFirestore() {
         members = JSON.parse(JSON.stringify(data.members));
         localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
       }
+      if (data.accounts) {
+        accounts = JSON.parse(JSON.stringify(data.accounts));
+        localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+      }
       refreshAll(false);
       resolve();
     }, err => {
@@ -1553,6 +1692,7 @@ async function syncToFirestore() {
       budgets: budgets,
       categories: categoriesData,
       members: members,
+      accounts: accounts,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
   } catch (e) {
@@ -1807,6 +1947,97 @@ function getMemberList() {
 
 function getWhoLabel(who) {
   return members[who] || members['compartido'] || 'Compartido 👥';
+}
+
+// ===== ACCOUNTS =====
+function loadAccounts() {
+  try {
+    const raw = localStorage.getItem(ACCOUNTS_KEY);
+    accounts = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
+  } catch {
+    accounts = JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
+  }
+}
+
+function saveAccounts() {
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts));
+  syncToFirestore();
+}
+
+function getAccountsForMember(memberId) {
+  return accounts[memberId] || accounts['compartido'] || ['Efectivo'];
+}
+
+function isCashAccount(accountName) {
+  return CASH_ACCOUNTS.some(c => accountName.toLowerCase().includes(c));
+}
+
+function getPaymentMethod(accountName) {
+  return isCashAccount(accountName) ? 'efectivo' : 'digital';
+}
+
+function getPaymentLabel(method) {
+  return method === 'efectivo' ? 'Efectivo' : 'Digital';
+}
+
+function updateAccountSelector(memberId, selectId) {
+  const sel = $(selectId);
+  if (!sel) return;
+  const accts = getAccountsForMember(memberId);
+  const prev = sel.value;
+  sel.innerHTML = accts.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+  if (accts.includes(prev)) sel.value = prev;
+}
+
+function renderAccountsPanel() {
+  const list = $('accountsList');
+  if (!list) return;
+  let html = '';
+  Object.entries(members).forEach(([id, name]) => {
+    const accts = accounts[id] || [];
+    html += `<div class="accounts-member-label">${esc(name)}</div>`;
+    html += `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">`;
+    accts.forEach((a, idx) => {
+      const cls = isCashAccount(a) ? 'cash' : 'digital';
+      const icon = isCashAccount(a) ? '💵' : '🏦';
+      html += `<span class="account-tag ${cls}">
+        ${icon} ${esc(a)}
+        <span class="account-tag-actions">
+          <button class="btn-sm" data-edit-account="${id}:${idx}" title="Editar">✏️</button>
+          <button class="btn-sm danger" data-del-account="${id}:${idx}" title="Eliminar">✕</button>
+        </span>
+      </span>`;
+    });
+    if (accts.length === 0) {
+      html += `<span style="color:var(--text-muted);font-size:13px">Sin cuentas</span>`;
+    }
+    html += `</div>`;
+  });
+  list.innerHTML = html;
+
+  list.querySelectorAll('[data-edit-account]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const [memberId, idx] = btn.dataset.editAccount.split(':');
+      const acctName = accounts[memberId][parseInt(idx)];
+      $('accountMemberSelect').value = memberId;
+      $('accountNameInput').value = acctName;
+      $('accountEditIdx').value = idx;
+      $('accountForm').style.display = 'block';
+    });
+  });
+  list.querySelectorAll('[data-del-account]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const [memberId, idx] = btn.dataset.delAccount.split(':');
+      const accts = accounts[memberId] || [];
+      accts.splice(parseInt(idx), 1);
+      if (accts.length === 0) {
+        accts.push('Efectivo');
+      }
+      accounts[memberId] = accts;
+      saveAccounts();
+      renderAccountsPanel();
+    });
+  });
 }
 
 const MEMBER_COLORS = [
@@ -2138,6 +2369,7 @@ function updateWhoToggle() {
       btn.addEventListener('click', () => {
         selectedWho = btn.dataset.who;
         updateWhoToggle();
+        updateAccountSelector(btn.dataset.who, 'dailyAccount');
       });
       toggle.appendChild(btn);
     }
@@ -2175,6 +2407,14 @@ function renderDailyBalance(animate = false) {
   const el = $('dailyBalance');
   $('dailyIngresos').textContent = formatCOP(totalIngresos);
   $('dailyGastos').textContent = formatCOP(totalGastos);
+
+  const totalCash = filtered
+    .filter(tx => getPaymentMethod(tx.account || 'Efectivo') === 'efectivo')
+    .reduce((s, t) => s + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
+  const totalDigital = saldoTotal - totalCash;
+  $('dailyCash').textContent = formatCOP(Math.abs(totalCash));
+  $('dailyDigital').textContent = formatCOP(Math.abs(totalDigital));
+
   const carriedEl = $('balanceCarried');
   if (carryBalance !== 0) {
     const label = carryBalance > 0 ? 'Saldo a favor mes anterior' : 'Deuda mes anterior';
@@ -2311,6 +2551,9 @@ function renderTable() {
   empty.style.display = 'none';
   body.innerHTML = display.map(tx => {
     const whoVal = tx.who || 'yo';
+    const acctName = tx.account || 'Efectivo';
+    const acctCls = isCashAccount(acctName) ? 'cash' : 'digital';
+    const acctIcon = isCashAccount(acctName) ? '💵' : '🏦';
     return `
     <tr class="fade-in">
       <td>${tx.date}</td>
@@ -2319,6 +2562,7 @@ function renderTable() {
       <td>${tx.subcategory ? getSubCatEmoji(tx.type, tx.category, tx.subcategory) + ' ' + esc(tx.subcategory) : '—'}</td>
       <td>${esc(tx.description || '—')}</td>
       <td><span class="badge" style="background:${getMemberBadgeStyle(whoVal).bg};color:${getMemberBadgeStyle(whoVal).color}">${getWhoLabel(whoVal)}</span></td>
+      <td><span class="account-tag ${acctCls}" style="margin:0;font-size:12px">${acctIcon} ${esc(acctName)}</span></td>
       <td class="monto ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${formatCOP(tx.amount)}</td>
       <td>
         <button class="btn-sm" data-edit="${tx.id}" title="Editar">✏️</button>
@@ -2581,10 +2825,10 @@ function renderStats() {
 function exportCSV() {
   const display = getDisplayTransactions();
   if (display.length === 0) return showToast('No hay transacciones para exportar');
-  const rows = [['Fecha','Tipo','Categoría','Subcategoría','Descripción','Quién','Monto']];
+  const rows = [['Fecha','Tipo','Categoría','Subcategoría','Descripción','Quién','Cuenta','Monto']];
   display.forEach(tx => {
     const whoLabel = getWhoLabel(tx.who || 'yo');
-    rows.push([tx.date, tx.type === 'ingreso' ? 'Ingreso' : 'Gasto', tx.category, tx.subcategory || '', tx.description || '', whoLabel, tx.amount]);
+    rows.push([tx.date, tx.type === 'ingreso' ? 'Ingreso' : 'Gasto', tx.category, tx.subcategory || '', tx.description || '', whoLabel, tx.account || '', tx.amount]);
   });
   const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
@@ -2609,7 +2853,8 @@ function isValidTx(tx) {
     && typeof tx.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(tx.date)
     && (!tx.who || typeof tx.who === 'string')
     && (!tx.description || typeof tx.description === 'string')
-    && (!tx.subcategory || typeof tx.subcategory === 'string');
+    && (!tx.subcategory || typeof tx.subcategory === 'string')
+    && (!tx.account || typeof tx.account === 'string');
 }
 
 function isValidCategories(cats) {
@@ -2689,6 +2934,8 @@ function openEditModal(id) {
   $('editDate').value = tx.date;
   updateWhoSelects();
   $('editWho').value = tx.who || 'yo';
+  updateAccountSelector(tx.who || 'yo', 'editAccount');
+  if (tx.account) $('editAccount').value = tx.account;
   updateEditCategories();
   $('editCategory').value = tx.category;
   updateSubcategories('editType', 'editCategory', 'editSubcategory');
@@ -2809,6 +3056,38 @@ function setupMembersPanel() {
     updateWhoSelects();
     refreshAll();
     showToast(editId ? 'Miembro actualizado' : 'Miembro añadido');
+  });
+}
+
+function setupAccountsPanel() {
+  $('addAccountBtn').addEventListener('click', () => {
+    const sel = $('accountMemberSelect');
+    sel.innerHTML = Object.entries(members).map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join('');
+    $('accountNameInput').value = '';
+    $('accountEditIdx').value = '-1';
+    $('accountForm').style.display = 'block';
+    $('accountNameInput').focus();
+  });
+  $('cancelAccountBtn').addEventListener('click', () => {
+    $('accountForm').style.display = 'none';
+  });
+  $('saveAccountBtn').addEventListener('click', () => {
+    const memberId = $('accountMemberSelect').value;
+    const name = sanitizeStr($('accountNameInput').value, 30).trim();
+    if (!name) return showToast('Escribe un nombre de cuenta');
+    if (!accounts[memberId]) accounts[memberId] = [];
+    const editIdx = parseInt($('accountEditIdx').value);
+    if (editIdx >= 0) {
+      accounts[memberId][editIdx] = name;
+    } else {
+      if (accounts[memberId].includes(name)) return showToast('Esa cuenta ya existe');
+      accounts[memberId].push(name);
+    }
+    saveAccounts();
+    $('accountForm').style.display = 'none';
+    renderAccountsPanel();
+    updateAccountSelector(selectedWho, 'dailyAccount');
+    showToast(editIdx >= 0 ? 'Cuenta actualizada' : 'Cuenta añadida');
   });
 }
 
@@ -2989,6 +3268,7 @@ function setMode(daily) {
     $('filterWho').value = 'todos';
     renderCatManager();
     renderMembers();
+    renderAccountsPanel();
     refreshAnalysis();
   }
 }
@@ -3026,9 +3306,9 @@ function setupDailyMode() {
     renderDailyCategories();
     $('subcatGrid').style.display = 'none';
   });
-  $('dailyWhoYo').addEventListener('click', () => { selectedWho = 'yo'; updateWhoToggle(); });
-  $('dailyWhoPareja').addEventListener('click', () => { selectedWho = 'pareja'; updateWhoToggle(); });
-  $('dailyWhoCompartido').addEventListener('click', () => { selectedWho = 'compartido'; updateWhoToggle(); });
+  $('dailyWhoYo').addEventListener('click', () => { selectedWho = 'yo'; updateWhoToggle(); updateAccountSelector('yo', 'dailyAccount'); });
+  $('dailyWhoPareja').addEventListener('click', () => { selectedWho = 'pareja'; updateWhoToggle(); updateAccountSelector('pareja', 'dailyAccount'); });
+  $('dailyWhoCompartido').addEventListener('click', () => { selectedWho = 'compartido'; updateWhoToggle(); updateAccountSelector('compartido', 'dailyAccount'); });
 
   const dailyAmount = $('dailyAmount');
   const dailyDesc = $('dailyDesc');
@@ -3040,7 +3320,8 @@ function setupDailyMode() {
     if (!selectedCategory) return showToast('Elige una categoría');
     const desc = sanitizeStr(dailyDesc.value);
     const date = getToday().toISOString().slice(0, 10);
-    addTransaction({ id: generateId(), type: selectedType, amount, category: selectedCategory, subcategory: selectedSubcategory || '', description: desc, date, who: selectedWho });
+    const account = $('dailyAccount').value || 'Efectivo';
+    addTransaction({ id: generateId(), type: selectedType, amount, category: selectedCategory, subcategory: selectedSubcategory || '', description: desc, date, who: selectedWho, account });
     saveLastCategory(selectedType, selectedCategory, selectedSubcategory);
     dailyAmount.value = '';
     dailyDesc.value = '';
@@ -3258,9 +3539,11 @@ function setupCategoryManager() {
 
 function setupAnalysisForm() {
   updateWhoSelects();
+  updateAccountSelector($('txWho').value, 'txAccount');
   updateCategories();
   $('txType').addEventListener('change', updateCategories);
   $('txCategory').addEventListener('change', () => updateSubcategories('txType', 'txCategory', 'txSubcategory'));
+  $('txWho').addEventListener('change', () => updateAccountSelector($('txWho').value, 'txAccount'));
   $('txDate').valueAsDate = new Date();
 
   $('txForm').addEventListener('submit', e => {
@@ -3274,15 +3557,17 @@ function setupAnalysisForm() {
     const description = $('txDescription').value;
     const date = $('txDate').value;
     const who = $('txWho').value;
+    const account = $('txAccount').value || 'Efectivo';
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
     const sanitizedDesc = sanitizeStr(description);
-    addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who });
+    addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
     $('txForm').reset();
     $('txDate').valueAsDate = new Date();
     $('txCategory').value = '';
     $('txSubcategory').innerHTML = '<option value="">Sin subcategoría</option>';
     $('txWho').value = Object.keys(members)[0] || 'yo';
+    updateAccountSelector($('txWho').value, 'txAccount');
   });
 
   $('txAmount').addEventListener('input', function() {
@@ -3335,6 +3620,7 @@ function setupAnalysisForm() {
 
   $('editType').addEventListener('change', updateEditCategories);
   $('editCategory').addEventListener('change', () => updateSubcategories('editType', 'editCategory', 'editSubcategory'));
+  $('editWho').addEventListener('change', () => updateAccountSelector($('editWho').value, 'editAccount'));
 
   $('editForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -3348,10 +3634,11 @@ function setupAnalysisForm() {
     const description = $('editDescription').value;
     const date = $('editDate').value;
     const who = $('editWho').value;
+    const account = $('editAccount').value || 'Efectivo';
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
     const sanitizedDesc = sanitizeStr(description);
-    editTransaction(editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who });
+    editTransaction(editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
     closeEditModal();
     showToast('Transacción actualizada');
   });
@@ -3373,6 +3660,7 @@ function registerServiceWorker() {
 function init() {
   loadTheme();
   loadMembers();
+  loadAccounts();
   loadCategories();
   loadData();
   initFirebase();
@@ -3384,6 +3672,7 @@ function init() {
   renderDailyCategories();
   updateTypeToggle();
   updateWhoToggle();
+  updateAccountSelector(selectedWho, 'dailyAccount');
   refreshDaily();
 
   setupNavigation();
@@ -3391,6 +3680,7 @@ function init() {
   setupRoomModal();
   setupCategoryManager();
   setupMembersPanel();
+  setupAccountsPanel();
   setupAnalysisForm();
   registerServiceWorker();
 }
