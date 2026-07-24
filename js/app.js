@@ -1,6 +1,112 @@
 import { state } from './state.js';
-import { FIREBASE_CONFIG } from './config.js';
-import { formatCOP } from './utils.js';
-console.log('state OK:', !!state);
-console.log('config OK:', FIREBASE_CONFIG.apiKey);
-console.log('utils OK:', formatCOP(12345));
+import { FIREBASE_CONFIG, MODE_KEY, THEME_KEY, CATS_KEY, STORAGE_KEY, BUDGET_KEY, LAST_CAT_KEY, ROOM_KEY, MEMBERS_KEY, ACCOUNTS_KEY, EMOJIS, DEFAULT_CATEGORIES, MEMBER_COLORS, MONTHS, CHART_COLORS, FIRESTORE_COLLECTION, CASH_ACCOUNTS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, MAX_AMOUNT, MAX_DESC_LENGTH } from './config.js';
+import { $, esc, formatCOP, formatCOPShort, sanitizeStr, validateAmount, downloadBlob, generateId, safeRoomCode } from './utils.js';
+import { loadCategories, saveCategories, migrateSubcats, getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji, getAllGastoNames } from './categories.js';
+import { loadMembers, saveMembers, getMemberIds, getMemberList, getWhoLabel, loadAccounts, saveAccounts, getAccountsForMember, isCashAccount, getPaymentMethod, getPaymentLabel, updateAccountSelector, getMemberBadgeStyle } from './members.js';
+import { loadData, saveData, saveBudgets, getFilteredTransactions, getDisplayTransactions, getCumulativeBalance, getMonthRange, addTransaction, editTransaction, deleteTransaction, restoreTransaction, exportCSV, exportJSON, isValidTx, isValidCategories, isValidBudgets, setSyncStub } from './data.js';
+
+function bindWindow(key, getter, setter) {
+  Object.defineProperty(window, key, { get: getter, set: setter, configurable: true, enumerable: true });
+}
+
+bindWindow('state', () => state, v => Object.assign(state, v));
+bindWindow('transactions', () => state.transactions, v => { state.transactions = v; });
+bindWindow('budgets', () => state.budgets, v => { state.budgets = v; });
+bindWindow('categoriesData', () => state.categoriesData, v => { state.categoriesData = v; });
+bindWindow('members', () => state.members, v => { state.members = v; });
+bindWindow('accounts', () => state.accounts, v => { state.accounts = v; });
+bindWindow('roomCode', () => state.roomCode, v => { state.roomCode = v; });
+bindWindow('roomPassword', () => state.roomPassword, v => { state.roomPassword = v; });
+bindWindow('editingId', () => state.editingId, v => { state.editingId = v; });
+bindWindow('undoData', () => state.undoData, v => { state.undoData = v; });
+bindWindow('isDailyMode', () => state.isDailyMode, v => { state.isDailyMode = v; });
+bindWindow('selectedType', () => state.selectedType, v => { state.selectedType = v; });
+bindWindow('selectedCategory', () => state.selectedCategory, v => { state.selectedCategory = v; });
+bindWindow('selectedSubcategory', () => state.selectedSubcategory, v => { state.selectedSubcategory = v; });
+bindWindow('selectedWho', () => state.selectedWho, v => { state.selectedWho = v; });
+bindWindow('currentMonth', () => state.currentMonth, v => { state.currentMonth = v; });
+bindWindow('currentYear', () => state.currentYear, v => { state.currentYear = v; });
+bindWindow('doughnutChart', () => state.doughnutChart, v => { state.doughnutChart = v; });
+bindWindow('barChart', () => state.barChart, v => { state.barChart = v; });
+bindWindow('lineChart', () => state.lineChart, v => { state.lineChart = v; });
+bindWindow('firebaseInitialized', () => state.firebaseInitialized, v => { state.firebaseInitialized = v; });
+bindWindow('firestoreUnsub', () => state.firestoreUnsub, v => { state.firestoreUnsub = v; });
+bindWindow('db', () => state.db, v => { state.db = v; });
+bindWindow('pendingSyncs', () => state.pendingSyncs, v => { state.pendingSyncs = v; });
+bindWindow('isCreatingRoom', () => state.isCreatingRoom, v => { state.isCreatingRoom = v; });
+bindWindow('roomCodeResolver', () => state.roomCodeResolver, v => { state.roomCodeResolver = v; });
+
+window.FIREBASE_CONFIG = FIREBASE_CONFIG;
+window.MODE_KEY = MODE_KEY;
+window.THEME_KEY = THEME_KEY;
+window.CATS_KEY = CATS_KEY;
+window.STORAGE_KEY = STORAGE_KEY;
+window.BUDGET_KEY = BUDGET_KEY;
+window.LAST_CAT_KEY = LAST_CAT_KEY;
+window.ROOM_KEY = ROOM_KEY;
+window.MEMBERS_KEY = MEMBERS_KEY;
+window.ACCOUNTS_KEY = ACCOUNTS_KEY;
+window.EMOJIS = EMOJIS;
+window.DEFAULT_CATEGORIES = DEFAULT_CATEGORIES;
+window.MEMBER_COLORS = MEMBER_COLORS;
+window.MONTHS = MONTHS;
+window.CHART_COLORS = CHART_COLORS;
+window.FIRESTORE_COLLECTION = FIRESTORE_COLLECTION;
+window.CASH_ACCOUNTS = CASH_ACCOUNTS;
+window.ANIMATION_STEPS = ANIMATION_STEPS;
+window.ANIMATION_INTERVAL_MS = ANIMATION_INTERVAL_MS;
+window.MAX_AMOUNT = MAX_AMOUNT;
+window.MAX_DESC_LENGTH = MAX_DESC_LENGTH;
+
+window.$ = $;
+window.esc = esc;
+window.formatCOP = formatCOP;
+window.formatCOPShort = formatCOPShort;
+window.sanitizeStr = sanitizeStr;
+window.validateAmount = validateAmount;
+window.downloadBlob = downloadBlob;
+window.generateId = generateId;
+window.safeRoomCode = safeRoomCode;
+
+window.loadCategories = loadCategories;
+window.saveCategories = saveCategories;
+window.migrateSubcats = migrateSubcats;
+window.getCatNames = getCatNames;
+window.getCatEmoji = getCatEmoji;
+window.getSubCatNames = getSubCatNames;
+window.getSubCatEmoji = getSubCatEmoji;
+window.getAllGastoNames = getAllGastoNames;
+
+window.loadMembers = loadMembers;
+window.saveMembers = saveMembers;
+window.getMemberIds = getMemberIds;
+window.getMemberList = getMemberList;
+window.getWhoLabel = getWhoLabel;
+window.loadAccounts = loadAccounts;
+window.saveAccounts = saveAccounts;
+window.getAccountsForMember = getAccountsForMember;
+window.isCashAccount = isCashAccount;
+window.getPaymentMethod = getPaymentMethod;
+window.getPaymentLabel = getPaymentLabel;
+window.updateAccountSelector = updateAccountSelector;
+window.getMemberBadgeStyle = getMemberBadgeStyle;
+
+window.loadData = loadData;
+window.saveData = saveData;
+window.saveBudgets = saveBudgets;
+window.getFilteredTransactions = getFilteredTransactions;
+window.getDisplayTransactions = getDisplayTransactions;
+window.getCumulativeBalance = getCumulativeBalance;
+window.getMonthRange = getMonthRange;
+window.addTransaction = addTransaction;
+window.editTransaction = editTransaction;
+window.deleteTransactionData = deleteTransaction;
+window.restoreTransaction = restoreTransaction;
+window.exportCSVData = exportCSV;
+window.exportJSON = exportJSON;
+window.isValidTx = isValidTx;
+window.isValidCategories = isValidCategories;
+window.isValidBudgets = isValidBudgets;
+window.setSyncStub = setSyncStub;
+
+console.log('FinanzApp modules loaded OK');
