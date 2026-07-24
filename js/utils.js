@@ -37,3 +37,7 @@ export function generateId() {
 export function safeRoomCode(code) {
   return encodeURIComponent(code);
 }
+
+export function getToday() {
+  return new Date();
+}

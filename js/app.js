@@ -1,11 +1,17 @@
 import { state } from './state.js';
 import { FIREBASE_CONFIG, MODE_KEY, THEME_KEY, CATS_KEY, STORAGE_KEY, BUDGET_KEY, LAST_CAT_KEY, ROOM_KEY, MEMBERS_KEY, ACCOUNTS_KEY, EMOJIS, DEFAULT_CATEGORIES, MEMBER_COLORS, MONTHS, CHART_COLORS, FIRESTORE_COLLECTION, CASH_ACCOUNTS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, MAX_AMOUNT, MAX_DESC_LENGTH } from './config.js';
-import { $, esc, formatCOP, formatCOPShort, sanitizeStr, validateAmount, downloadBlob, generateId, safeRoomCode } from './utils.js';
+import { $, esc, formatCOP, formatCOPShort, sanitizeStr, validateAmount, downloadBlob, generateId, safeRoomCode, getToday } from './utils.js';
 import { loadCategories, saveCategories, migrateSubcats, getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji, getAllGastoNames } from './categories.js';
 import { loadMembers, saveMembers, getMemberIds, getMemberList, getWhoLabel, loadAccounts, saveAccounts, getAccountsForMember, isCashAccount, getPaymentMethod, getPaymentLabel, updateAccountSelector, getMemberBadgeStyle } from './members.js';
 import { loadData, saveData, saveBudgets, getFilteredTransactions, getDisplayTransactions, getCumulativeBalance, getMonthRange, addTransaction, editTransaction, deleteTransaction, restoreTransaction, exportCSV, exportJSON, isValidTx, isValidCategories, isValidBudgets, setSyncToFirestore } from './data.js';
 import { initFirebase, syncToFirestore, subscribeFirestore, updateSyncStatus, updateRoomLabel, setRemoteUpdateCallback } from './firebase-sync.js';
 import { setupRoomModal, openRoomModal, closeRoomModal, leaveRoom } from './firebase-room.js';
+import { showToast, dismissAllToasts, showConfirmModal, openEditModal, closeEditModal, updateEditCategories, updateCategories, updateSubcategories } from './ui-modals.js';
+import { renderDailyBalance, renderDailyFeed, renderDailyCategories, renderDailySubcategories, updateTypeToggle, updateWhoToggle, refreshDaily, setupCategoryDragScroll } from './ui-daily.js';
+import { renderSummary, renderTable } from './ui-analysis.js';
+import { renderCharts, renderLineChart } from './ui-charts.js';
+import { renderBudgets, updateBudgetCategorySelect } from './ui-budgets.js';
+import { renderStats } from './ui-stats.js';
 
 function bindWindow(key, getter, setter) {
   Object.defineProperty(window, key, { get: getter, set: setter, configurable: true, enumerable: true });
@@ -69,6 +75,7 @@ window.validateAmount = validateAmount;
 window.downloadBlob = downloadBlob;
 window.generateId = generateId;
 window.safeRoomCode = safeRoomCode;
+window.getToday = getToday;
 
 window.loadCategories = loadCategories;
 window.saveCategories = saveCategories;
@@ -119,6 +126,30 @@ window.setupRoomModal = setupRoomModal;
 window.openRoomModal = openRoomModal;
 window.closeRoomModal = closeRoomModal;
 window.leaveRoom = leaveRoom;
+
+window.showToast = showToast;
+window.dismissAllToasts = dismissAllToasts;
+window.showConfirmModal = showConfirmModal;
+window.openEditModal = openEditModal;
+window.closeEditModal = closeEditModal;
+window.updateEditCategories = updateEditCategories;
+window.updateCategories = updateCategories;
+window.updateSubcategories = updateSubcategories;
+window.renderDailyBalance = renderDailyBalance;
+window.renderDailyFeed = renderDailyFeed;
+window.renderDailyCategories = renderDailyCategories;
+window.renderDailySubcategories = renderDailySubcategories;
+window.updateTypeToggle = updateTypeToggle;
+window.updateWhoToggle = updateWhoToggle;
+window.refreshDaily = refreshDaily;
+window.setupCategoryDragScroll = setupCategoryDragScroll;
+window.renderSummary = renderSummary;
+window.renderTable = renderTable;
+window.renderCharts = renderCharts;
+window.renderLineChart = renderLineChart;
+window.renderBudgets = renderBudgets;
+window.updateBudgetCategorySelect = updateBudgetCategorySelect;
+window.renderStats = renderStats;
 
 setSyncToFirestore(syncToFirestore);
 
