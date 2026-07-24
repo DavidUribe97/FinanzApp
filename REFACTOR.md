@@ -2,7 +2,9 @@
 
 > **Fecha inicio:** 2026-07-24
 > **Estado actual:** En progreso
-> **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
+ > **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
+ > 
+ > **Progreso:** Fases 1-4 completadas. `index.html` bajó de 3691 → 1830 líneas (↓51%). CSS: 1002 líneas. JS modules: 9 archivos, 903 líneas.
 
 ---
 
@@ -1183,7 +1185,20 @@ _(Se documentan errores durante la implementación)_
 
 ### Fase 4
 
-_(Se documentan errores durante la implementación)_
+**Commit:** `14a2317` | **Tag:** `fase-4` | **Fecha:** 2026-07-24
+
+**Archivos creados:**
+- `js/firebase-sync.js` (161 líneas): `initFirebase`, `subscribeFirestore`, `firstTimeSetup`, `syncToFirestore`, `flushPendingSyncs`, `updateSyncStatus`, `updateRoomLabel`, `setRemoteUpdateCallback`
+- `js/firebase-room.js` (126 líneas): `openRoomModal`, `closeRoomModal`, `leaveRoom`, `setupRoomModal`, `sha256`
+
+**Archivos modificados:**
+- `js/data.js`: Reemplazado `setSyncStub` por `setSyncToFirestore` — import real de `syncToFirestore` desde `firebase-sync.js`
+- `js/app.js` (133 líneas): Imports de `firebase-sync.js` y `firebase-room.js`, wiring de `setRemoteUpdateCallback`, exposición a `window`
+- `index.html` (1830 líneas, ↓284): Eliminadas funciones Firebase/room del inline script
+
+**Patrón de desacople:** `data.js` importa `syncToFirestore` de `firebase-sync.js`. `firebase-sync.js` NO importa de `data.js` (rompe el ciclo). `app.js` conecta el callback `onRemoteUpdate` que guarda en localStorage + llama `refreshAll()`.
+
+**Errores encontrados:** Ninguno durante esta fase.
 
 ### Fase 5
 
@@ -1214,7 +1229,7 @@ _(Se documentan errores durante la implementación)_
 | 1 | `refactor/fase-1-css` | `f466718` | `fase-1` | 2026-07-24 | ✅ Completada |
 | 2 | `refactor/fase-2-utils` | `6125af0` | `fase-2` | 2026-07-24 | ✅ Completada |
 | 3 | `refactor/fase-3-data` | `0ed5577` | `fase-3` | 2026-07-24 | ✅ Completada |
-| 4 | `refactor/fase-4-firebase` | — | — | — | ⏳ Pendiente |
+| 4 | `refactor/fase-4-firebase` | `14a2317` | `fase-4` | 2026-07-24 | ✅ Completada |
 | 5 | `refactor/fase-5-ui-rendering` | — | — | — | ⏳ Pendiente |
 | 6 | `refactor/fase-6-ui-panels` | — | — | — | ⏳ Pendiente |
 | 7 | `refactor/fase-7-setup` | — | — | — | ⏳ Pendiente |
