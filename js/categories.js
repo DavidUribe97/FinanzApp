@@ -1,6 +1,9 @@
 import { state } from './state.js';
 import { CATS_KEY, DEFAULT_CATEGORIES } from './config.js';
 
+let syncToFirestoreFn = () => {};
+export function setSyncToFirestore(fn) { syncToFirestoreFn = fn; }
+
 export function loadCategories() {
   const raw = localStorage.getItem(CATS_KEY);
   if (raw) {
@@ -26,6 +29,7 @@ export function migrateSubcats() {
 
 export function saveCategories() {
   localStorage.setItem(CATS_KEY, JSON.stringify(state.categoriesData));
+  syncToFirestoreFn();
 }
 
 export function getCatNames(type) {

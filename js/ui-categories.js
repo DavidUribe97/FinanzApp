@@ -1,9 +1,13 @@
 import { state } from './state.js';
-import { $, esc, sanitizeStr } from './utils.js';
+import { $, esc, sanitizeStr, renderEmojiPicker } from './utils.js';
 import { DEFAULT_CATEGORIES } from './config.js';
 import { saveCategories, getCatNames } from './categories.js';
 import { saveData } from './data.js';
-import { showConfirmModal, showToast, updateCategories, updateBudgetCategorySelect } from './ui-modals.js';
+import { showConfirmModal, showToast, updateCategories } from './ui-modals.js';
+import { updateBudgetCategorySelect } from './ui-budgets.js';
+
+let notifyRefreshFn = () => {};
+export function setNotifyRefresh(fn) { notifyRefreshFn = fn; }
 
 export function renderCatManager() {
   const list = $('catManagerList');
@@ -37,7 +41,7 @@ export function renderCatManager() {
       state.categoriesData[type].splice(idx, 1);
       saveCategories();
       renderCatManager();
-      window.refreshAll();
+      notifyRefreshFn();
     });
   });
 
@@ -137,7 +141,7 @@ export function setupCategoryManager() {
     renderCatManager();
     updateCategories();
     updateBudgetCategorySelect();
-    window.refreshAll();
+    notifyRefreshFn();
     showToast('Categorías restauradas');
   });
   $('addCategoryBtn').addEventListener('click', () => {
@@ -196,7 +200,7 @@ export function setupCategoryManager() {
     const picker = $('subcatEmojiPicker');
     if (picker.style.display === 'grid') { picker.style.display = 'none'; return; }
     const current = $('subcatEmojiDisplay').textContent || '📋';
-    window.renderEmojiPicker(current, emoji => {
+    renderEmojiPicker(current, emoji => {
       $('subcatEmojiDisplay').textContent = emoji;
     }, 'subcatEmojiPicker');
   });
@@ -208,7 +212,7 @@ export function setupCategoryManager() {
     const picker = $('emojiPicker');
     if (picker.style.display === 'grid') { picker.style.display = 'none'; return; }
     const current = $('catEmojiDisplay').textContent || '📋';
-    window.renderEmojiPicker(current, emoji => {
+    renderEmojiPicker(current, emoji => {
       $('catEmojiDisplay').textContent = emoji;
       $('catManagerEmoji').value = emoji;
     }, 'emojiPicker');
@@ -250,7 +254,7 @@ export function setupCategoryManager() {
     renderCatManager();
     updateCategories();
     updateBudgetCategorySelect();
-    window.refreshAll();
+    notifyRefreshFn();
     showToast(editId ? 'Categoría actualizada' : 'Categoría añadida');
   });
 }

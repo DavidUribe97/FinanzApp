@@ -3,6 +3,9 @@ import { $, esc } from './utils.js';
 import { getCatNames, getSubCatNames, getSubCatEmoji } from './categories.js';
 import { updateAccountSelector } from './members.js';
 
+let updateWhoSelectsFn = () => {};
+export function setUpdateWhoSelects(fn) { updateWhoSelectsFn = fn; }
+
 export function showToast(message, actionLabel, actionFn) {
   const container = $('toastContainer');
   if (!container) return;
@@ -50,7 +53,7 @@ export function openEditModal(id) {
   $('editAmount').value = tx.amount;
   $('editDescription').value = tx.description || '';
   $('editDate').value = tx.date;
-  window.updateWhoSelects();
+  updateWhoSelectsFn();
   $('editWho').value = tx.who || 'yo';
   updateAccountSelector(tx.who || 'yo', 'editAccount');
   if (tx.account) $('editAccount').value = tx.account;

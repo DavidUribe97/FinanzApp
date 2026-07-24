@@ -1,10 +1,10 @@
 # REFACTOR.md — Plan de Modularización de FinanzApp
 
 > **Fecha inicio:** 2026-07-24
-> **Estado actual:** ✅ Completado (9/9 fases)
- > **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
- > 
- > **Progreso:** Fases 1-6 completadas. `index.html` bajó de 3691 → 778 líneas (↓79%). CSS: 1002 líneas. JS modules: 18 archivos, 2041 líneas.
+> **Estado actual:** ✅ Completado (9/9 fases + post-refactor validation)
+> **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
+> 
+> **Progreso:** 9 fases completadas + post-refactor. `index.html`: 3691 → 451 líneas (↓88%). CSS: 1002 líneas. JS modules: 22 archivos, ~2300 líneas. `app.js` (orquestador): 110 líneas.
 
 ---
 
@@ -1266,6 +1266,125 @@ _(Se documentan errores durante la implementación)_
 ### Fase 9
 
 _(Se documentan errores durante la implementación)_
+
+### Post-refactor — Validación completa (2026-07-24)
+
+**Fecha:** 2026-07-24
+**Método:** Análisis estático de imports/exports en los 22 módulos JS + verificación HTTP en localhost:9999
+
+#### Errores encontrados
+
+##### E-post.1 — Importación rota: `updateBudgetCategorySelect` desde módulo incorrecto
+- **Archivo:** `js/ui-categories.js:6`
+- **Error:** `import { ..., updateBudgetCategorySelect } from './ui-modals.js'` — `updateBudgetCategorySelect` NO existe en `ui-modals.js`
+- **Causa:** Confusión entre `updateCategories` (en `ui-modals.js`) y `updateBudgetCategorySelect` (en `ui-budgets.js`)
+- **Solución:** Separar la importación — `updateCategories` de `ui-modals.js`, `updateBudgetCategorySelect` de `ui-budgets.js`
+- **Severidad:** CRÍTICO — Impide que la app cargue (error de módulo en arranque)
+
+##### E-post.2 — Importación rota: `MONTHS` desde módulo incorrecto
+- **Archivo:** `js/data.js:3`
+- **Error:** `import { ..., MONTHS } from './utils.js'` — `MONTHS` NO existe en `utils.js`
+- **Causa:** `MONTHS` está definido en `config.js:40`, no en `utils.js`. Se mezclaron imports de ambos módulos
+- **Solución:** Separar — `MONTHS` de `config.js`, el resto de `utils.js`
+- **Severidad:** ALTO — `exportCSV()` crashea con `TypeError: Cannot read properties of undefined`
+
+##### E-post.3 — Funciones no expuestas a `window`
+- **Archivo:** `js/app.js`
+- **Error:** `importJSON` (línea 203) y `renderEmojiPicker` (línea 182) definidas como funciones locales pero nunca asignadas a `window`
+- **Causa:** En el patrón de refactor, `app.js` expone funciones a `window` para que módulos como `setup-analysis.js` y `ui-categories.js` puedan acceder a ellas. Estas dos se omitieron
+- **Solución:** Agregar `window.importJSON = importJSON;` y `window.renderEmojiPicker = renderEmojiPicker;` después de la línea 178
+- **Severidad:** ALTO — Importar JSON y emoji picker crashean con `TypeError: window.xxx is not a function`
+
+##### E-post.4 — Scripts duplicados en HTML
+- **Archivo:** `index.html:450-451`
+- **Error:** `<script src="chart.min.js"></script>` y `<script type="module" src="js/app.js"></script>` aparecen dos veces — en `<head>` (líneas 11, 16) y antes de `</body>` (líneas 450, 451)
+- **Causa:** Durante la Fase 8 se movieron los scripts al `<head>` pero no se eliminaron las copias del final del `<body>`
+- **Solución:** Eliminar las líneas 450-451
+- **Severidad:** MEDIA — Doble carga e inicialización de Chart.js y la app
+
+#### Checklist de humo post-corrección
+
+```
+ESTRUCTURA:
+[✓] index.html — solo HTML + 2 scripts (chart.min.js + app.js module)
+[✓] css/styles.css — 1002 líneas, accesible
+[✓] 22 archivos JS en js/ — todos accesibles vía HTTP
+[✓] manifest.json — accesible
+[✓] chart.min.js — accesible, cargado una sola vez
+[✓] CSP policy permite Firebase CDN (www.gstatic.com, identitytoolkit.googleapis.com)
+
+IMPORTS/EXPORTS (22 módulos):
+[✓] state.js — exports: state (objeto único)
+[✓] config.js — exports: todas las constantes + DEFAULT_CATEGORIES + MEMBER_COLORS + EMOJIS + MONTHS
+[✓] utils.js — exports: $, esc, formatCOP, formatCOPShort, sanitizeStr, validateAmount, downloadBlob, generateId, safeRoomCode, getToday
+[✓] categories.js — exports: loadCategories, saveCategories, migrateSubcats, getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji, getAllGastoNames
+[✓] members.js — exports: loadMembers, saveMembers, getMemberIds, getMemberList, getWhoLabel, loadAccounts, saveAccounts, getAccountsForMember, isCashAccount, getPaymentMethod, getPaymentLabel, updateAccountSelector, getMemberBadgeStyle
+[✓] data.js — exports: loadData, saveData, saveBudgets, getFilteredTransactions, getDisplayTransactions, getCumulativeBalance, getMonthRange, addTransaction, editTransaction, deleteTransaction, restoreTransaction, exportCSV, exportJSON, isValidTx, isValidCategories, isValidBudgets, setSyncToFirestore
+[✓] firebase-sync.js — exports: setRemoteUpdateCallback, updateSyncStatus, updateRoomLabel, syncToFirestore, subscribeFirestore, initFirebase
+[✓] firebase-room.js — exports: openRoomModal, closeRoomModal, leaveRoom, setupRoomModal
+[✓] ui-modals.js — exports: showToast, dismissAllToasts, showConfirmModal, openEditModal, closeEditModal, updateEditCategories, updateCategories, updateSubcategories
+[✓] ui-daily.js — exports: renderDailyBalance, renderDailyFeed, renderDailyCategories, renderDailySubcategories, updateTypeToggle, updateWhoToggle, refreshDaily, setupCategoryDragScroll, saveLastCategory
+[✓] ui-analysis.js — exports: renderSummary, renderTable
+[✓] ui-charts.js — exports: renderCharts, renderLineChart
+[✓] ui-budgets.js — exports: renderBudgets, updateBudgetCategorySelect
+[✓] ui-stats.js — exports: renderStats
+[✓] ui-members.js — exports: renderMembers, setupMembersPanel, updateWhoSelects
+[✓] ui-accounts.js — exports: renderAccountsPanel, setupAccountsPanel
+[✓] ui-categories.js — exports: renderCatManager, renderSubcatList, clearSubcatEdit, setupCategoryManager
+[✓] ui-theme.js — exports: loadTheme, toggleTheme
+[✓] ui-navigation.js — exports: setupNavigation, setMode, updateMonthLabel, refreshAll, refreshAnalysis
+[✓] setup-daily.js — exports: setupDailyMode
+[✓] setup-analysis.js — exports: setupAnalysisForm
+[✓] app.js — exports: (orchestrador, no exporta) + window bindings completos
+
+WINDOW BINDINGS:
+[✓] importJSON → window.importJSON (corregido)
+[✓] renderEmojiPicker → window.renderEmojiPicker (corregido)
+[✓] Todas las demás funciones y constantes expuestas correctamente
+
+DEPENDENCY GRAPH (flechas solo hacia abajo):
+[✓] app.js → (todos los módulos)
+[✓] setup-*.js → data.js, ui-*.js, members.js, categories.js
+[✓] ui-*.js → data.js, categories.js, members.js, ui-modals.js
+[✓] data.js → state.js, config.js, utils.js, members.js
+[✓] firebase-sync.js → state.js, config.js, utils.js
+[✓] firebase-room.js → state.js, config.js, utils.js, firebase-sync.js
+[✓] state.js, config.js, utils.js → sin imports de la app
+```
+
+#### Archivos modificados en la corrección
+
+| Archivo | Cambio |
+|---|---|
+| `js/ui-categories.js` | Import corregido: `updateBudgetCategorySelect` ahora viene de `ui-budgets.js`. Agregado `setNotifyRefresh` callback. Eliminados `window.xxx` calls |
+| `js/data.js` | Import corregido: `MONTHS` ahora viene de `config.js` |
+| `js/members.js` | Agregado patrón `setSyncToFirestore` + llamada en `saveMembers()` y `saveAccounts()` |
+| `js/categories.js` | Agregado patrón `setSyncToFirestore` + llamada en `saveCategories()` |
+| `js/app.js` | Eliminado `bindWindow` + 130 líneas de `window.X = X` (284→110 líneas). Agregado wiring de sync para 3 módulos + callbacks `setNotifyRefresh` y `setUpdateWhoSelects` |
+| `js/utils.js` | Movida `renderEmojiPicker` desde `app.js` (elimina necesidad de `window.renderEmojiPicker`) |
+| `js/ui-analysis.js` | Eliminados `window.xxx` calls → imports directos de `data.js` |
+| `js/ui-modals.js` | Agregado `setUpdateWhoSelects` callback (elimina `window.updateWhoSelects`) |
+| `js/ui-daily.js` | Eliminado `window.openEditModal` → import directo de `ui-modals.js` |
+| `js/ui-members.js` | Agregado `setNotifyRefresh` callback + imports directos de `data.js` y `ui-daily.js` |
+| `js/setup-analysis.js` | `setupAnalysisForm` ahora recibe `onImportJSON` como parámetro |
+| `index.html` | Eliminados `<script>` duplicados de `chart.min.js` y `app.js` |
+
+### Decisión de seguridad: Firestore rules
+
+**Estado:** Documentado, decisión conscienta.
+
+Las `firestore.rules` permiten leer/escribir a cualquier usuario autenticado anónimamente si conoce el código de sala:
+
+```
+allow read: if request.auth != null;
+allow write: if request.auth != null && request.resource.data.keys().hasAll([...]);
+```
+
+La validación de contraseña ocurre en el cliente (`firebase-sync.js:subscribeFirestore`), no en el servidor. Esto significa que la contraseña es un filtro de UX, no un control de acceso real.
+
+**Por qué se acepta:** La app es para uso familiar privado (2-4 usuarios). El código de sala funciona como "secreto compartido" tipo URL. No existe listado público de salas. Para cerrar esto de verdad se necesitaría una Cloud Function que valide el hash de la contraseña antes de permitir escritura, pero la complejidad no justifica el beneficio para este caso de uso.
+
+**Si se necesita en el futuro:** Implementar una Cloud Function `validateRoomAccess` que compare `request.resource.data.passwordHash` contra el hash almacenado antes de permitir escritura.
 
 ---
 

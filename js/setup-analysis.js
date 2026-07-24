@@ -9,7 +9,7 @@ import { updateBudgetCategorySelect, renderBudgets } from './ui-budgets.js';
 import { renderTable } from './ui-analysis.js';
 import { exportCSV, exportJSON } from './data.js';
 
-export function setupAnalysisForm() {
+export function setupAnalysisForm(onImportJSON) {
   updateWhoSelects();
   updateAccountSelector($('txWho').value, 'txAccount');
   updateCategories();
@@ -86,7 +86,7 @@ export function setupAnalysisForm() {
   $('btnExportJSON').addEventListener('click', exportJSON);
   $('btnImport').addEventListener('click', () => $('fileInput').click());
   $('fileInput').addEventListener('change', e => {
-    if (e.target.files[0]) window.importJSON(e.target.files[0]);
+    if (e.target.files[0] && onImportJSON) onImportJSON(e.target.files[0]);
     e.target.value = '';
   });
 

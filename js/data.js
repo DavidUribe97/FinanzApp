@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT } from './config.js';
-import { $, downloadBlob, formatCOP, MONTHS } from './utils.js';
+import { $, downloadBlob, formatCOP } from './utils.js';
+import { MONTHS } from './config.js';
 import { getWhoLabel } from './members.js';
 
 let syncToFirestoreFn = () => {};

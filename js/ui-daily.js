@@ -4,6 +4,7 @@ import { MEMBER_COLORS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, LAST_CAT_KEY } f
 import { getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji } from './categories.js';
 import { getFilteredTransactions, getCumulativeBalance } from './data.js';
 import { getPaymentMethod, getMemberBadgeStyle, updateAccountSelector, getWhoLabel } from './members.js';
+import { openEditModal } from './ui-modals.js';
 
 function loadLastCategory() {
   try {
@@ -278,7 +279,7 @@ export function renderDailyFeed() {
 
   list.querySelectorAll('[data-edit]').forEach(btn => {
     btn.addEventListener('click', () => {
-      window.openEditModal(btn.dataset.edit);
+      openEditModal(btn.dataset.edit);
     });
   });
 }

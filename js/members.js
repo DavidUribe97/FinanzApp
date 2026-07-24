@@ -2,6 +2,9 @@ import { state } from './state.js';
 import { MEMBERS_KEY, ACCOUNTS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, CASH_ACCOUNTS, MEMBER_COLORS } from './config.js';
 import { $, esc } from './utils.js';
 
+let syncToFirestoreFn = () => {};
+export function setSyncToFirestore(fn) { syncToFirestoreFn = fn; }
+
 export function loadMembers() {
   try {
     const raw = localStorage.getItem(MEMBERS_KEY);
@@ -13,6 +16,7 @@ export function loadMembers() {
 
 export function saveMembers() {
   localStorage.setItem(MEMBERS_KEY, JSON.stringify(state.members));
+  syncToFirestoreFn();
 }
 
 export function getMemberIds() {
@@ -38,6 +42,7 @@ export function loadAccounts() {
 
 export function saveAccounts() {
   localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
+  syncToFirestoreFn();
 }
 
 export function getAccountsForMember(memberId) {

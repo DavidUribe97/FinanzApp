@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { $, esc, formatCOP } from './utils.js';
-import { getFilteredTransactions } from './data.js';
+import { getFilteredTransactions, getCumulativeBalance, getDisplayTransactions, deleteTransaction as deleteTransactionData } from './data.js';
 import { getSubCatEmoji } from './categories.js';
 import { isCashAccount, getMemberBadgeStyle, getWhoLabel } from './members.js';
 import { openEditModal } from './ui-modals.js';
@@ -9,7 +9,7 @@ export function renderSummary() {
   const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
   const totalIngresos = filtered.filter(tx => tx.type === 'ingreso').reduce((s, t) => s + t.amount, 0);
   const totalGastos = filtered.filter(tx => tx.type === 'gasto').reduce((s, t) => s + t.amount, 0);
-  const carryBalance = window.getCumulativeBalance(state.currentMonth, state.currentYear);
+  const carryBalance = getCumulativeBalance(state.currentMonth, state.currentYear);
   const saldo = carryBalance + totalIngresos - totalGastos;
   $('totalIngresos').textContent = formatCOP(totalIngresos);
   $('totalGastos').textContent = formatCOP(totalGastos);
@@ -22,7 +22,7 @@ export function renderSummary() {
 }
 
 export function renderTable() {
-  const display = window.getDisplayTransactions();
+  const display = getDisplayTransactions();
   const body = $('txBody');
   const empty = $('emptyState');
   const wrap = $('tableWrap');
@@ -55,7 +55,7 @@ export function renderTable() {
     </tr>
   `}).join('');
   body.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', () => window.deleteTransactionData(btn.dataset.del));
+    btn.addEventListener('click', () => deleteTransactionData(btn.dataset.del));
   });
   body.querySelectorAll('[data-edit]').forEach(btn => {
     btn.addEventListener('click', () => openEditModal(btn.dataset.edit));

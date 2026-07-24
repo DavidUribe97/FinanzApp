@@ -2,6 +2,11 @@ import { state } from './state.js';
 import { $, esc, sanitizeStr } from './utils.js';
 import { loadMembers, saveMembers, updateAccountSelector } from './members.js';
 import { showConfirmModal, showToast } from './ui-modals.js';
+import { saveData } from './data.js';
+import { updateWhoToggle } from './ui-daily.js';
+
+let notifyRefreshFn = () => {};
+export function setNotifyRefresh(fn) { notifyRefreshFn = fn; }
 
 export function renderMembers() {
   const list = $('membersList');
@@ -38,10 +43,10 @@ export function renderMembers() {
       });
       delete state.members[id];
       saveMembers();
-      window.saveData();
+      saveData();
       renderMembers();
-      window.updateWhoToggle();
-      window.refreshAll();
+      updateWhoToggle();
+      notifyRefreshFn();
     });
   });
 }
@@ -71,9 +76,9 @@ export function setupMembersPanel() {
     saveMembers();
     $('memberForm').style.display = 'none';
     renderMembers();
-    window.updateWhoToggle();
+    updateWhoToggle();
     updateWhoSelects();
-    window.refreshAll();
+    notifyRefreshFn();
     showToast(editId ? 'Miembro actualizado' : 'Miembro añadido');
   });
 }

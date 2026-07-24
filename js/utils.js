@@ -1,4 +1,4 @@
-import { MAX_DESC_LENGTH, MAX_AMOUNT } from './config.js';
+import { MAX_DESC_LENGTH, MAX_AMOUNT, EMOJIS } from './config.js';
 
 export const $ = id => document.getElementById(id);
 
@@ -40,4 +40,25 @@ export function safeRoomCode(code) {
 
 export function getToday() {
   return new Date();
+}
+
+export function renderEmojiPicker(selected, onSelect, pickerId) {
+  const picker = $(pickerId || 'emojiPicker');
+  if (!picker) return;
+  picker.style.display = 'grid';
+  picker.innerHTML = EMOJIS.map(e =>
+    `<button data-emoji="${e}" class="${e === (selected || '📋') ? 'selected' : ''}">${e}</button>`
+  ).join('');
+  picker.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      picker.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      if (onSelect) {
+        onSelect(btn.dataset.emoji);
+      } else {
+        $('catManagerEmoji').value = btn.dataset.emoji;
+      }
+      picker.style.display = 'none';
+    });
+  });
 }
