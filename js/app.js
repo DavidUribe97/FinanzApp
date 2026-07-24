@@ -15,6 +15,10 @@ import { renderStats } from './ui-stats.js';
 import { renderMembers, setupMembersPanel, updateWhoSelects } from './ui-members.js';
 import { renderAccountsPanel, setupAccountsPanel } from './ui-accounts.js';
 import { renderCatManager, renderSubcatList, clearSubcatEdit, setupCategoryManager } from './ui-categories.js';
+import { loadTheme, toggleTheme } from './ui-theme.js';
+import { setupNavigation, setMode, updateMonthLabel, refreshAll, refreshAnalysis } from './ui-navigation.js';
+import { setupDailyMode } from './setup-daily.js';
+import { setupAnalysisForm } from './setup-analysis.js';
 
 function bindWindow(key, getter, setter) {
   Object.defineProperty(window, key, { get: getter, set: setter, configurable: true, enumerable: true });
@@ -163,6 +167,15 @@ window.renderCatManager = renderCatManager;
 window.renderSubcatList = renderSubcatList;
 window.clearSubcatEdit = clearSubcatEdit;
 window.setupCategoryManager = setupCategoryManager;
+window.loadTheme = loadTheme;
+window.toggleTheme = toggleTheme;
+window.setupNavigation = setupNavigation;
+window.setMode = setMode;
+window.updateMonthLabel = updateMonthLabel;
+window.refreshAll = refreshAll;
+window.refreshAnalysis = refreshAnalysis;
+window.setupDailyMode = setupDailyMode;
+window.setupAnalysisForm = setupAnalysisForm;
 
 setSyncToFirestore(syncToFirestore);
 

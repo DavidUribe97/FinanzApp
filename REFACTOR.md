@@ -4,7 +4,7 @@
 > **Estado actual:** En progreso
  > **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
  > 
- > **Progreso:** Fases 1-5 completadas. `index.html` bajó de 3691 → 1137 líneas (↓69%). CSS: 1002 líneas. JS modules: 15 archivos, 1649 líneas.
+ > **Progreso:** Fases 1-6 completadas. `index.html` bajó de 3691 → 778 líneas (↓79%). CSS: 1002 líneas. JS modules: 18 archivos, 2041 líneas.
 
 ---
 
@@ -877,25 +877,37 @@ Contiene: toggles tipo/quién + función `addDailyTx()` + event listeners de dai
 Contiene: form de transacción, filtros, presupuestos, export/import, edit form listeners.
 
 ### Verificación
-- [ ] Navegación meses (◀ ▶) funciona
-- [ ] Modo diario ↔ análisis funciona
-- [ ] Toggle tema oscuro/claro funciona
-- [ ] Persistencia de tema y modo al recargar
-- [ ] No hay doble-registro de listeners (verificar que no quedaron `onclick=` en HTML)
-- [ ] Todos los event listeners funcionan correctamente
+- [x] Navegación meses (◀ ▶) funciona
+- [x] Modo diario ↔ análisis funciona
+- [x] Toggle tema oscuro/claro funciona
+- [x] Persistencia de tema y modo al recargar
+- [x] No hay doble-registro de listeners (verificar que no quedaron `onclick=` en HTML)
+- [x] Todos los event listeners funcionan correctamente
 
 ### Riesgo
 **Bajo.** Solo se mueven event listeners. Verificado que no hay `onclick=` inline en HTML.
 
 ### Commit
 ```
-rama: refactor/fase-7-setup
-mensaje: refactor(fase 7): extraer ui-theme, ui-navigation, setup-daily, setup-analysis
+rama: refactor/fase-6-ui-panels
+commit: b92f402
+fecha: 2026-07-24
 tag: fase-7
 ```
 
 ### Errores encontrados
-_(Se documentan aquí durante la implementación)_
+1. **Import no usado:** `esc` importado en setup-analysis.js — removido
+2. **Import no usado:** `$` importado en ui-theme.js — removido
+
+### Resultado
+- **index.html:** 778 → 552 (↓226, -29%)
+- **Archivos creados:** 4 módulos nuevos
+  - `js/ui-theme.js` (13 lines): `loadTheme()`, `toggleTheme()`
+  - `js/ui-navigation.js` (65 lines): `setupNavigation()`, `setMode()`, `updateMonthLabel()`, `refreshAll()`, `refreshAnalysis()`
+  - `js/setup-daily.js` (55 lines): `setupDailyMode()` con `addDailyTx()` anidada
+  - `js/setup-analysis.js` (121 lines): `setupAnalysisForm()` con form, filtros, presupuestos, export/import, edit form listeners
+- **Inline script reducido a:** `renderEmojiPicker`, `importJSON`, `registerServiceWorker`, `init`
+- **Total archivos JS:** 22, 2911 líneas
 
 ---
 
@@ -1221,11 +1233,23 @@ _(Se documentan errores durante la implementación)_
 
 ### Fase 6
 
-_(Se documentan errores durante la implementación)_
+**Commit:** `9f23da1` | **Tag:** `fase-6` | **Fecha:** 2026-07-24
+
+**Archivos creados (3):**
+- `js/ui-members.js` (101 líneas): renderMembers, setupMembersPanel, updateWhoSelects
+- `js/ui-accounts.js` (90 líneas): renderAccountsPanel, setupAccountsPanel
+- `js/ui-categories.js` (201 líneas): renderCatManager, renderSubcatList, clearSubcatEdit, setupCategoryManager
+
+**Archivos modificados:**
+- `js/app.js` (180 líneas): imports de 3 módulos panel, exposición a window
+- `index.html` (778 líneas, ↓359): eliminadas funciones de paneles de gestión
+
+**Errores encontrados:** Ninguno durante esta fase.
 
 ### Fase 7
 
-_(Se documentan errores durante la implementación)_
+1. **Import no usado (`esc`)** en setup-analysis.js — removido
+2. **Import no usado (`$`)** en ui-theme.js — removido
 
 ### Fase 8
 
@@ -1246,8 +1270,8 @@ _(Se documentan errores durante la implementación)_
 | 3 | `refactor/fase-3-data` | `0ed5577` | `fase-3` | 2026-07-24 | ✅ Completada |
 | 4 | `refactor/fase-4-firebase` | `14a2317` | `fase-4` | 2026-07-24 | ✅ Completada |
 | 5 | `refactor/fase-5-ui-rendering` | `fa21715` | `fase-5` | 2026-07-24 | ✅ Completada |
-| 6 | `refactor/fase-6-ui-panels` | — | — | — | ⏳ Pendiente |
-| 7 | `refactor/fase-7-setup` | — | — | — | ⏳ Pendiente |
+| 6 | `refactor/fase-6-ui-panels` | `9f23da1` | `fase-6` | 2026-07-24 | ✅ Completada |
+| 7 | `refactor/fase-6-ui-panels` | `b92f402` | `fase-7` | 2026-07-24 | ✅ Completada |
 | 8 | `refactor/fase-8-appjs` | — | — | — | ⏳ Pendiente |
 | 9 | `refactor/fase-9-config` | — | — | — | ⏳ Pendiente |
 
