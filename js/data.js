@@ -59,6 +59,12 @@ export function getDisplayTransactions() {
   }).sort((a, b) => b.date.localeCompare(a.date));
 }
 
+export function getAccountBalance(who, account) {
+  return state.transactions
+    .filter(tx => tx.who === who && tx.account === account)
+    .reduce((sum, tx) => sum + (tx.type === 'ingreso' ? tx.amount : -tx.amount), 0);
+}
+
 export function getCumulativeBalance(month, year) {
   let balance = 0;
   state.transactions.forEach(tx => {

@@ -1478,6 +1478,41 @@ La validación de contraseña ocurre en el cliente (`firebase-sync.js:subscribeF
 
 ---
 
+### Feature: Validación de saldo por cuenta (2026-07-24)
+
+**Descripción:** Cada transacción de tipo gasto valida que la cuenta tenga saldo suficiente antes de registrarse.
+
+**Reglas de negocio:**
+- Gastos: requieren `who + account`, validan `getAccountBalance(who, account) >= amount`
+- Ingresos: sin restricción (suman dinero)
+- Compartido: siempre requiere person + account (nunca pool "compartido")
+- Balance visible solo en selector de cuenta (no en tarjeta principal)
+- Edición: recalcula saldo considerando monto anterior si misma cuenta
+
+#### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `js/data.js:62-66` | Nueva función `getAccountBalance(who, account)` |
+| `js/members.js:1,64-71` | `updateAccountSelector()` muestra saldo por cuenta |
+| `js/setup-daily.js:4,41-46` | Validación de saldo antes de `addTransaction()` |
+| `js/setup-analysis.js:4,36-42` | Validación en formulario de creación |
+| `js/setup-analysis.js:4,118-128` | Validación en edición (considera monto anterior) |
+
+#### Verificación
+
+```
+[✓] getAccountBalance() exportado correctamente
+[✓] updateAccountSelector() muestra saldo formateado
+[✓] setup-daily.js valida saldo antes de agregar gasto
+[✓] setup-analysis.js valida saldo en creación
+[✓] setup-analysis.js valida saldo en edición (considera prevTx)
+[✓] Ingresos no validan saldo
+[✓] Todos los módulos accesibles vía HTTP
+```
+
+---
+
 ## Notas finales
 
 - **No es un rewrite** — es un refactor quirúrgico. En cada fase la app funciona.

@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { MEMBERS_KEY, ACCOUNTS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, CASH_ACCOUNTS, MEMBER_COLORS } from './config.js';
-import { $, esc } from './utils.js';
+import { $, esc, formatCOPShort } from './utils.js';
+import { getAccountBalance } from './data.js';
 
 let syncToFirestoreFn = () => {};
 export function setSyncToFirestore(fn) { syncToFirestoreFn = fn; }
@@ -66,7 +67,11 @@ export function updateAccountSelector(memberId, selectId) {
   if (!sel) return;
   const accts = getAccountsForMember(memberId);
   const prev = sel.value;
-  sel.innerHTML = accts.map(a => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+  sel.innerHTML = accts.map(a => {
+    const bal = getAccountBalance(memberId, a);
+    const balText = formatCOPShort(bal);
+    return `<option value="${esc(a)}">${esc(a)} (${balText})</option>`;
+  }).join('');
   if (accts.includes(prev)) sel.value = prev;
 }
 

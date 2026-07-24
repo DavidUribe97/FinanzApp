@@ -3,7 +3,7 @@ import { $, formatCOP, sanitizeStr, validateAmount, generateId } from './utils.j
 import { updateWhoSelects } from './ui-members.js';
 import { updateAccountSelector } from './members.js';
 import { updateCategories, updateSubcategories, updateEditCategories, closeEditModal, showToast, dismissAllToasts, showConfirmModal } from './ui-modals.js';
-import { addTransaction, editTransaction } from './data.js';
+import { addTransaction, editTransaction, getAccountBalance } from './data.js';
 import { saveBudgets } from './data.js';
 import { updateBudgetCategorySelect, renderBudgets } from './ui-budgets.js';
 import { renderTable } from './ui-analysis.js';
@@ -33,6 +33,12 @@ export function setupAnalysisForm(onImportJSON) {
     const account = $('txAccount').value || 'Efectivo';
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
+    if (type === 'gasto') {
+      const balance = getAccountBalance(who, account);
+      if (balance < amount) {
+        return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);
+      }
+    }
     const sanitizedDesc = sanitizeStr(description);
     addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
     refreshAnalysis();
@@ -111,6 +117,16 @@ export function setupAnalysisForm(onImportJSON) {
     const account = $('editAccount').value || 'Efectivo';
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
+    if (type === 'gasto') {
+      const prevTx = state.transactions.find(t => String(t.id) === String(state.editingId));
+      let balance = getAccountBalance(who, account);
+      if (prevTx && prevTx.who === who && prevTx.account === account) {
+        balance += prevTx.amount;
+      }
+      if (balance < amount) {
+        return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);
+      }
+    }
     const sanitizedDesc = sanitizeStr(description);
     editTransaction(state.editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
     closeEditModal();
