@@ -1095,6 +1095,62 @@ function setupAnalysisForm() {
   });
 }
 
+function renderEmojiPicker(selected, onSelect, pickerId) {
+  const picker = $(pickerId || 'emojiPicker');
+  if (!picker) return;
+  picker.style.display = 'grid';
+  picker.innerHTML = EMOJIS.map(e =>
+    `<button data-emoji="${e}" class="${e === (selected || '📋') ? 'selected' : ''}">${e}</button>`
+  ).join('');
+  picker.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      picker.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      if (onSelect) {
+        onSelect(btn.dataset.emoji);
+      } else {
+        $('catManagerEmoji').value = btn.dataset.emoji;
+      }
+      picker.style.display = 'none';
+    });
+  });
+}
+
+function importJSON(file) {
+  showToast('Importando…');
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || typeof data !== 'object') throw new Error('Datos inválidos');
+      if (!Array.isArray(data.transactions) || !data.transactions.every(isValidTx)) {
+        throw new Error('Transacciones inválidas');
+      }
+      if (data.budgets && !isValidBudgets(data.budgets)) {
+        throw new Error('Presupuestos inválidos');
+      }
+      if (data.categories && !isValidCategories(data.categories)) {
+        throw new Error('Categorías inválidas');
+      }
+      dismissAllToasts();
+      const ok = await showConfirmModal(`¿Importar ${data.transactions.length} transacciones? Se reemplazarán los datos actuales.`);
+      if (!ok) return;
+      transactions = data.transactions;
+      if (data.budgets) budgets = data.budgets;
+      if (data.categories) { categoriesData = data.categories; saveCategories(); }
+      saveData();
+      saveBudgets();
+      refreshAll();
+      dismissAllToasts();
+      showToast(`Importadas ${data.transactions.length} transacciones`);
+    } catch (e) {
+      dismissAllToasts();
+      showToast('Error: ' + (e.message || 'Archivo inválido'));
+    }
+  };
+  reader.readAsText(file);
+}
+
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
     caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('finanzapp')).map(k => caches.delete(k))));

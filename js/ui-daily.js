@@ -12,7 +12,7 @@ function loadLastCategory() {
   } catch { return {}; }
 }
 
-function saveLastCategory(type, cat, subcat) {
+export function saveLastCategory(type, cat, subcat) {
   const data = loadLastCategory();
   data[type] = cat;
   if (subcat) data[type + '_sub'] = subcat;

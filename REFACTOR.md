@@ -4,7 +4,7 @@
 > **Estado actual:** En progreso
  > **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
  > 
- > **Progreso:** Fases 1-5 completadas. `index.html` bajó de 3691 → 1137 líneas (↓69%). CSS: 1002 líneas. JS modules: 15 archivos, 1673 líneas.
+ > **Progreso:** Fases 1-5 completadas. `index.html` bajó de 3691 → 1137 líneas (↓69%). CSS: 1002 líneas. JS modules: 15 archivos, 1649 líneas.
 
 ---
 

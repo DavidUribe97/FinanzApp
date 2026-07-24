@@ -7,7 +7,7 @@ import { loadData, saveData, saveBudgets, getFilteredTransactions, getDisplayTra
 import { initFirebase, syncToFirestore, subscribeFirestore, updateSyncStatus, updateRoomLabel, setRemoteUpdateCallback } from './firebase-sync.js';
 import { setupRoomModal, openRoomModal, closeRoomModal, leaveRoom } from './firebase-room.js';
 import { showToast, dismissAllToasts, showConfirmModal, openEditModal, closeEditModal, updateEditCategories, updateCategories, updateSubcategories } from './ui-modals.js';
-import { renderDailyBalance, renderDailyFeed, renderDailyCategories, renderDailySubcategories, updateTypeToggle, updateWhoToggle, refreshDaily, setupCategoryDragScroll } from './ui-daily.js';
+import { renderDailyBalance, renderDailyFeed, renderDailyCategories, renderDailySubcategories, updateTypeToggle, updateWhoToggle, refreshDaily, setupCategoryDragScroll, saveLastCategory } from './ui-daily.js';
 import { renderSummary, renderTable } from './ui-analysis.js';
 import { renderCharts, renderLineChart } from './ui-charts.js';
 import { renderBudgets, updateBudgetCategorySelect } from './ui-budgets.js';
@@ -111,7 +111,7 @@ window.addTransaction = addTransaction;
 window.editTransaction = editTransaction;
 window.deleteTransactionData = deleteTransaction;
 window.restoreTransaction = restoreTransaction;
-window.exportCSVData = exportCSV;
+window.exportCSV = exportCSV;
 window.exportJSON = exportJSON;
 window.isValidTx = isValidTx;
 window.isValidCategories = isValidCategories;
@@ -150,6 +150,7 @@ window.renderLineChart = renderLineChart;
 window.renderBudgets = renderBudgets;
 window.updateBudgetCategorySelect = updateBudgetCategorySelect;
 window.renderStats = renderStats;
+window.saveLastCategory = saveLastCategory;
 
 setSyncToFirestore(syncToFirestore);
 
