@@ -1,20 +1,8 @@
 import { state } from './state.js';
 import { ROOM_KEY } from './config.js';
-import { $, safeRoomCode } from './utils.js';
+import { $ } from './utils.js';
 import { updateSyncStatus, updateRoomLabel, subscribeFirestore } from './firebase-sync.js';
-
-function showToast(message) {
-  const container = $('toastContainer');
-  if (!container) return;
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.innerHTML = `<span>${message}</span>`;
-  container.appendChild(toast);
-  setTimeout(() => {
-    toast.style.animation = 'slideDown 0.3s ease forwards';
-    setTimeout(() => toast.remove(), 300);
-  }, 5000);
-}
+import { showToast } from './ui-modals.js';
 
 export function openRoomModal() {
   $('roomCodeDisplay').textContent = state.roomCode || '—';

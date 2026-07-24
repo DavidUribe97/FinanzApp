@@ -1,9 +1,9 @@
 import { state } from './state.js';
 import { $, esc, formatCOP } from './utils.js';
-import { getFilteredTransactions, getCumulativeBalance, getDisplayTransactions, deleteTransaction as deleteTransactionData } from './data.js';
+import { getFilteredTransactions, getCumulativeBalance, getDisplayTransactions, deleteTransaction as deleteTransactionData, restoreTransaction } from './data.js';
 import { getSubCatEmoji } from './categories.js';
 import { isCashAccount, getMemberBadgeStyle, getWhoLabel } from './members.js';
-import { openEditModal } from './ui-modals.js';
+import { openEditModal, showToast } from './ui-modals.js';
 
 export function renderSummary() {
   const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
@@ -55,7 +55,16 @@ export function renderTable() {
     </tr>
   `}).join('');
   body.querySelectorAll('[data-del]').forEach(btn => {
-    btn.addEventListener('click', () => deleteTransactionData(btn.dataset.del));
+    btn.addEventListener('click', () => {
+      const tx = deleteTransactionData(btn.dataset.del);
+      if (tx) {
+        renderTable();
+        showToast(`"${tx.description || tx.category}" eliminado`, 'Deshacer', () => {
+          restoreTransaction();
+          renderTable();
+        });
+      }
+    });
   });
   body.querySelectorAll('[data-edit]').forEach(btn => {
     btn.addEventListener('click', () => openEditModal(btn.dataset.edit));

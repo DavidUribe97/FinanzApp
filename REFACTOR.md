@@ -1,10 +1,10 @@
 # REFACTOR.md — Plan de Modularización de FinanzApp
 
 > **Fecha inicio:** 2026-07-24
-> **Estado actual:** ✅ Completado (9/9 fases + post-refactor validation)
+> **Estado actual:** ✅ Completado (9/9 fases + post-refactor validation + code review)
 > **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
 > 
-> **Progreso:** 9 fases completadas + post-refactor. `index.html`: 3691 → 451 líneas (↓88%). CSS: 1002 líneas. JS modules: 22 archivos, ~2300 líneas. `app.js` (orquestador): 110 líneas.
+> **Progreso:** 9 fases completadas + post-refactor + code review (6 bugs corregidos). `index.html`: 3691 → 451 líneas (↓88%). CSS: 1002 líneas. JS modules: 22 archivos, ~2300 líneas. `app.js` (orquestador): 111 líneas.
 
 ---
 
@@ -1401,6 +1401,80 @@ La validación de contraseña ocurre en el cliente (`firebase-sync.js:subscribeF
 | 7 | `refactor/fase-6-ui-panels` | `b92f402` | `fase-7` | 2026-07-24 | ✅ Completada |
 | 8 | `refactor/fase-6-ui-panels` | `b82e389` | `fase-8` | 2026-07-24 | ✅ Completada |
 | 9 | `refactor/fase-6-ui-panels` | `095e039` | `fase-9` | 2026-07-24 | ✅ Completada |
+
+### Post-refactor — Revisión de código (2026-07-24)
+
+**Método:** Revisión exhaustiva de imports/exports en los 22 módulos JS + análisis de flujo de datos.
+
+#### Errores críticos encontrados y corregidos
+
+##### E-review.1 — Persistencia de accounts en sync remoto incompleta
+- **Archivo:** `js/app.js:102-108`
+- **Error:** El callback `setRemoteUpdateCallback` persistía transactions, budgets, categories y members en localStorage, pero **omitía `state.accounts`**. `ACCOUNTS_KEY` no estaba importado.
+- **Causa:** Cuando se extrajo el callback del inline script, se olvidó la línea de accounts
+- **Solución:** Agregado `ACCOUNTS_KEY` al import de config.js + `localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts))` en el callback
+- **Severidad:** CRÍTICO — Los cambios de cuentas desde Firestore se perdían al recargar
+
+##### E-review.2 — UI no se refrescaba al agregar transacción en modo diario
+- **Archivo:** `js/setup-daily.js:40`
+- **Error:** Después de `addTransaction(...)`, no se llamaba `refreshDaily()`. El saldo y feed quedaban desactualizados.
+- **Causa:** En el código monolítico, `addTransaction()` llamaba `refreshAll()` internamente. Al extraerlo a módulo, esa llamada se perdió y no se agregó en el caller.
+- **Solución:** Agregado import de `refreshDaily` + llamada `refreshDaily()` después de `addTransaction()`
+- **Severidad:** CRÍTICO — En modo offline, la UI nunca se actualizaba al agregar transacciones
+
+##### E-review.3 — UI no se refrescaba al agregar transacción en modo análisis
+- **Archivo:** `js/setup-analysis.js:36`
+- **Error:** Mismo problema que E-review.2. Después de `addTransaction(...)`, no se llamaba `renderTable()` ni `refreshAnalysis()`.
+- **Causa:** Misma causa — la llamada a `refreshAll()` se extrajo del módulo data pero no se agregó en el caller.
+- **Solución:** Agregado import de `refreshAnalysis` + llamada `refreshAnalysis()` después de `addTransaction()`
+- **Severidad:** CRÍTICO — Tabla, summary, charts y stats quedaban stale
+
+##### E-review.4 — UI no se refrescaba al eliminar transacción en tabla de análisis
+- **Archivo:** `js/ui-analysis.js:58`
+- **Error:** `deleteTransactionData(btn.dataset.del)` eliminaba la transacción pero no se llamaba `renderTable()` después. La fila eliminada permanecía visible.
+- **Causa:** La función `deleteTransaction` en data.js fue diseñada para ser llamada desde el inline script original que manejaba el refresh. En el refactor se extrajo la lógica pero no se agregó el refresh.
+- **Solución:** Agregado `renderTable()` después del delete + toast de "Deshacer" con `restoreTransaction()`
+- **Severidad:** CRÍTICO — Sin feedback al usuario, fila fantasma en la tabla
+
+#### Warnings encontrados y corregidos
+
+##### E-review.5 — showToast duplicado sin escape en firebase-room.js
+- **Archivo:** `js/firebase-room.js:6-17`
+- **Error:** Función local `showToast` usaba `innerHTML` sin `esc()`. En línea 115, el room code del usuario se inyectaba directamente.
+- **Solución:** Eliminada función local, importado `showToast` de `ui-modals.js` (que usa `esc()`)
+- **Severidad:** MEDIA — XSS potencial con room codes maliciosos
+
+##### E-review.6 — Imports muertos en firebase-sync.js
+- **Archivo:** `js/firebase-sync.js:2`
+- **Error:** `STORAGE_KEY`, `BUDGET_KEY`, `CATS_KEY`, `MEMBERS_KEY`, `ACCOUNTS_KEY` se importaban pero nunca se usaban.
+- **Solución:** Eliminados los 5 imports no utilizados
+- **Severidad:** BAJA — Code smell, no afecta funcionalidad
+
+#### Archivos modificados en la revisión
+
+| Archivo | Cambio |
+|---|---|
+| `js/app.js:2` | Agregado `ACCOUNTS_KEY` al import de config.js |
+| `js/app.js:107` | Agregada persistencia de `state.accounts` en callback remoto |
+| `js/setup-daily.js:3` | Agregado import de `refreshDaily` desde `ui-daily.js` |
+| `js/setup-daily.js:41` | Agregada llamada `refreshDaily()` después de `addTransaction()` |
+| `js/setup-analysis.js:10` | Agregado import de `refreshAnalysis` desde `ui-navigation.js` |
+| `js/setup-analysis.js:38` | Agregada llamada `refreshAnalysis()` después de `addTransaction()` |
+| `js/ui-analysis.js:3` | Agregado import de `restoreTransaction` desde `data.js` |
+| `js/ui-analysis.js:6` | Agregado import de `showToast` desde `ui-modals.js` |
+| `js/ui-analysis.js:57-68` | Reescrito handler de delete: `renderTable()` + toast con "Deshacer" |
+| `js/firebase-room.js:5` | Reemplazado showToast local por import de `ui-modals.js` |
+| `js/firebase-room.js:6-17` | Eliminada función local `showToast` (12 líneas) |
+| `js/firebase-sync.js:2` | Eliminados 5 imports muertos (`STORAGE_KEY`, `BUDGET_KEY`, `CATS_KEY`, `MEMBERS_KEY`, `ACCOUNTS_KEY`) |
+
+#### Verificación post-corrección
+
+```
+[✓] Todos los 22 módulos accesibles vía HTTP (200)
+[✓] Todas las imports/resolves verificados (sin exports faltantes)
+[✓] Sin dependencias circulares
+[✓] Sintaxis ES modules válida en todos los archivos
+```
 
 ---
 

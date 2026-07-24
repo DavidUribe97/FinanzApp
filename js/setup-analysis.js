@@ -7,6 +7,7 @@ import { addTransaction, editTransaction } from './data.js';
 import { saveBudgets } from './data.js';
 import { updateBudgetCategorySelect, renderBudgets } from './ui-budgets.js';
 import { renderTable } from './ui-analysis.js';
+import { refreshAnalysis } from './ui-navigation.js';
 import { exportCSV, exportJSON } from './data.js';
 
 export function setupAnalysisForm(onImportJSON) {
@@ -34,6 +35,7 @@ export function setupAnalysisForm(onImportJSON) {
     if (!date) return showToast('Selecciona una fecha');
     const sanitizedDesc = sanitizeStr(description);
     addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
+    refreshAnalysis();
     $('txForm').reset();
     $('txDate').valueAsDate = new Date();
     $('txCategory').value = '';

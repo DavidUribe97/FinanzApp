@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { FIREBASE_CONFIG, FIRESTORE_COLLECTION, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY, ACCOUNTS_KEY } from './config.js';
+import { FIREBASE_CONFIG, FIRESTORE_COLLECTION } from './config.js';
 import { $, safeRoomCode } from './utils.js';
 
 let onRemoteUpdate = null;

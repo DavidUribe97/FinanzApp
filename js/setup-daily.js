@@ -1,6 +1,6 @@
 import { state } from './state.js';
 import { $, sanitizeStr, validateAmount, generateId, getToday } from './utils.js';
-import { updateTypeToggle, updateWhoToggle, renderDailyCategories, saveLastCategory } from './ui-daily.js';
+import { updateTypeToggle, updateWhoToggle, renderDailyCategories, saveLastCategory, refreshDaily } from './ui-daily.js';
 import { updateAccountSelector } from './members.js';
 import { addTransaction } from './data.js';
 import { showToast } from './ui-modals.js';
@@ -38,6 +38,7 @@ export function setupDailyMode() {
     const date = getToday().toISOString().slice(0, 10);
     const account = $('dailyAccount').value || 'Efectivo';
     addTransaction({ id: generateId(), type: state.selectedType, amount, category: state.selectedCategory, subcategory: state.selectedSubcategory || '', description: desc, date, who: state.selectedWho, account });
+    refreshDaily();
     saveLastCategory(state.selectedType, state.selectedCategory, state.selectedSubcategory);
     dailyAmount.value = '';
     dailyDesc.value = '';

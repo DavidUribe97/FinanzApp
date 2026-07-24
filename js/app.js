@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { MODE_KEY, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY } from './config.js';
+import { MODE_KEY, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY, ACCOUNTS_KEY } from './config.js';
 import { renderEmojiPicker, validateAmount } from './utils.js';
 import { loadCategories, saveCategories, setSyncToFirestore as setSyncCategories } from './categories.js';
 import { loadMembers, loadAccounts, setSyncToFirestore as setSyncMembers } from './members.js';
@@ -104,6 +104,7 @@ setRemoteUpdateCallback(() => {
   localStorage.setItem(BUDGET_KEY, JSON.stringify(state.budgets));
   localStorage.setItem(CATS_KEY, JSON.stringify(state.categoriesData));
   localStorage.setItem(MEMBERS_KEY, JSON.stringify(state.members));
+  localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
   refreshAll();
 });
 
