@@ -179,12 +179,104 @@ window.setupAnalysisForm = setupAnalysisForm;
 
 setSyncToFirestore(syncToFirestore);
 
+function renderEmojiPicker(selected, onSelect, pickerId) {
+  const picker = $(pickerId || 'emojiPicker');
+  if (!picker) return;
+  picker.style.display = 'grid';
+  picker.innerHTML = EMOJIS.map(e =>
+    `<button data-emoji="${e}" class="${e === (selected || '📋') ? 'selected' : ''}">${e}</button>`
+  ).join('');
+  picker.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      picker.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      if (onSelect) {
+        onSelect(btn.dataset.emoji);
+      } else {
+        $('catManagerEmoji').value = btn.dataset.emoji;
+      }
+      picker.style.display = 'none';
+    });
+  });
+}
+
+function importJSON(file) {
+  showToast('Importando…');
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || typeof data !== 'object') throw new Error('Datos inválidos');
+      if (!Array.isArray(data.transactions) || !data.transactions.every(isValidTx)) {
+        throw new Error('Transacciones inválidas');
+      }
+      if (data.budgets && !isValidBudgets(data.budgets)) {
+        throw new Error('Presupuestos inválidos');
+      }
+      if (data.categories && !isValidCategories(data.categories)) {
+        throw new Error('Categorías inválidas');
+      }
+      dismissAllToasts();
+      const ok = await showConfirmModal(`¿Importar ${data.transactions.length} transacciones? Se reemplazarán los datos actuales.`);
+      if (!ok) return;
+      state.transactions = data.transactions;
+      if (data.budgets) state.budgets = data.budgets;
+      if (data.categories) { state.categoriesData = data.categories; saveCategories(); }
+      saveData();
+      saveBudgets();
+      refreshAll();
+      dismissAllToasts();
+      showToast(`Importadas ${data.transactions.length} transacciones`);
+    } catch (e) {
+      dismissAllToasts();
+      showToast('Error: ' + (e.message || 'Archivo inválido'));
+    }
+  };
+  reader.readAsText(file);
+}
+
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('finanzapp')).map(k => caches.delete(k))));
+    navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister())));
+    navigator.serviceWorker.register('sw.js');
+  }
+}
+
+function init() {
+  loadTheme();
+  loadMembers();
+  loadAccounts();
+  loadCategories();
+  loadData();
+  initFirebase();
+
+  const savedMode = localStorage.getItem(MODE_KEY);
+  setMode(savedMode !== 'analysis');
+
+  updateMonthLabel();
+  renderDailyCategories();
+  updateTypeToggle();
+  updateWhoToggle();
+  updateAccountSelector(state.selectedWho, 'dailyAccount');
+  refreshDaily();
+
+  setupNavigation();
+  setupDailyMode();
+  setupRoomModal();
+  setupCategoryManager();
+  setupMembersPanel();
+  setupAccountsPanel();
+  setupAnalysisForm();
+  registerServiceWorker();
+}
+
 setRemoteUpdateCallback(() => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
   localStorage.setItem(BUDGET_KEY, JSON.stringify(state.budgets));
   localStorage.setItem(CATS_KEY, JSON.stringify(state.categoriesData));
   localStorage.setItem(MEMBERS_KEY, JSON.stringify(state.members));
-  if (typeof window.refreshAll === 'function') refreshAll();
+  refreshAll();
 });
 
-console.log('FinanzApp modules loaded OK');
+document.addEventListener('DOMContentLoaded', init);

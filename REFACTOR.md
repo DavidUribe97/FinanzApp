@@ -1025,24 +1025,31 @@ document.addEventListener('DOMContentLoaded', init);
 ```
 
 ### Verificación
-- [ ] Orden de init(): loadCategories/loadMembers ANTES de cualquier render
-- [ ] Primer render no muestra "vacío → con datos" (datos locales cargan primero)
-- [ ] Firebase connecta en background sin bloquear UI
-- [ ] No hay `<script>` embebido en HTML (solo chart.min.js y app.js)
-- [ ] Checklist de humo completo (ver sección 14)
+- [x] Orden de init(): loadCategories/loadMembers ANTES de cualquier render
+- [x] Primer render no muestra "vacío → con datos" (datos locales cargan primero)
+- [x] Firebase connecta en background sin bloquear UI
+- [x] No hay `<script>` embebido en HTML (solo chart.min.js y app.js)
+- [x] Checklist de humo completo (ver sección 14)
 
 ### Riesgo
 **Bajo.** Es el paso final de ensamblaje. Todo ya funciona por separado.
 
 ### Commit
 ```
-rama: refactor/fase-8-appjs
-mensaje: refactor(fase 8): crear app.js orchestrador, limpiar index.html
+rama: refactor/fase-6-ui-panels
+commit: b82e389
+fecha: 2026-07-24
 tag: fase-8
 ```
 
 ### Errores encontrados
-_(Se documentan aquí durante la implementación)_
+1. **`transactions` directo vs `state.transactions`** en importJSON — corregido a `state.transactions`
+
+### Resultado
+- **index.html:** 552 → 453 (↓99, zero inline JS)
+- **app.js:** 190 → 282 (orchestrador completo con init, renderEmojiPicker, importJSON, registerServiceWorker)
+- **Inline script:** eliminado completamente
+- **index.html solo:** HTML puro + `<script src="chart.min.js">` + `<script type="module" src="js/app.js">`
 
 ---
 
@@ -1253,7 +1260,7 @@ _(Se documentan errores durante la implementación)_
 
 ### Fase 8
 
-_(Se documentan errores durante la implementación)_
+1. **`transactions` directo vs `state.transactions`** en importJSON — corregido a `state.transactions` (inline script usaba variable global window, módulo necesita state)
 
 ### Fase 9
 
@@ -1272,7 +1279,7 @@ _(Se documentan errores durante la implementación)_
 | 5 | `refactor/fase-5-ui-rendering` | `fa21715` | `fase-5` | 2026-07-24 | ✅ Completada |
 | 6 | `refactor/fase-6-ui-panels` | `9f23da1` | `fase-6` | 2026-07-24 | ✅ Completada |
 | 7 | `refactor/fase-6-ui-panels` | `b92f402` | `fase-7` | 2026-07-24 | ✅ Completada |
-| 8 | `refactor/fase-8-appjs` | — | — | — | ⏳ Pendiente |
+| 8 | `refactor/fase-6-ui-panels` | `b82e389` | `fase-8` | 2026-07-24 | ✅ Completada |
 | 9 | `refactor/fase-9-config` | — | — | — | ⏳ Pendiente |
 
 ---
