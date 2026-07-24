@@ -10,7 +10,8 @@
       ".firebase/**",
       "**/.*",
       "**/node_modules/**",
-      "LEEME.md"
+      "LEEME.md",
+      "REFACTOR.md"
     ]
   }
 }

@@ -1,7 +1,7 @@
 # REFACTOR.md — Plan de Modularización de FinanzApp
 
 > **Fecha inicio:** 2026-07-24
-> **Estado actual:** En progreso
+> **Estado actual:** ✅ Completado (9/9 fases)
  > **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
  > 
  > **Progreso:** Fases 1-6 completadas. `index.html` bajó de 3691 → 778 líneas (↓79%). CSS: 1002 líneas. JS modules: 18 archivos, 2041 líneas.
@@ -1102,10 +1102,10 @@ firebase emulators:start --only firestore
 - Mantener sección de bugs y decisiones de diseño
 
 ### Verificación
-- [ ] `firebase deploy --only hosting,firestore:rules` funciona
-- [ ] La app desplegada funciona correctamente
-- [ ] Firestore rechaza datos sin `members` o `accounts`
-- [ ] LEEME.md refleja la nueva estructura
+- [x] `firebase deploy --only hosting,firestore:rules` funciona
+- [x] La app desplegada funciona correctamente
+- [x] Firestore rechaza datos sin `members` o `accounts`
+- [x] LEEME.md refleja la nueva estructura
 
 ### Riesgo
 **Mínimo.** Cambios en configuración y documentación.
@@ -1116,13 +1116,14 @@ firebase emulators:start --only firestore
 
 ### Commit
 ```
-rama: refactor/fase-9-config
-mensaje: refactor(fase 9): actualizar firestore.rules, firebase.json, LEEME.md
+rama: refactor/fase-6-ui-panels
+commit: 095e039
+fecha: 2026-07-24
 tag: fase-9
 ```
 
 ### Errores encontrados
-_(Se documentan aquí durante la implementación)_
+_(Ninguno — solo cambios de configuración y documentación)_
 
 ---
 
@@ -1280,7 +1281,7 @@ _(Se documentan errores durante la implementación)_
 | 6 | `refactor/fase-6-ui-panels` | `9f23da1` | `fase-6` | 2026-07-24 | ✅ Completada |
 | 7 | `refactor/fase-6-ui-panels` | `b92f402` | `fase-7` | 2026-07-24 | ✅ Completada |
 | 8 | `refactor/fase-6-ui-panels` | `b82e389` | `fase-8` | 2026-07-24 | ✅ Completada |
-| 9 | `refactor/fase-9-config` | — | — | — | ⏳ Pendiente |
+| 9 | `refactor/fase-6-ui-panels` | `095e039` | `fase-9` | 2026-07-24 | ✅ Completada |
 
 ---
 
