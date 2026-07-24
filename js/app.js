@@ -12,6 +12,9 @@ import { renderSummary, renderTable } from './ui-analysis.js';
 import { renderCharts, renderLineChart } from './ui-charts.js';
 import { renderBudgets, updateBudgetCategorySelect } from './ui-budgets.js';
 import { renderStats } from './ui-stats.js';
+import { renderMembers, setupMembersPanel, updateWhoSelects } from './ui-members.js';
+import { renderAccountsPanel, setupAccountsPanel } from './ui-accounts.js';
+import { renderCatManager, renderSubcatList, clearSubcatEdit, setupCategoryManager } from './ui-categories.js';
 
 function bindWindow(key, getter, setter) {
   Object.defineProperty(window, key, { get: getter, set: setter, configurable: true, enumerable: true });
@@ -151,6 +154,15 @@ window.renderBudgets = renderBudgets;
 window.updateBudgetCategorySelect = updateBudgetCategorySelect;
 window.renderStats = renderStats;
 window.saveLastCategory = saveLastCategory;
+window.renderMembers = renderMembers;
+window.setupMembersPanel = setupMembersPanel;
+window.updateWhoSelects = updateWhoSelects;
+window.renderAccountsPanel = renderAccountsPanel;
+window.setupAccountsPanel = setupAccountsPanel;
+window.renderCatManager = renderCatManager;
+window.renderSubcatList = renderSubcatList;
+window.clearSubcatEdit = clearSubcatEdit;
+window.setupCategoryManager = setupCategoryManager;
 
 setSyncToFirestore(syncToFirestore);
 
