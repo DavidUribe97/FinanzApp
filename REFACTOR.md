@@ -4,7 +4,7 @@
 > **Estado actual:** En progreso
  > **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
  > 
- > **Progreso:** Fases 1-4 completadas. `index.html` bajó de 3691 → 1830 líneas (↓51%). CSS: 1002 líneas. JS modules: 9 archivos, 903 líneas.
+ > **Progreso:** Fases 1-5 completadas. `index.html` bajó de 3691 → 1137 líneas (↓69%). CSS: 1002 líneas. JS modules: 15 archivos, 1673 líneas.
 
 ---
 
@@ -1202,7 +1202,22 @@ _(Se documentan errores durante la implementación)_
 
 ### Fase 5
 
-_(Se documentan errores durante la implementación)_
+**Commit:** `fa21715` | **Tag:** `fase-5` | **Fecha:** 2026-07-24
+
+**Archivos creados (6):**
+- `js/ui-modals.js` (93 líneas): toasts, confirm modal, edit modal, categorías/subcategorías selectors
+- `js/ui-daily.js` (289 líneas): balance, feed, categorías diarias, toggles, drag scroll
+- `js/ui-analysis.js` (63 líneas): summary cards, tabla de transacciones
+- `js/ui-charts.js` (142 líneas): doughnut, barras por semana, línea mensual
+- `js/ui-budgets.js` (58 líneas): barras de progreso, selector de categorías
+- `js/ui-stats.js` (66 líneas): estadísticas del mes
+
+**Archivos modificados:**
+- `js/app.js` (164 líneas): imports de 6 módulos UI, exposición a window
+- `js/utils.js` (43 líneas): restaurada función `getToday()` (se había perdido en fase anterior)
+- `index.html` (1137 líneas, ↓693): eliminadas funciones de renderizado
+
+**Error encontrado:** `getToday()` se había perdido durante las fases anteriores — estaba definida en el inline script original (línea 1722) pero no se extrajo a ningún módulo. Restaurada en `utils.js`.
 
 ### Fase 6
 
@@ -1230,7 +1245,7 @@ _(Se documentan errores durante la implementación)_
 | 2 | `refactor/fase-2-utils` | `6125af0` | `fase-2` | 2026-07-24 | ✅ Completada |
 | 3 | `refactor/fase-3-data` | `0ed5577` | `fase-3` | 2026-07-24 | ✅ Completada |
 | 4 | `refactor/fase-4-firebase` | `14a2317` | `fase-4` | 2026-07-24 | ✅ Completada |
-| 5 | `refactor/fase-5-ui-rendering` | — | — | — | ⏳ Pendiente |
+| 5 | `refactor/fase-5-ui-rendering` | `fa21715` | `fase-5` | 2026-07-24 | ✅ Completada |
 | 6 | `refactor/fase-6-ui-panels` | — | — | — | ⏳ Pendiente |
 | 7 | `refactor/fase-7-setup` | — | — | — | ⏳ Pendiente |
 | 8 | `refactor/fase-8-appjs` | — | — | — | ⏳ Pendiente |
