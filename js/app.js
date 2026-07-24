@@ -3,7 +3,9 @@ import { FIREBASE_CONFIG, MODE_KEY, THEME_KEY, CATS_KEY, STORAGE_KEY, BUDGET_KEY
 import { $, esc, formatCOP, formatCOPShort, sanitizeStr, validateAmount, downloadBlob, generateId, safeRoomCode } from './utils.js';
 import { loadCategories, saveCategories, migrateSubcats, getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji, getAllGastoNames } from './categories.js';
 import { loadMembers, saveMembers, getMemberIds, getMemberList, getWhoLabel, loadAccounts, saveAccounts, getAccountsForMember, isCashAccount, getPaymentMethod, getPaymentLabel, updateAccountSelector, getMemberBadgeStyle } from './members.js';
-import { loadData, saveData, saveBudgets, getFilteredTransactions, getDisplayTransactions, getCumulativeBalance, getMonthRange, addTransaction, editTransaction, deleteTransaction, restoreTransaction, exportCSV, exportJSON, isValidTx, isValidCategories, isValidBudgets, setSyncStub } from './data.js';
+import { loadData, saveData, saveBudgets, getFilteredTransactions, getDisplayTransactions, getCumulativeBalance, getMonthRange, addTransaction, editTransaction, deleteTransaction, restoreTransaction, exportCSV, exportJSON, isValidTx, isValidCategories, isValidBudgets, setSyncToFirestore } from './data.js';
+import { initFirebase, syncToFirestore, subscribeFirestore, updateSyncStatus, updateRoomLabel, setRemoteUpdateCallback } from './firebase-sync.js';
+import { setupRoomModal, openRoomModal, closeRoomModal, leaveRoom } from './firebase-room.js';
 
 function bindWindow(key, getter, setter) {
   Object.defineProperty(window, key, { get: getter, set: setter, configurable: true, enumerable: true });
@@ -107,6 +109,25 @@ window.exportJSON = exportJSON;
 window.isValidTx = isValidTx;
 window.isValidCategories = isValidCategories;
 window.isValidBudgets = isValidBudgets;
-window.setSyncStub = setSyncStub;
+
+window.initFirebase = initFirebase;
+window.syncToFirestore = syncToFirestore;
+window.subscribeFirestore = subscribeFirestore;
+window.updateSyncStatus = updateSyncStatus;
+window.updateRoomLabel = updateRoomLabel;
+window.setupRoomModal = setupRoomModal;
+window.openRoomModal = openRoomModal;
+window.closeRoomModal = closeRoomModal;
+window.leaveRoom = leaveRoom;
+
+setSyncToFirestore(syncToFirestore);
+
+setRemoteUpdateCallback(() => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
+  localStorage.setItem(BUDGET_KEY, JSON.stringify(state.budgets));
+  localStorage.setItem(CATS_KEY, JSON.stringify(state.categoriesData));
+  localStorage.setItem(MEMBERS_KEY, JSON.stringify(state.members));
+  if (typeof window.refreshAll === 'function') refreshAll();
+});
 
 console.log('FinanzApp modules loaded OK');

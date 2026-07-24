@@ -3,8 +3,8 @@ import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT } from './config.js';
 import { $, downloadBlob, formatCOP, MONTHS } from './utils.js';
 import { getWhoLabel } from './members.js';
 
-let syncToFirestoreStub = () => {};
-export function setSyncStub(fn) { syncToFirestoreStub = fn; }
+let syncToFirestoreFn = () => {};
+export function setSyncToFirestore(fn) { syncToFirestoreFn = fn; }
 
 export function loadData() {
   try {
@@ -25,12 +25,12 @@ export function loadData() {
 
 export function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
-  syncToFirestoreStub();
+  syncToFirestoreFn();
 }
 
 export function saveBudgets() {
   localStorage.setItem(BUDGET_KEY, JSON.stringify(state.budgets));
-  syncToFirestoreStub();
+  syncToFirestoreFn();
 }
 
 export function getFilteredTransactions(month, year) {
