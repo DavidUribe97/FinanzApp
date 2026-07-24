@@ -1,0 +1,1231 @@
+# REFACTOR.md — Plan de Modularización de FinanzApp
+
+> **Fecha inicio:** 2026-07-24
+> **Estado actual:** En progreso
+> **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
+
+---
+
+## Índice
+
+1. [Estado del proyecto antes del refactor](#1-estado-del-proyecto-antes-del-refactor)
+2. [Arquitectura propuesta](#2-arquitectura-propuesta)
+3. [Diagrama de dependencias](#3-diagrama-de-dependencias)
+4. [Convenciones del refactor](#4-convenciones-del-refactor)
+5. [Fase 1 — CSS separado](#5-fase-1--css-separado)
+6. [Fase 2 — state.js + config.js + utils.js](#6-fase-2--statejs--configjs--utilsjs)
+7. [Fase 3 — data.js + members.js + categories.js](#7-fase-3--datajs--membersjs--categoriesjs)
+8. [Fase 4 — firebase-sync.js + firebase-room.js](#8-fase-4--firebase-syncjs--firebase-roomjs)
+9. [Fase 5 — UI rendering (6 archivos)](#9-fase-5--ui-rendering-6-archivos)
+10. [Fase 6 — UI panels (3 archivos)](#10-fase-6--ui-panels-3-archivos)
+11. [Fase 7 — Setup + Navigation + Theme](#11-fase-7--setup--navigation--theme)
+12. [Fase 8 — app.js + HTML limpio](#12-fase-8--appjs--html-limpio)
+13. [Fase 9 — Archivos de configuración](#13-fase-9--archivos-de-configuración)
+14. [Checklist de humo (post-fase)](#14-checklist-de-humo-post-fase)
+15. [Registro de errores por fase](#15-registro-de-errores-por-fase)
+16. [Registro de commits/tags](#16-registro-de-commitstags)
+
+---
+
+## 1. Estado del proyecto antes del refactor
+
+### Estructura actual
+
+```
+/home/david/Presupuesto/
+├── index.html          # App completa (HTML + CSS + JS embebido, ~3690 líneas)
+├── chart.min.js        # Chart.js v4.4.7 (local, UMD build)
+├── manifest.json       # PWA manifest
+├── sw.js               # Service Worker (cache-first)
+├── icon-192.svg        # Icono PWA 192x192
+├── icon-512.svg        # Icono PWA 512x512
+├── firebase.json       # Config Firebase Hosting + Firestore rules path
+├── firestore.rules     # Security rules para Firestore
+├── .firebaserc         # Proyecto Firebase (presupuesto-cddeb)
+├── .gitignore          # Ignora node_modules, .firebase/, logs
+├── LEEME.md            # Documentación principal
+├── CHANGELOG_v1.3.0.md # Changelog de la versión beta
+└── .firebase/          # Cache local de Firebase
+```
+
+### Métricas antes del refactor
+
+| Métrica | Valor |
+|---|---|
+| Líneas totales en `index.html` | ~3690 |
+| CSS embebido | ~1000 líneas (líneas 15-1017) |
+| JS embebido | ~2200 líneas (líneas 1452-3688) |
+| HTML (estructura + modales) | ~490 líneas |
+| Variables globales JS | ~25 `let`/`const` sueltas |
+| Llamadas a localStorage | 28 en 6 módulos |
+| Event listeners inline `onclick=` en HTML | 0 (todos vía `addEventListener`) |
+| `@import` en CSS | 0 |
+| Archivos JS separados | 0 |
+| Dependencia externa | Solo Chart.js (local) + Firebase SDK (CDN) |
+
+### Bugs conocidos en la versión local
+
+| # | Bug | Severidad | Estado |
+|---|---|---|---|
+| B1 | `firestore.rules` no valida `members` ni `accounts` | Media | Pendiente (Fase 9) |
+| B2 | `isValidTx()` no valida longitud de `subcategory` | Baja | Pendiente |
+| B3 | Service Worker no cachea Firebase CDN | Baja | Pendiente |
+| B4 | Posible race condition en `subscribeFirestore()` con `pendingSyncs` | Media | Pendiente (Fase 4) |
+
+---
+
+## 2. Arquitectura propuesta
+
+### Estructura final
+
+```
+Presupuesto/
+├── index.html              ← Solo HTML (~400 líneas)
+├── css/
+│   └── styles.css          ← Todo el CSS (~1000 líneas)
+├── js/
+│   ├── state.js            ← Variables globales compartidas (objeto único)
+│   ├── config.js           ← Constantes (keys, defaults, firebase config)
+│   ├── utils.js            ← Helpers puros ($, esc, formatCOP, validate)
+│   ├── firebase-sync.js    ← Init Firestore + onSnapshot + sync
+│   ├── firebase-room.js    ← Room modal, crear/unirse/salir sala
+│   ├── data.js             ← CRUD transacciones + presupuestos (localStorage)
+│   ├── categories.js       ← CRUD categorías + subcategorías
+│   ├── members.js          ← CRUD miembros + cuentas
+│   ├── ui-daily.js         ← Renderizado modo diario (saldo, feed, categorías)
+│   ├── ui-analysis.js      ← Renderizado modo análisis (summary, table)
+│   ├── ui-charts.js        ← Chart.js (doughnut, bar, line)
+│   ├── ui-budgets.js       ← Barras de progreso de presupuestos
+│   ├── ui-stats.js         ← Estadísticas del mes
+│   ├── ui-modals.js        ← Toast, confirm modal, edit modal
+│   ├── ui-members.js       ← Lista de miembros + panel
+│   ├── ui-accounts.js      ← Lista de cuentas por miembro
+│   ├── ui-categories.js    ← Gestor de categorías + emoji picker + subcats
+│   ├── ui-theme.js         ← Tema oscuro/claro
+│   ├── ui-navigation.js    ← Navegación meses + modo diario/análisis
+│   ├── setup-daily.js      ← Event listeners modo diario
+│   ├── setup-analysis.js   ← Event listeners modo análisis
+│   └── app.js              ← init() + refreshAll() + orchestration
+├── chart.min.js            ← Se mantiene (UMD build)
+├── manifest.json           ← Se mantiene
+├── sw.js                   ← Se mantiene
+├── icon-192.svg            ← Se mantiene
+├── icon-512.svg            ← Se mantiene
+├── firebase.json           ← Se actualiza (verificar rutas)
+├── firestore.rules         ← Se mejora (agregar members, accounts)
+├── .firebaserc             ← Se mantiene
+├── .gitignore              ← Se mantiene
+├── LEEME.md                ← Se actualiza
+├── REFACTOR.md             ← Este documento
+└── CHANGELOG_v1.3.0.md     ← Se mantiene
+```
+
+### Decisiones clave
+
+| Decisión | Razón |
+|---|---|
+| **Objeto `state` en vez de exports individuales** | Con `export let x = []`, reasignar rompe el binding. Con `state.x = []`, todos los módulos ven el cambio |
+| **ES modules sin bundler** | `<script type="module">` soportado en todos los browsers modernos. Cero toolchain |
+| **Callback pattern para Firebase** | `firebase-sync.js` no importa `data.js`. `app.js` inyecta `onRemoteUpdate` callback. Rompe el ciclo de dependencias |
+| **Chart.js se mantiene como global** | El UMD build no se importa como ES module. Opcional migrar en el futuro |
+| **Stub vacío para syncToFirestore en Fase 3** | `data.js` llama a `syncToFirestore()` pero aún no existe. Se crea un stub que se reemplaza en Fase 4 |
+
+---
+
+## 3. Diagrama de dependencias
+
+```
+                    ┌─────────────┐
+                    │   app.js    │ ← Orchestrador, importa todo
+                    └──────┬──────┘
+                           │
+          ┌────────────────┼────────────────┐
+          │                │                │
+    ┌─────▼─────┐   ┌─────▼─────┐   ┌─────▼─────┐
+    │ setup-     │   │ ui-       │   │ firebase- │
+    │ daily.js   │   │ *.js      │   │ room.js   │
+    │ analysis.js│   │ (6 files) │   └─────┬─────┘
+    └─────┬──────┘   └─────┬─────┘         │
+          │                │               │
+          └────────┬───────┘               │
+                   │                       │
+          ┌────────▼────────┐     ┌────────▼────────┐
+          │ data.js         │◄────│ firebase-sync.js │
+          │ categories.js   │     └────────┬────────┘
+          │ members.js      │              │
+          └────────┬────────┘              │
+                   │                       │
+          ┌────────▼───────────────────────▼───┐
+          │           state.js                  │
+          │  (objeto compartido, sin imports)   │
+          └────────┬───────────────┬───────────┘
+                   │               │
+          ┌────────▼──────┐ ┌─────▼──────┐
+          │ config.js     │ │ utils.js   │
+          │ (constantes)  │ │ (helpers)  │
+          └───────────────┘ └────────────┘
+```
+
+**Regla de oro:** Las flechas solo van hacia abajo. Ningún módulo inferior importa de uno superior.
+
+---
+
+## 4. Convenciones del refactor
+
+### Commits y tags
+
+- **Una rama por fase:** `refactor/fase-N-descripcion`
+- **Un commit al final de cada fase** con mensaje: `refactor(fase N): descripción`
+- **Un tag al final de cada fase:** `fase-N`
+- **Merge a master** después de verificar el checklist de humo
+
+### Imports
+
+```js
+// Orden de imports en cada archivo:
+import { state } from './state.js';
+import { CONSTANTES } from './config.js';
+import { funcionHelper } from './utils.js';
+import { funcionModulo } from './otro-modulo.js';
+```
+
+### Nombres de archivos
+
+- Prefijo `ui-` para archivos de renderizado puro
+- Prefijo `setup-` para archivos de event listeners
+- Prefijo `firebase-` para archivos que hablan con Firestore
+- Sin prefijo para módulos de datos/config/utils
+
+### localStorage
+
+Cada módulo que usa localStorage importa las keys de `config.js`:
+
+```js
+import { STORAGE_KEY, BUDGET_KEY } from './config.js';
+
+export function loadData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  // ...
+}
+```
+
+### Errores
+
+Los errores encontrados y solucionados se documentan en la sección [15. Registro de errores por fase](#15-registro-de-errores-por-fase) con el formato:
+
+```
+### E{fase}.{número}
+- **Archivo:** archivo.js:línea
+- **Error:** descripción del error
+- **Causa:** por qué ocurrió
+- **Solución:** cómo se resolvió
+- **Commit:** hash o tag del commit
+```
+
+---
+
+## 5. Fase 1 — CSS separado
+
+### Objetivo
+Mover todo el CSS embebido de `index.html` a `css/styles.css`.
+
+### Archivos afectados
+- `index.html` — eliminar `<style>...</style>`, agregar `<link>`
+- `css/styles.css` — nuevo archivo
+
+### Pasos
+
+1. Crear carpeta `css/`
+2. Crear `css/styles.css` con el contenido de las líneas 15-1017 de `index.html`
+3. En `index.html`: reemplazar `<style>...</style>` por:
+   ```html
+   <link rel="stylesheet" href="css/styles.css">
+   ```
+4. Verificar que el `<link>` está en `<head>`, no al final del `<body>`
+5. Verificar CSP: `style-src 'self' 'unsafe-inline'` (el `'unsafe-inline'` puede eliminarse ya que no hay `<style>` inline, pero se mantiene por compatibilidad)
+6. Verificar que no hay `@import` con rutas relativas en el CSS
+7. Buscar selectores CSS duplicados o muertos (grep)
+
+### Verificación
+- [ ] La app se ve idéntica
+- [ ] Tema oscuro/claro funciona
+- [ ] Responsive funciona (probar 480px, 800px, 1100px)
+- [ ] Animaciones funcionan (toast, fade-in, pulse)
+
+### Riesgo
+**Mínimo.** Solo se mueve CSS, no se toca JS ni Firebase.
+
+### Commit
+```
+rama: refactor/fase-1-css
+mensaje: refactor(fase 1): extraer CSS a css/styles.css
+tag: fase-1
+```
+
+### Errores encontrados
+_(Se documentan aquí durante la implementación)_
+
+---
+
+## 6. Fase 2 — state.js + config.js + utils.js
+
+### Objetivo
+Crear los 3 módulos base que no dependen de ningún otro módulo de la app.
+
+### Archivos afectados
+- `js/state.js` — nuevo (variables globales como objeto)
+- `js/config.js` — nuevo (constantes)
+- `js/utils.js` — nuevo (helpers puros)
+- `index.html` — agregar `<script type="module" src="js/app.js">`, eliminar `let`/`const` y funciones helper del `<script>` embebido
+
+### state.js
+
+```js
+export const state = {
+  transactions: [],
+  budgets: {},
+  members: {},
+  accounts: {},
+  categoriesData: null,
+  roomCode: null,
+  editingId: null,
+  undoData: null,
+  isDailyMode: true,
+  selectedType: 'gasto',
+  selectedCategory: null,
+  selectedSubcategory: null,
+  selectedWho: 'yo',
+  currentMonth: new Date().getMonth(),
+  currentYear: new Date().getFullYear(),
+  doughnutChart: null,
+  barChart: null,
+  lineChart: null,
+  firebaseInitialized: false,
+  firestoreUnsub: null,
+  db: null,
+  pendingSyncs: 0,
+  roomPassword: null,
+  isCreatingRoom: true,
+  roomCodeResolver: null,
+};
+```
+
+**Por qué objeto:** Con `export let transactions = []`, si un módulo hace `transactions = newData`, el binding se rompe — los otros módulos siguen con la referencia vieja. Con `state.transactions = newData`, todos los módulos ven el cambio porque mutan la propiedad, no reasignan el binding.
+
+### config.js
+
+```js
+export const CATS_KEY = 'finanzas_categories';
+export const STORAGE_KEY = 'finanzas_data';
+export const BUDGET_KEY = 'finanzas_budgets';
+export const THEME_KEY = 'finanzas_theme';
+export const MODE_KEY = 'finanzas_mode';
+export const LAST_CAT_KEY = 'finanzas_last_cat';
+export const ROOM_KEY = 'finanzas_room';
+export const MEMBERS_KEY = 'finanzas_members';
+export const ACCOUNTS_KEY = 'finanzas_accounts';
+
+export const DEFAULT_MEMBERS = { yo: 'Él', pareja: 'Ella', compartido: 'Compartido 👥' };
+export const DEFAULT_ACCOUNTS = {
+  yo: ['Bancolombia', 'Nequi', 'Efectivo'],
+  pareja: ['Bancolombia', 'Daviplata', 'Efectivo'],
+  compartido: ['Bancolombia', 'Efectivo']
+};
+export const CASH_ACCOUNTS = ['efectivo', 'cash', 'efec', 'billete', 'plata'];
+
+/**
+ * Firebase API Key — PÚBLICA por diseño de Firebase.
+ * La seguridad real vive en Firestore Security Rules,
+ * no en ocultar esta key. NO restringir por HTTP referrer
+ * (rompe Auth anónimo). Ver LEEME.md sección "Seguridad".
+ */
+export const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBI4ZQJU2N7Tqht9eCLt1YXzMEbpV6-L7Q",
+  authDomain: "presupuesto-cddeb.firebaseapp.com",
+  projectId: "presupuesto-cddeb",
+  storageBucket: "presupuesto-cddeb.firebasestorage.app",
+  messagingSenderId: "561524123795",
+  appId: "1:561524123795:web:89df1890188e42aef98566"
+};
+
+export const MAX_AMOUNT = 999999999;
+export const MAX_DESC_LENGTH = 100;
+export const ANIMATION_STEPS = 20;
+export const ANIMATION_INTERVAL_MS = 20;
+export const CHART_COLORS = ['#00d4aa','#ff4d6d','#f5c842','#4f8ef7','#a855f7','#f97316','#06b6d4','#e11d48','#84cc16','#d946ef','#14b8a6','#f43f5e','#8b5cf6'];
+export const FIRESTORE_COLLECTION = 'rooms';
+export const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+```
+
+### utils.js
+
+```js
+export const $ = id => document.getElementById(id);
+
+export const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+
+export const formatCOP = n => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
+
+export const formatCOPShort = n => {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
+  return formatCOP(n);
+};
+
+export function sanitizeStr(str, maxLen = 100) {
+  return String(str).replace(/<[^>]*>/g, '').trim().slice(0, maxLen);
+}
+
+export function validateAmount(amount) {
+  if (!amount || amount <= 0) return 'Ingresa un monto válido';
+  if (amount > 999999999) return 'El monto no puede superar $999.999.999';
+  return null;
+}
+
+export function downloadBlob(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+export function generateId() {
+  try { return crypto.randomUUID(); } catch { return Date.now() + '-' + Math.random().toString(36).slice(2, 9); }
+}
+
+export function safeRoomCode(code) {
+  return encodeURIComponent(code);
+}
+```
+
+### Pasos
+
+1. Crear carpeta `js/`
+2. Crear `js/state.js`, `js/config.js`, `js/utils.js`
+3. En `index.html`: cambiar `<script>` final por `<script type="module" src="js/app.js">`
+4. Crear un `js/app.js` mínimo que solo importe los 3 módulos y verifique en consola:
+   ```js
+   import { state } from './state.js';
+   import { FIREBASE_CONFIG } from './config.js';
+   import { formatCOP } from './utils.js';
+   console.log('state OK:', !!state);
+   console.log('config OK:', FIREBASE_CONFIG.apiId);
+   console.log('utils OK:', formatCOP(12345));
+   ```
+5. Eliminar las declaraciones correspondientes del `<script>` embebido en `index.html`
+6. Verificar en consola del navegador que los 3 logs aparecen sin errores
+
+### Verificación
+- [ ] Consola sin errores de import
+- [ ] `state` es un objeto con todas las propiedades
+- [ ] `formatCOP(12345)` retorna `"$12.345"`
+- [ ] `validateAmount(-1)` retorna string de error
+- [ ] `validateAmount(100)` retorna `null`
+- [ ] `esc('<script>')` retorna `&lt;script&gt;`
+
+### Riesgo
+**Bajo.** Son módulos puros sin dependencias. Se verifican con 3 logs en consola.
+
+### Commit
+```
+rama: refactor/fase-2-utils
+mensaje: refactor(fase 2): crear state.js, config.js, utils.js
+tag: fase-2
+```
+
+### Errores encontrados
+_(Se documentan aquí durante la implementación)_
+
+---
+
+## 7. Fase 3 — data.js + members.js + categories.js
+
+### Objetivo
+Extraer los 3 módulos de gestión de datos. En esta fase, `syncToFirestore` es un stub vacío.
+
+### Archivos afectados
+- `js/data.js` — nuevo
+- `js/members.js` — nuevo
+- `js/categories.js` — nuevo
+- `index.html` — eliminar funciones correspondientes del `<script>` embebido
+
+### Stub para syncToFirestore
+
+En `js/data.js`, al inicio se importa un stub que será reemplazado en Fase 4:
+
+```js
+// Stub temporal — se reemplaza en Fase 4 con firebase-sync.js real
+let syncToFirestoreStub = () => {};
+export function setSyncStub(fn) { syncToFirestoreStub = fn; }
+export function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
+  syncToFirestoreStub(); // stub en Fase 3, real en Fase 4
+}
+```
+
+### data.js — Funciones a extraer (~150 líneas)
+
+| Función | Línea original | Dependencias |
+|---|---|---|
+| `loadData()` | 2069 | state, config (STORAGE_KEY, BUDGET_KEY) |
+| `saveData()` | 2089 | state, config, syncToFirestore |
+| `saveBudgets()` | 2097 | state, config, syncToFirestore |
+| `addTransaction(data)` | 2160 | state, saveData, refreshAll |
+| `editTransaction(id, data)` | 2166 | state, saveData, refreshAll |
+| `deleteTransaction(id)` | 2174 | state, saveData, refreshAll, showToast |
+| `getFilteredTransactions(month, year)` | 2112 | state |
+| `getDisplayTransactions()` | 2119 | state, $, searchInput, filterType, filterWho |
+| `getCumulativeBalance(month, year)` | 2143 | state |
+| `getMonthRange(month, year)` | 2154 | — |
+| `exportCSV()` | 2825 | state, utils, getDisplayTransactions |
+| `exportJSON()` | 2838 | state, config, downloadBlob |
+| `importJSON(file)` | 2892 | state, isValidTx, isValidCategories, isValidBudgets |
+| `isValidTx(tx)` | 2849 | — |
+| `isValidCategories(cats)` | 2860 | — |
+| `isValidBudgets(budgets)` | 2879 | — |
+
+### members.js — Funciones a extraer (~100 líneas)
+
+| Función | Línea original | Dependencias |
+|---|---|---|
+| `loadMembers()` | 1926 | state, config (MEMBERS_KEY, DEFAULT_MEMBERS) |
+| `saveMembers()` | 1935 | state, config, syncToFirestore |
+| `loadAccounts()` | 1953 | state, config (ACCOUNTS_KEY, DEFAULT_ACCOUNTS) |
+| `saveAccounts()` | 1962 | state, config, syncToFirestore |
+| `getAccountsForMember(memberId)` | 1967 | state |
+| `getMemberList()` | 1944 | state |
+| `getMemberIds()` | 1940 | state |
+| `getWhoLabel(who)` | 1948 | state |
+| `isCashAccount(accountName)` | 1971 | config (CASH_ACCOUNTS) |
+| `getPaymentMethod(accountName)` | 1975 | isCashAccount |
+| `getPaymentLabel(method)` | 1979 | — |
+| `updateAccountSelector(memberId, selectId)` | 1983 | state, $, esc, getAccountsForMember |
+| `getMemberBadgeStyle(who)` | 2056 | state, MEMBER_COLORS |
+
+### categories.js — Funciones a extraer (~100 líneas)
+
+| Función | Línea original | Dependencias |
+|---|---|---|
+| `loadCategories()` | 1479 | state, config (CATS_KEY, DEFAULT_CATEGORIES) |
+| `saveCategories()` | 1502 | state, config, syncToFirestore |
+| `migrateSubcats()` | 1491 | state |
+| `getCatNames(type)` | 1507 | state |
+| `getCatEmoji(name)` | 1511 | state |
+| `getSubCatNames(type, catName)` | 1519 | state |
+| `getSubCatEmoji(type, catName, subName)` | 1525 | state, getCatEmoji |
+| `getAllGastoNames()` | 1534 | state |
+| `renderEmojiPicker(selected, onSelect, pickerId)` | 1832 | $, EMOJIS |
+
+### Pasos
+
+1. Crear `js/data.js` con las funciones de la tabla, importando de `state.js`, `config.js`, `utils.js`
+2. Crear `js/members.js` de la misma forma
+3. Crear `js/categories.js` de la misma forma
+4. Eliminar las funciones correspondientes del `<script>` embebido en `index.html`
+5. Crear stub de `syncToFirestore` si no existe
+6. Verificar que la app sigue funcionando (los saves a Firestore son stubs vacíos)
+
+### Verificación
+- [ ] Agregar transacción → aparece en feed
+- [ ] Editar transacción → cambia en tabla
+- [ ] Eliminar transacción → toast de deshacer funciona
+- [ ] Cargar/recargar → datos persisten en localStorage
+- [ ] Agregar categoría personalizada
+- [ ] Agregar subcategoría
+- [ ] Agregar miembro
+- [ ] Agregar cuenta
+- [ ] No hay errores en consola
+
+### Riesgo
+**Bajo.** Son módulos de datos puros. El stub de syncToFirestore evita el ciclo de dependencias.
+
+### Commit
+```
+rama: refactor/fase-3-data
+mensaje: refactor(fase 3): extraer data.js, members.js, categories.js
+tag: fase-3
+```
+
+### Errores encontrados
+_(Se documentan aquí durante la implementación)_
+
+---
+
+## 8. Fase 4 — firebase-sync.js + firebase-room.js
+
+### Objetivo
+Extraer toda la lógica de Firebase. Esta es la fase de **mayor riesgo** por el ciclo `data.js ↔ firebase-sync.js`.
+
+### Patrón: Callback (romper ciclo de dependencias)
+
+```
+ANTES (ciclo):
+data.js → syncToFirestore() → data.js (lee state.transactions)
+
+DESPUÉS (sin ciclo):
+data.js → syncToFirestore() → state.transactions (lee directo)
+firebase-sync.js → state.transactions (lee directo)
+app.js inyecta onRemoteUpdate callback
+```
+
+### Archivos afectados
+- `js/firebase-sync.js` — nuevo
+- `js/firebase-room.js` — nuevo
+- `js/data.js` — reemplazar stub por import real
+- `js/members.js` — reemplazar stub por import real
+- `js/categories.js` — reemplazar stub por import real
+- `index.html` — eliminar funciones de Firebase del `<script>` embebido
+
+### firebase-sync.js — Funciones (~120 líneas)
+
+| Función | Línea original | Dependencias |
+|---|---|---|
+| `initFirebase()` | 1575 | state, config, subscribeFirestore, openRoomModal |
+| `subscribeFirestore()` | 1607 | state, config, safeRoomCode, sha256, firstTimeSetup |
+| `firstTimeSetup(ref, resolve)` | 1666 | state, refreshAll |
+| `syncToFirestore()` | 1686 | state, config |
+| `flushPendingSyncs()` | 1704 | state, syncToFirestore |
+| `updateSyncStatus(connected)` | 1854 | $, updateRoomLabel |
+| `updateRoomLabel()` | 1868 | $, state |
+
+**Importante:** `syncToFirestore()` solo importa `state` y `config`. No importa `data.js`.
+
+### firebase-room.js — Funciones (~100 líneas)
+
+| Función | Línea original | Dependencias |
+|---|---|---|
+| `openRoomModal()` | 1891 | $, state |
+| `closeRoomModal()` | 1921 | $ |
+| `leaveRoom()` | 1879 | state, updateSyncStatus, updateRoomLabel, closeRoomModal, showToast |
+| `setupRoomModal()` | 3350 | $, state, config, subscribeFirestore, showToast |
+| `sha256(str)` | 3341 | — |
+
+### Pasos
+
+1. Crear `js/firebase-sync.js` con el callback pattern:
+   ```js
+   let onRemoteUpdate = null;
+   export function setRemoteUpdateCallback(fn) { onRemoteUpdate = fn; }
+   ```
+2. Crear `js/firebase-room.js`
+3. En `js/data.js`: reemplazar stub por:
+   ```js
+   import { syncToFirestore } from './firebase-sync.js';
+   ```
+4. Hacer lo mismo en `members.js` y `categories.js`
+5. En `app.js`: conectar el callback:
+   ```js
+   import { initFirebase, setRemoteUpdateCallback } from './firebase-sync.js';
+   import { refreshAll } from './ui-navigation.js';
+
+   setRemoteUpdateCallback(() => {
+     localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
+     refreshAll(false);
+   });
+   initFirebase();
+   ```
+6. Eliminar funciones de Firebase del `<script>` embebido
+
+### Verificación
+- [ ] Crear sala con contraseña → funciona
+- [ ] Unirse a sala existente → funciona
+- [ ] Salir de sala → funciona
+- [ ] Sync en tiempo real (abrir 2 sesiones, agregar en una, verificar en la otra)
+- [ ] Modo offline: desconectar WiFi → agregar transacción → reconectar → verificar sync
+- [ ] `pendingSyncs` se vacía al reconectar
+- [ ] Indicator de sync (●/○) cambia correctamente
+
+### Riesgo
+**Medio-Alto.** Es la fase más delicada. La lógica de `onSnapshot` y `pendingSyncs` es crítica.
+
+### Precauciones
+- **No sobreescribir datos locales con remotos** cuando `pendingSyncs > 0`
+- **Probar offline/online** antes de marcar como completada
+- **Verificar** que `sha256()` funciona para contraseñas de sala
+
+### Commit
+```
+rama: refactor/fase-4-firebase
+mensaje: refactor(fase 4): extraer firebase-sync.js y firebase-room.js
+tag: fase-4
+```
+
+### Errores encontrados
+_(Se documentan aquí durante la implementación)_
+
+---
+
+## 9. Fase 5 — UI rendering (6 archivos)
+
+### Objetivo
+Extraer las funciones de renderizado de las vistas principales.
+
+### Archivos afectados
+- `js/ui-daily.js` — nuevo
+- `js/ui-analysis.js` — nuevo
+- `js/ui-charts.js` — nuevo
+- `js/ui-budgets.js` — nuevo
+- `js/ui-stats.js` — nuevo
+- `js/ui-modals.js` — nuevo
+- `index.html` — eliminar funciones correspondientes
+
+### ui-daily.js (~150 líneas)
+
+| Función | Línea original |
+|---|---|
+| `renderDailyBalance(animate)` | 2401 |
+| `renderDailyFeed()` | 2446 |
+| `renderDailyCategories(restore)` | 2251 |
+| `renderDailySubcategories()` | 2294 |
+| `updateTypeToggle()` | 2344 |
+| `updateWhoToggle()` | 2351 |
+| `refreshDaily(animate)` | 2518 |
+| `setupCategoryDragScroll(container)` | 2317 |
+
+### ui-analysis.js (~60 líneas)
+
+| Función | Línea original |
+|---|---|
+| `renderSummary()` | 2524 |
+| `renderTable()` | 2540 |
+
+### ui-charts.js (~130 líneas)
+
+| Función | Línea original |
+|---|---|
+| `renderCharts()` | 2581 |
+| `renderLineChart()` | 2668 |
+
+**Nota:** Usar `state.doughnutChart`, `state.barChart`, `state.lineChart` en vez de variables locales.
+
+### ui-budgets.js (~50 líneas)
+
+| Función | Línea original |
+|---|---|
+| `renderBudgets()` | 2718 |
+| `updateBudgetCategorySelect()` | 2977 |
+
+### ui-stats.js (~60 líneas)
+
+| Función | Línea original |
+|---|---|
+| `renderStats()` | 2762 |
+
+### ui-modals.js (~40 líneas)
+
+| Función | Línea original |
+|---|---|
+| `showToast(message, actionLabel, actionFn)` | 2191 |
+| `dismiss(el)` | 2209 |
+| `dismissAllToasts()` | 2215 |
+| `showConfirmModal(msg)` | 2219 |
+| `openEditModal(id)` | 2927 |
+| `closeEditModal()` | 2946 |
+| `updateEditCategories()` | 2951 |
+| `updateCategories()` | 2958 |
+| `updateSubcategories(typeId, catId, subcatId)` | 2965 |
+
+### Verificación
+- [ ] Modo diario: saldo, feed, categorías, subcategorías se renderizan
+- [ ] Modo análisis: summary cards, tabla, search/filters funcionan
+- [ ] Charts: dona, barras, línea se renderizan
+- [ ] Presupuestos: barras de progreso se muestran
+- [ ] Stats: estadísticas del mes correctas
+- [ ] Toast: aparece y se cierra
+- [ ] Confirm modal: funciona con promesa
+- [ ] Edit modal: abrir, editar, guardar, cancelar
+
+### Riesgo
+**Bajo.** Son funciones de renderizado que leen de `state`. No mutan datos.
+
+### Precaución closures
+Revisar que ninguna función captura variables por closure en vez de por referencia a `state`. Ejemplo:
+
+```js
+// MAL — closure "congelado"
+const myTx = state.transactions;
+function render() { myTx.forEach(...) } // siempre ve la referencia vieja
+
+// BIEN — referencia directa a state
+function render() { state.transactions.forEach(...) }
+```
+
+### Commit
+```
+rama: refactor/fase-5-ui-rendering
+mensaje: refactor(fase 5): extraer ui-daily, ui-analysis, ui-charts, ui-budgets, ui-stats, ui-modals
+tag: fase-5
+```
+
+### Errores encontrados
+_(Se documentan aquí durante la implementación)_
+
+---
+
+## 10. Fase 6 — UI panels (3 archivos)
+
+### Objetivo
+Extraer los paneles de gestión (miembros, cuentas, categorías).
+
+### Archivos afectados
+- `js/ui-members.js` — nuevo
+- `js/ui-accounts.js` — nuevo
+- `js/ui-categories.js` — nuevo
+- `index.html` — eliminar funciones correspondientes
+
+### ui-members.js (~80 líneas)
+
+| Función | Línea original |
+|---|---|
+| `renderMembers()` | 2987 |
+| `setupMembersPanel()` | 3030 |
+| `updateWhoSelects()` | 3094 |
+
+### ui-accounts.js (~80 líneas)
+
+| Función | Línea original |
+|---|---|
+| `renderAccountsPanel()` | 1992 |
+| `setupAccountsPanel()` | 3062 |
+
+### ui-categories.js (~200 líneas)
+
+| Función | Línea original |
+|---|---|
+| `renderCatManager()` | 3101 |
+| `renderSubcatList(type, idx)` | 3158 |
+| `clearSubcatEdit()` | 3212 |
+| `setupCategoryManager()` | 3413 |
+
+**Nota:** Dividir internamente en:
+- **Capa pura:** funciones que dado un dato, devuelven HTML (`renderCategoryItem`, `renderSubcatTag`)
+- **Capa de mutación:** funciones que modifican `state` y llaman `save` (`deleteCategory`, `saveCategory`)
+
+### Verificación
+- [ ] Lista de miembros se renderiza
+- [ ] Editar miembro → nombre cambia
+- [ ] Eliminar miembro → transacciones pasan a "Compartido"
+- [ ] Lista de cuentas por miembro se renderiza
+- [ ] Agregar cuenta → aparece
+- [ ] Eliminar cuenta → desaparece
+- [ ] Gestor de categorías: listar, agregar, editar, eliminar
+- [ ] Subcategorías: agregar, editar, eliminar con emoji
+- [ ] Emoji picker funciona para categorías y subcategorías
+- [ ] Resetear categorías a defaults
+
+### Riesgo
+**Bajo.** `ui-categories.js` es el más grande (~200 líneas) pero es renderizado + CRUD básico.
+
+### Commit
+```
+rama: refactor/fase-6-ui-panels
+mensaje: refactor(fase 6): extraer ui-members, ui-accounts, ui-categories
+tag: fase-6
+```
+
+### Errores encontrados
+_(Se documentan aquí durante la implementación)_
+
+---
+
+## 11. Fase 7 — Setup + Navigation + Theme
+
+### Objetivo
+Extraer event listeners, navegación y tema.
+
+### Archivos afectados
+- `js/ui-theme.js` — nuevo
+- `js/ui-navigation.js` — nuevo
+- `js/setup-daily.js` — nuevo
+- `js/setup-analysis.js` — nuevo
+- `index.html` — eliminar funciones correspondientes
+
+### ui-theme.js (~15 líneas)
+
+| Función | Línea original |
+|---|---|
+| `loadTheme()` | 3224 |
+| `toggleTheme()` | 3229 |
+
+### ui-navigation.js (~30 líneas)
+
+| Función | Línea original |
+|---|---|
+| `setupNavigation()` | 3276 |
+| `setMode(daily)` | 3259 |
+| `updateMonthLabel()` | 3236 |
+| `refreshAll(animate)` | 3253 |
+| `refreshAnalysis()` | 3240 |
+
+### setup-daily.js (~50 líneas)
+
+| Función | Línea original |
+|---|---|
+| `setupDailyMode()` | 3292 |
+
+Contiene: toggles tipo/quién + función `addDailyTx()` + event listeners de dailyAmount.
+
+### setup-analysis.js (~100 líneas)
+
+| Función | Línea original |
+|---|---|
+| `setupAnalysisForm()` | 3540 |
+
+Contiene: form de transacción, filtros, presupuestos, export/import, edit form listeners.
+
+### Verificación
+- [ ] Navegación meses (◀ ▶) funciona
+- [ ] Modo diario ↔ análisis funciona
+- [ ] Toggle tema oscuro/claro funciona
+- [ ] Persistencia de tema y modo al recargar
+- [ ] No hay doble-registro de listeners (verificar que no quedaron `onclick=` en HTML)
+- [ ] Todos los event listeners funcionan correctamente
+
+### Riesgo
+**Bajo.** Solo se mueven event listeners. Verificado que no hay `onclick=` inline en HTML.
+
+### Commit
+```
+rama: refactor/fase-7-setup
+mensaje: refactor(fase 7): extraer ui-theme, ui-navigation, setup-daily, setup-analysis
+tag: fase-7
+```
+
+### Errores encontrados
+_(Se documentan aquí durante la implementación)_
+
+---
+
+## 12. Fase 8 — app.js + HTML limpio
+
+### Objetivo
+Crear el orquestador final y dejar `index.html` solo con HTML.
+
+### Archivos afectados
+- `js/app.js` — reescritura completa (orchestrador)
+- `index.html` — eliminar todo el `<script>` embebido, dejar solo HTML
+
+### app.js — Estructura
+
+```js
+import { state } from './state.js';
+import { STORAGE_KEY, THEME_KEY, MODE_KEY } from './config.js';
+import { loadTheme } from './ui-theme.js';
+import { loadMembers } from './members.js';
+import { loadAccounts } from './members.js';
+import { loadCategories } from './categories.js';
+import { loadData } from './data.js';
+import { initFirebase, setRemoteUpdateCallback } from './firebase-sync.js';
+import { refreshAll, setMode } from './ui-navigation.js';
+import { renderDailyCategories, updateTypeToggle, updateWhoToggle, updateAccountSelector } from './ui-daily.js';
+import { updateMonthLabel } from './ui-navigation.js';
+import { setupNavigation } from './ui-navigation.js';
+import { setupDailyMode } from './setup-daily.js';
+import { setupRoomModal } from './firebase-room.js';
+import { setupCategoryManager } from './ui-categories.js';
+import { setupMembersPanel } from './ui-members.js';
+import { setupAccountsPanel } from './ui-accounts.js';
+import { setupAnalysisForm } from './setup-analysis.js';
+
+function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('finanzapp')).map(k => caches.delete(k))));
+    navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister())));
+    navigator.serviceWorker.register('sw.js');
+  }
+}
+
+async function init() {
+  // 1. Datos LOCALES (síncrono, instantáneo)
+  loadTheme();
+  loadMembers();
+  loadAccounts();
+  loadCategories();
+  loadData();
+
+  // 2. Renderizar INMEDIATAMENTE con datos locales
+  updateMonthLabel();
+  renderDailyCategories();
+  updateTypeToggle();
+  updateWhoToggle();
+  updateAccountSelector(state.selectedWho, 'dailyAccount');
+  refreshAll(false);
+
+  // 3. Setup event listeners
+  setupNavigation();
+  setupDailyMode();
+  setupRoomModal();
+  setupCategoryManager();
+  setupMembersPanel();
+  setupAccountsPanel();
+  setupAnalysisForm();
+
+  // 4. Firebase en background (async)
+  setRemoteUpdateCallback(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
+    localStorage.setItem('finanzas_budgets', JSON.stringify(state.budgets));
+    localStorage.setItem('finanzas_categories', JSON.stringify(state.categoriesData));
+    localStorage.setItem('finanzas_members', JSON.stringify(state.members));
+    localStorage.setItem('finanzas_accounts', JSON.stringify(state.accounts));
+    refreshAll(false);
+  });
+  initFirebase();
+
+  // 5. Modo guardado
+  const savedMode = localStorage.getItem(MODE_KEY);
+  setMode(savedMode !== 'analysis');
+
+  // 6. Service Worker
+  registerServiceWorker();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+```
+
+### index.html — Resultado final (~400 líneas)
+
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0a0e1a">
+  <meta http-equiv="Content-Security-Policy" content="...">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.svg" type="image/svg+xml" sizes="192x192">
+  <link rel="stylesheet" href="css/styles.css">
+  <title>FinanzApp</title>
+</head>
+<body data-theme="dark">
+  <div class="container">
+    <!-- Solo HTML: header, month-nav, dailyView, analysisView, modales -->
+    <!-- ~400 líneas de estructura -->
+  </div>
+  <input type="file" id="fileInput" class="file-input-hidden" accept=".json">
+  <script src="chart.min.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
+```
+
+### Verificación
+- [ ] Orden de init(): loadCategories/loadMembers ANTES de cualquier render
+- [ ] Primer render no muestra "vacío → con datos" (datos locales cargan primero)
+- [ ] Firebase connecta en background sin bloquear UI
+- [ ] No hay `<script>` embebido en HTML (solo chart.min.js y app.js)
+- [ ] Checklist de humo completo (ver sección 14)
+
+### Riesgo
+**Bajo.** Es el paso final de ensamblaje. Todo ya funciona por separado.
+
+### Commit
+```
+rama: refactor/fase-8-appjs
+mensaje: refactor(fase 8): crear app.js orchestrador, limpiar index.html
+tag: fase-8
+```
+
+### Errores encontrados
+_(Se documentan aquí durante la implementación)_
+
+---
+
+## 13. Fase 9 — Archivos de configuración
+
+### Objetivo
+Actualizar firebase.json, firestore.rules y LEEME.md.
+
+### Archivos afectados
+- `firebase.json` — verificar que sirve las carpetas `css/` y `js/`
+- `firestore.rules` — agregar validación de `members` y `accounts`
+- `LEEME.md` — actualizar estructura, mapa de funciones, decisiones
+
+### firestore.rules — Versión mejorada
+
+```firestore
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /rooms/{room} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.data.keys().hasAll([
+          'transactions', 'budgets', 'categories', 'members', 'accounts'
+        ])
+        && request.resource.data.transactions is list
+        && request.resource.data.budgets is map
+        && request.resource.data.categories is map
+        && request.resource.data.members is map
+        && request.resource.data.accounts is map
+        && request.resource.data.transactions.size() <= 10000;
+    }
+  }
+}
+```
+
+### Prueba con emulador
+
+```bash
+firebase emulators:start --only firestore
+# Modificar FIREBASE_CONFIG temporalmente para apuntar al emulador
+# Probar crear sala, agregar transacción, verificar rules
+```
+
+### LEEME.md — Actualizaciones
+
+- Actualizar estructura del proyecto
+- Actualizar mapa de funciones (nuevas ubicaciones en archivos separados)
+- Agregar sección "Arquitectura modular post-refactor"
+- Mantener sección de bugs y decisiones de diseño
+
+### Verificación
+- [ ] `firebase deploy --only hosting,firestore:rules` funciona
+- [ ] La app desplegada funciona correctamente
+- [ ] Firestore rechaza datos sin `members` o `accounts`
+- [ ] LEEME.md refleja la nueva estructura
+
+### Riesgo
+**Mínimo.** Cambios en configuración y documentación.
+
+### Precaución
+- **Probar reglas con emulador** antes de desplegar a producción
+- **No desplegar reglas rotas** — verificar en emulador primero
+
+### Commit
+```
+rama: refactor/fase-9-config
+mensaje: refactor(fase 9): actualizar firestore.rules, firebase.json, LEEME.md
+tag: fase-9
+```
+
+### Errores encontrados
+_(Se documentan aquí durante la implementación)_
+
+---
+
+## 14. Checklist de humo (post-fase)
+
+Correr este checklist después de **cada fase**. Tarda ~2 minutos.
+
+```
+TRANSACCIONES:
+[ ] Agregar gasto (modo diario) → aparece en feed
+[ ] Agregar ingreso (modo diario) → aparece en feed
+[ ] Editar transacción → cambia en tabla
+[ ] Eliminar transacción → toast de deshacer funciona
+[ ] Transacciones persisten al recargar
+
+NAVEGACIÓN:
+[ ] Meses ◀ ▶ funciona
+[ ] Modo diario ↔ análisis funciona
+[ ] Modo se persiste al recargar
+
+SALA/FIREBASE:
+[ ] Crear sala con contraseña → funciona
+[ ] Unirse a sala existente → funciona
+[ ] Salir de sala → funciona
+[ ] Sync en tiempo real (2 sesiones)
+
+CATEGORÍAS:
+[ ] Seleccionar categoría (modo diario)
+[ ] Seleccionar subcategoría
+[ ] Agregar categoría personalizada (análisis)
+[ ] Agregar subcategoría con emoji
+[ ] Eliminar categoría
+[ ] Resetear categorías
+
+MIEMBROS/CUENTAS:
+[ ] Agregar miembro
+[ ] Editar miembro
+[ ] Agregar cuenta a miembro
+[ ] Eliminar cuenta
+
+CHARTS:
+[ ] Gráfico dona (gastos por categoría)
+[ ] Gráfico barras (ingresos/gastos semanal)
+[ ] Gráfico línea (evolución 12 meses)
+
+PRESUPUESTOS:
+[ ] Agregar presupuesto → barra de progreso se muestra
+[ ] Eliminar presupuesto
+
+EXPORTACIÓN:
+[ ] Exportar CSV → archivo descarga
+[ ] Exportar JSON → archivo descarga
+[ ] Importar JSON → datos se reemplazan
+
+TEMA:
+[ ] Modo oscuro funciona
+[ ] Modo claro funciona
+[ ] Tema se persiste al recargar
+
+OFFLINE:
+[ ] Desconectar WiFi → agregar transacción → reconectar → sync funciona
+```
+
+---
+
+## 15. Registro de errores por fase
+
+### Fase 1
+
+_(Se documentan errores durante la implementación)_
+
+### Fase 2
+
+_(Se documentan errores durante la implementación)_
+
+### Fase 3
+
+_(Se documentan errores durante la implementación)_
+
+### Fase 4
+
+_(Se documentan errores durante la implementación)_
+
+### Fase 5
+
+_(Se documentan errores durante la implementación)_
+
+### Fase 6
+
+_(Se documentan errores durante la implementación)_
+
+### Fase 7
+
+_(Se documentan errores durante la implementación)_
+
+### Fase 8
+
+_(Se documentan errores durante la implementación)_
+
+### Fase 9
+
+_(Se documentan errores durante la implementación)_
+
+---
+
+## 16. Registro de commits/tags
+
+| Fase | Rama | Commit | Tag | Fecha | Estado |
+|---|---|---|---|---|---|
+| 1 | `refactor/fase-1-css` | — | — | — | ⏳ Pendiente |
+| 2 | `refactor/fase-2-utils` | — | — | — | ⏳ Pendiente |
+| 3 | `refactor/fase-3-data` | — | — | — | ⏳ Pendiente |
+| 4 | `refactor/fase-4-firebase` | — | — | — | ⏳ Pendiente |
+| 5 | `refactor/fase-5-ui-rendering` | — | — | — | ⏳ Pendiente |
+| 6 | `refactor/fase-6-ui-panels` | — | — | — | ⏳ Pendiente |
+| 7 | `refactor/fase-7-setup` | — | — | — | ⏳ Pendiente |
+| 8 | `refactor/fase-8-appjs` | — | — | — | ⏳ Pendiente |
+| 9 | `refactor/fase-9-config` | — | — | — | ⏳ Pendiente |
+
+---
+
+## Notas finales
+
+- **No es un rewrite** — es un refactor quirúrgico. En cada fase la app funciona.
+- **Sin build tools** — `script type="module"` es todo lo que se necesita.
+- **Firebase no cambia** — mismo proyecto, misma config, mismo esquema Firestore.
+- **2-4 usuarios** — la escalabilidad no es prioridad. La mantenibilidad sí.
