@@ -50,6 +50,15 @@ export function getAccountsForMember(memberId) {
   return state.accounts[memberId] || state.accounts['compartido'] || ['Efectivo'];
 }
 
+export function getAllAccountsForMember() {
+  const result = [];
+  for (const [memberId, accts] of Object.entries(state.accounts)) {
+    const label = state.members[memberId] || memberId;
+    accts.forEach(a => result.push({ memberId, label, account: a }));
+  }
+  return result;
+}
+
 export function isCashAccount(accountName) {
   return CASH_ACCOUNTS.some(c => accountName.toLowerCase().includes(c));
 }
@@ -62,17 +71,38 @@ export function getPaymentLabel(method) {
   return method === 'efectivo' ? 'Efectivo' : 'Digital';
 }
 
-export function updateAccountSelector(memberId, selectId) {
+export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
   const sel = $(selectId);
   if (!sel) return;
-  const accts = getAccountsForMember(memberId);
-  const prev = sel.value;
-  sel.innerHTML = accts.map(a => {
-    const bal = getAccountBalance(memberId, a);
-    const balText = formatCOPShort(bal);
-    return `<option value="${esc(a)}">${esc(a)} (${balText})</option>`;
-  }).join('');
-  if (accts.includes(prev)) sel.value = prev;
+  const prev = sel.dataset.prevValue || '';
+
+  if (type === 'gasto') {
+    const all = getAllAccountsForMember();
+    sel.innerHTML = all.map(({ memberId: mid, label, account }) => {
+      const bal = getAccountBalance(mid, account);
+      const balText = formatCOPShort(bal);
+      const display = `${account} (${label})`;
+      const val = `${mid}:${account}`;
+      return `<option value="${esc(val)}">${esc(display)} — ${balText}</option>`;
+    }).join('');
+  } else {
+    const accts = getAccountsForMember(memberId);
+    sel.innerHTML = accts.map(a => {
+      const bal = getAccountBalance(memberId, a);
+      const balText = formatCOPShort(bal);
+      const val = `${memberId}:${a}`;
+      return `<option value="${esc(val)}">${esc(a)} (${balText})</option>`;
+    }).join('');
+  }
+
+  if ([...sel.options].some(o => o.value === prev)) sel.value = prev;
+  sel.dataset.prevValue = sel.value;
+}
+
+export function parseAccountValue(val) {
+  const idx = val.indexOf(':');
+  if (idx === -1) return { who: 'yo', account: val };
+  return { who: val.slice(0, idx), account: val.slice(idx + 1) };
 }
 
 export function getMemberBadgeStyle(who) {

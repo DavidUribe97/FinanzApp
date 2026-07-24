@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { $, formatCOP, sanitizeStr, validateAmount, generateId } from './utils.js';
 import { updateWhoSelects } from './ui-members.js';
-import { updateAccountSelector } from './members.js';
+import { updateAccountSelector, parseAccountValue } from './members.js';
 import { updateCategories, updateSubcategories, updateEditCategories, closeEditModal, showToast, dismissAllToasts, showConfirmModal } from './ui-modals.js';
 import { addTransaction, editTransaction, getAccountBalance } from './data.js';
 import { saveBudgets } from './data.js';
@@ -12,11 +12,14 @@ import { exportCSV, exportJSON } from './data.js';
 
 export function setupAnalysisForm(onImportJSON) {
   updateWhoSelects();
-  updateAccountSelector($('txWho').value, 'txAccount');
+  updateAccountSelector($('txWho').value, 'txAccount', $('txType').value);
   updateCategories();
-  $('txType').addEventListener('change', updateCategories);
+  $('txType').addEventListener('change', () => {
+    updateCategories();
+    updateAccountSelector($('txWho').value, 'txAccount', $('txType').value);
+  });
   $('txCategory').addEventListener('change', () => updateSubcategories('txType', 'txCategory', 'txSubcategory'));
-  $('txWho').addEventListener('change', () => updateAccountSelector($('txWho').value, 'txAccount'));
+  $('txWho').addEventListener('change', () => updateAccountSelector($('txWho').value, 'txAccount', $('txType').value));
   $('txDate').valueAsDate = new Date();
 
   $('txForm').addEventListener('submit', e => {
@@ -30,24 +33,25 @@ export function setupAnalysisForm(onImportJSON) {
     const description = $('txDescription').value;
     const date = $('txDate').value;
     const who = $('txWho').value;
-    const account = $('txAccount').value || 'Efectivo';
+    const { who: accountWho, account } = parseAccountValue($('txAccount').value || 'yo:Efectivo');
+    const effectiveWho = type === 'gasto' ? accountWho : who;
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
     if (type === 'gasto') {
-      const balance = getAccountBalance(who, account);
+      const balance = getAccountBalance(effectiveWho, account);
       if (balance < amount) {
         return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);
       }
     }
     const sanitizedDesc = sanitizeStr(description);
-    addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
+    addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who: effectiveWho, account });
     refreshAnalysis();
     $('txForm').reset();
     $('txDate').valueAsDate = new Date();
     $('txCategory').value = '';
     $('txSubcategory').innerHTML = '<option value="">Sin subcategoría</option>';
     $('txWho').value = Object.keys(state.members)[0] || 'yo';
-    updateAccountSelector($('txWho').value, 'txAccount');
+    updateAccountSelector($('txWho').value, 'txAccount', $('txType').value);
   });
 
   $('txAmount').addEventListener('input', function() {
@@ -98,9 +102,12 @@ export function setupAnalysisForm(onImportJSON) {
     e.target.value = '';
   });
 
-  $('editType').addEventListener('change', updateEditCategories);
+  $('editType').addEventListener('change', () => {
+    updateEditCategories();
+    updateAccountSelector($('editWho').value, 'editAccount', $('editType').value);
+  });
   $('editCategory').addEventListener('change', () => updateSubcategories('editType', 'editCategory', 'editSubcategory'));
-  $('editWho').addEventListener('change', () => updateAccountSelector($('editWho').value, 'editAccount'));
+  $('editWho').addEventListener('change', () => updateAccountSelector($('editWho').value, 'editAccount', $('editType').value));
 
   $('editForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -114,13 +121,14 @@ export function setupAnalysisForm(onImportJSON) {
     const description = $('editDescription').value;
     const date = $('editDate').value;
     const who = $('editWho').value;
-    const account = $('editAccount').value || 'Efectivo';
+    const { who: accountWho, account } = parseAccountValue($('editAccount').value || 'yo:Efectivo');
+    const effectiveWho = type === 'gasto' ? accountWho : who;
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
     if (type === 'gasto') {
       const prevTx = state.transactions.find(t => String(t.id) === String(state.editingId));
-      let balance = getAccountBalance(who, account);
-      if (prevTx && prevTx.who === who && prevTx.account === account) {
+      let balance = getAccountBalance(effectiveWho, account);
+      if (prevTx && prevTx.who === effectiveWho && prevTx.account === account) {
         balance += prevTx.amount;
       }
       if (balance < amount) {
@@ -128,7 +136,7 @@ export function setupAnalysisForm(onImportJSON) {
       }
     }
     const sanitizedDesc = sanitizeStr(description);
-    editTransaction(state.editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
+    editTransaction(state.editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who: effectiveWho, account });
     closeEditModal();
     showToast('Transacción actualizada');
   });

@@ -142,7 +142,7 @@ export function updateWhoToggle() {
       btn.addEventListener('click', () => {
         state.selectedWho = btn.dataset.who;
         updateWhoToggle();
-        updateAccountSelector(btn.dataset.who, 'dailyAccount');
+        updateAccountSelector(btn.dataset.who, 'dailyAccount', state.selectedType);
       });
       toggle.appendChild(btn);
     }

@@ -86,7 +86,7 @@ function init() {
   renderDailyCategories();
   updateTypeToggle();
   updateWhoToggle();
-  updateAccountSelector(state.selectedWho, 'dailyAccount');
+  updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
   refreshDaily();
 
   setupNavigation();

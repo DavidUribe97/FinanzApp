@@ -81,7 +81,7 @@ export function setupAccountsPanel() {
     saveAccounts();
     $('accountForm').style.display = 'none';
     renderAccountsPanel();
-    updateAccountSelector(state.selectedWho, 'dailyAccount');
+    updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
     showToast(editIdx >= 0 ? 'Cuenta actualizada' : 'Cuenta añadida');
   });
 }
