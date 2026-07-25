@@ -1947,16 +1947,20 @@ Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con
 
 **Archivos:** `js/state.js` (+13), `js/firebase-room.js` (+2)
 
-### 2. Cuentas automáticas en salas viejas (GRAVEDAD: ALTA)
+### 2. Cuentas en salas viejas — migración automática (GRAVEDAD: ALTA)
 
-**Problema:** Al abrir una sala vieja (sin campo `accounts` en Firestore), el snapshot no actualizaba `state.accounts` (condición `if (data.accounts)` falsa). `state.accounts` retenía los defaults de `loadAccounts()`. Cualquier sync posterior inyectaba esas cuentas al documento viejo con `merge: true`.
+**Problema:** Al abrir una sala vieja (sin campo `accounts` en Firestore), el usuario no tenía cuentas configuradas. El campo `account` de las transacciones existentes contenía la información pero no se usaba para reconstruir el mapa de cuentas.
 
-**Solución:**
-- Snapshot handler: `state.accounts = data.accounts ? ... : {}` — resetea a `{}` si Firestore no tiene accounts
-- `firstTimeSetup()`: solo escribe `accounts` si tiene keys (`Object.keys().length > 0`)
-- `syncToFirestore()`: solo incluye `accounts` en payload si tiene keys
+**Solución — `migrateAccountsFromTransactions()`:**
+- Nueva función que escanea `state.transactions` y extrae cuentas únicas del campo `account` (formato `"miembro:cuenta"`)
+- Agrupa por `who` de la transacción y construye `{ yo: ["Cuenta1", ...], pareja: ["Cuenta2", ...] }`
+- Si un miembro tiene transacciones pero no aparece en `state.members`, lo agrega automáticamente
+- Si un miembro queda sin cuentas, crea "Efectivo" como fallback
+- Si no hay transacciones con `account`, crea defaults mínimos (`yo: ["Efectivo"], pareja: ["Efectivo"]`)
+- Se ejecuta solo cuando Firestore no tiene campo `accounts` (sala vieja)
+- `firstTimeSetup()` y `syncToFirestore()` solo escriben `accounts` si tiene datos
 
-**Archivos:** `js/firebase-sync.js` (+10/-7)
+**Archivos:** `js/firebase-sync.js` (+25/-2) — función + cambio en snapshot handler
 
 ### 3. Acceso a sala protegida sin contraseña (GRAVEDAD: ALTA)
 

@@ -393,7 +393,7 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | Compartido visible en panel de cuentas | `renderAccountsPanel()` y `accountMemberSelect` mostraban Compartido como cuenta normal | Filtrado por `member !== 'compartido'` en ambos | `bd4a917` |
 | Fecha de transacción con `toISOString()` en setup-daily | `getToday().toISOString().slice(0,10)` usaba UTC para fecha de transacción | Reemplazado por `toLocalDateStr(getToday())` | `bd4a917` |
 | Fuga de datos entre salas | `firstTimeSetup` escribía state (data vieja) a sala nueva | `resetRoomState()` limpia state al cambiar de sala | `hotfix` |
-| Cuentas automáticas en salas viejas | `syncToFirestore` con `merge: true` inyectaba defaults en docs sin `accounts` | Snapshot resetea accounts a `{}` si Firestore no lo tiene; sync no escribe accounts vacíos | `hotfix` |
+| Cuentas automáticas en salas viejas | Salas viejas sin campo `accounts` quedaban sin cuentas o con defaults incorrectos | Migración automática: extrae cuentas reales de transacciones existentes (`tx.account`) | `hotfix` |
 | Acceso a sala protegida sin contraseña | Condición `data.passwordHash && state.roomPassword` se saltaba el check si no había password | Si room tiene `passwordHash` y usuario no ingresa contraseña → rechaza | `hotfix` |
 
 ---

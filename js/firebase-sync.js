@@ -100,6 +100,31 @@ async function firstTimeSetup(ref, resolve) {
   resolve();
 }
 
+/** Extrae cuentas únicas desde transacciones existentes para salas viejas sin campo accounts. */
+function migrateAccountsFromTransactions() {
+  const accounts = {};
+  const memberIds = new Set(Object.keys(state.members));
+  (state.transactions || []).forEach(tx => {
+    if (!tx.account) return;
+    const idx = tx.account.indexOf(':');
+    if (idx === -1) return;
+    const memberId = tx.account.slice(0, idx);
+    const acctName = tx.account.slice(idx + 1);
+    memberIds.add(memberId);
+    if (!accounts[memberId]) accounts[memberId] = [];
+    if (!accounts[memberId].includes(acctName)) accounts[memberId].push(acctName);
+  });
+  memberIds.forEach(id => {
+    if (id === 'compartido') return;
+    if (!accounts[id] || accounts[id].length === 0) accounts[id] = ['Efectivo'];
+  });
+  if (Object.keys(accounts).length === 0) {
+    accounts.yo = ['Efectivo'];
+    accounts.pareja = ['Efectivo'];
+  }
+  return accounts;
+}
+
 /** Suscribe un listener en tiempo real al documento de sala en Firestore, verificando passwordHash si existe. */
 export function subscribeFirestore() {
   return new Promise(async resolve => {
@@ -148,7 +173,7 @@ export function subscribeFirestore() {
       if (data.members) {
         state.members = JSON.parse(JSON.stringify(data.members));
       }
-      state.accounts = data.accounts ? JSON.parse(JSON.stringify(data.accounts)) : {};
+      state.accounts = data.accounts ? JSON.parse(JSON.stringify(data.accounts)) : migrateAccountsFromTransactions();
       if (onRemoteUpdate) onRemoteUpdate();
       resolve();
     }, err => {
