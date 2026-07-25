@@ -1914,3 +1914,16 @@ Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con
 **Problema:** `getToday().toISOString().slice(0,10)` usaba UTC para la fecha de la transacción. En UTC+8, transacciones de "hoy" se guardaban con fecha incorrecta.
 
 **Solución:** Reemplazado por `toLocalDateStr(getToday())` que usa hora local.
+
+---
+
+## Adoptar Git Flow
+
+**Fecha:** 2026-07-25
+
+**Contexto:** Todo se había estado haciendo directo sobre `master`. Se adopta flujo Git Flow para separar producción, integración y desarrollo.
+
+**Acciones:**
+- Rama `develop` creada desde `master` (`bd4a917`)
+- Eliminadas 7 ramas viejas ya merged: `refactor/fase-1-css` a `refactor/fase-6-ui-panels`, `v1.3.0-beta` (locales + remote)
+- Creado `CONTRIBUTING.md` con documentación del flujo: `master`, `develop`, `feature/*`, `hotfix/*`
