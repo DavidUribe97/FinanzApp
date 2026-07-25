@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { $, esc, formatCOP } from './utils.js';
 import { getFilteredTransactions, getCumulativeBalance, getDisplayTransactions, deleteTransaction as deleteTransactionData, restoreTransaction } from './data.js';
 import { getSubCatEmoji } from './categories.js';
-import { isCashAccount, getMemberBadgeStyle, getWhoLabel, getAccountsForMember } from './members.js';
+import { isCashAccount, getMemberBadgeStyle, getWhoLabel, getAccountsForMember, updateAccountSelector, parseAccountValue } from './members.js';
 import { openEditModal, showToast } from './ui-modals.js';
 
 export function renderSummary() {
@@ -35,14 +35,12 @@ export function renderTable() {
   empty.style.display = 'none';
   body.innerHTML = display.map(tx => {
     const whoVal = tx.who || 'yo';
-    const acctName = tx.account || 'Efectivo';
+    const parsed = parseAccountValue(tx.account || 'yo:Efectivo');
+    const acctName = parsed.account;
+    const acctOwnerLabel = getWhoLabel(parsed.who);
     const acctCls = isCashAccount(acctName) ? 'cash' : 'digital';
     const acctIcon = isCashAccount(acctName) ? '💵' : '🏦';
-    let acctOwner = '';
-    for (const [mid, accts] of Object.entries(state.accounts)) {
-      if (accts.includes(acctName)) { acctOwner = getWhoLabel(mid); break; }
-    }
-    const acctDisplay = acctOwner ? `${esc(acctName)} (${acctOwner})` : esc(acctName);
+    const acctDisplay = `${esc(acctName)} (${acctOwnerLabel})`;
     return `
     <tr class="fade-in">
       <td>${tx.date}</td>
@@ -64,9 +62,11 @@ export function renderTable() {
       const tx = deleteTransactionData(btn.dataset.del);
       if (tx) {
         renderTable();
+        updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
         showToast(`"${tx.description || tx.category}" eliminado`, 'Deshacer', () => {
           restoreTransaction();
           renderTable();
+          updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
         });
       }
     });

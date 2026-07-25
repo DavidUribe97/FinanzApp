@@ -34,17 +34,19 @@ export function setupAnalysisForm(onImportJSON) {
     const date = $('txDate').value;
     const who = $('txWho').value;
     const { who: accountOwner, account } = parseAccountValue($('txAccount').value || 'yo:Efectivo');
+    const fullAccountKey = `${accountOwner}:${account}`;
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
     if (type === 'gasto' && who !== 'compartido') {
-      const balance = getAccountBalance(accountOwner, account);
+      const balance = getAccountBalance(fullAccountKey);
       if (balance < amount) {
         return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);
       }
     }
     const sanitizedDesc = sanitizeStr(description);
-    addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
+    addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who, account: fullAccountKey });
     refreshAnalysis();
+    updateAccountSelector($('txWho').value, 'txAccount', $('txType').value);
     $('txForm').reset();
     $('txDate').valueAsDate = new Date();
     $('txCategory').value = '';
@@ -121,12 +123,13 @@ export function setupAnalysisForm(onImportJSON) {
     const date = $('editDate').value;
     const who = $('editWho').value;
     const { who: accountOwner, account } = parseAccountValue($('editAccount').value || 'yo:Efectivo');
+    const fullAccountKey = `${accountOwner}:${account}`;
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
     if (type === 'gasto' && who !== 'compartido') {
       const prevTx = state.transactions.find(t => String(t.id) === String(state.editingId));
-      let balance = getAccountBalance(accountOwner, account);
-      if (prevTx && prevTx.who === accountOwner && prevTx.account === account) {
+      let balance = getAccountBalance(fullAccountKey);
+      if (prevTx && prevTx.account === fullAccountKey) {
         balance += prevTx.amount;
       }
       if (balance < amount) {
@@ -134,9 +137,10 @@ export function setupAnalysisForm(onImportJSON) {
       }
     }
     const sanitizedDesc = sanitizeStr(description);
-    editTransaction(state.editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
+    editTransaction(state.editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who, account: fullAccountKey });
     closeEditModal();
     showToast('Transacción actualizada');
+    updateAccountSelector($('editWho').value, 'editAccount', $('editType').value);
   });
 
   $('cancelEdit').addEventListener('click', closeEditModal);

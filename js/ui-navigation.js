@@ -9,6 +9,7 @@ import { renderStats } from './ui-stats.js';
 import { renderCatManager } from './ui-categories.js';
 import { renderMembers } from './ui-members.js';
 import { renderAccountsPanel } from './ui-accounts.js';
+import { updateAccountSelector } from './members.js';
 import { toggleTheme } from './ui-theme.js';
 import { openRoomModal } from './firebase-room.js';
 
@@ -28,6 +29,7 @@ export function refreshAnalysis() {
 export function refreshAll(animate = true) {
   updateMonthLabel();
   refreshDaily(animate);
+  updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
   if (!state.isDailyMode) refreshAnalysis();
 }
 

@@ -59,9 +59,9 @@ export function getDisplayTransactions() {
   }).sort((a, b) => b.date.localeCompare(a.date));
 }
 
-export function getAccountBalance(who, account) {
+export function getAccountBalance(accountKey) {
   return state.transactions
-    .filter(tx => tx.who === who && tx.account === account)
+    .filter(tx => tx.account === accountKey)
     .reduce((sum, tx) => sum + (tx.type === 'ingreso' ? tx.amount : -tx.amount), 0);
 }
 

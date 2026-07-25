@@ -77,7 +77,7 @@ export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
   if (!sel) return;
   const container = sel.closest('.account-select-row, .form-group');
 
-  if (memberId === 'compartido') {
+  if (memberId === 'compartido' && type === 'ingreso') {
     if (container) container.style.display = 'none';
     sel.innerHTML = '';
     return;
@@ -89,19 +89,19 @@ export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
   if (type === 'gasto') {
     const all = getAllAccountsForMember();
     sel.innerHTML = all.map(({ memberId: mid, label, account }) => {
-      const bal = getAccountBalance(mid, account);
+      const fullKey = `${mid}:${account}`;
+      const bal = getAccountBalance(fullKey);
       const balText = formatCOPShort(bal);
       const display = `${account} (${label})`;
-      const val = `${mid}:${account}`;
-      return `<option value="${esc(val)}">${esc(display)} — ${balText}</option>`;
+      return `<option value="${esc(fullKey)}">${esc(display)} — ${balText}</option>`;
     }).join('');
   } else {
     const accts = getAccountsForMember(memberId);
     sel.innerHTML = accts.map(a => {
-      const bal = getAccountBalance(memberId, a);
+      const fullKey = `${memberId}:${a}`;
+      const bal = getAccountBalance(fullKey);
       const balText = formatCOPShort(bal);
-      const val = `${memberId}:${a}`;
-      return `<option value="${esc(val)}">${esc(a)} (${balText})</option>`;
+      return `<option value="${esc(fullKey)}">${esc(a)} (${balText})</option>`;
     }).join('');
   }
 

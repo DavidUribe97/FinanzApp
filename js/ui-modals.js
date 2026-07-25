@@ -56,7 +56,7 @@ export function openEditModal(id) {
   updateWhoSelectsFn();
   $('editWho').value = tx.who || 'yo';
   updateAccountSelector(tx.who || 'yo', 'editAccount', tx.type);
-  if (tx.account) $('editAccount').value = `${tx.who || 'yo'}:${tx.account}`;
+  if (tx.account) $('editAccount').value = tx.account;
   updateEditCategories();
   $('editCategory').value = tx.category;
   updateSubcategories('editType', 'editCategory', 'editSubcategory');
