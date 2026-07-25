@@ -1,4 +1,4 @@
-const CACHE = 'finanzapp-v3';
+const CACHE = 'finanzapp-v4';
 const FIREBASE_CACHE = 'finanzapp-firebase';
 const FIREBASE_CDN = 'https://www.gstatic.com/firebasejs/';
 const ASSETS = [
@@ -6,7 +6,30 @@ const ASSETS = [
   'chart.min.js',
   'manifest.json',
   'icon-192.svg',
-  'icon-512.svg'
+  'icon-512.svg',
+  'css/styles.css',
+  'js/app.js',
+  'js/state.js',
+  'js/config.js',
+  'js/utils.js',
+  'js/data.js',
+  'js/members.js',
+  'js/categories.js',
+  'js/firebase-sync.js',
+  'js/firebase-room.js',
+  'js/ui-daily.js',
+  'js/ui-analysis.js',
+  'js/ui-charts.js',
+  'js/ui-budgets.js',
+  'js/ui-stats.js',
+  'js/ui-modals.js',
+  'js/ui-members.js',
+  'js/ui-accounts.js',
+  'js/ui-categories.js',
+  'js/ui-theme.js',
+  'js/ui-navigation.js',
+  'js/setup-daily.js',
+  'js/setup-analysis.js'
 ];
 
 self.addEventListener('install', e => {

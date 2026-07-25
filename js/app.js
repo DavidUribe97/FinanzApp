@@ -4,9 +4,9 @@
 
 import { state } from './state.js';
 import { MODE_KEY, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY, ACCOUNTS_KEY } from './config.js';
-import { renderEmojiPicker, validateAmount } from './utils.js';
+import { validateAmount } from './utils.js';
 import { loadCategories, saveCategories, setSyncToFirestore as setSyncCategories } from './categories.js';
-import { loadMembers, loadAccounts, setSyncToFirestore as setSyncMembers } from './members.js';
+import { loadMembers, loadAccounts, saveMembers, saveAccounts, setSyncToFirestore as setSyncMembers } from './members.js';
 import { loadData, saveData, saveBudgets, isValidTx, isValidBudgets, isValidCategories, setSyncToFirestore as setSyncData } from './data.js';
 import { initFirebase, syncToFirestore, setRemoteUpdateCallback } from './firebase-sync.js';
 import { setupRoomModal } from './firebase-room.js';
@@ -45,6 +45,8 @@ function importJSON(file) {
       state.transactions = data.transactions.filter(tx => !(tx.who === 'compartido' && tx.type === 'ingreso'));
       if (data.budgets) state.budgets = data.budgets;
       if (data.categories) { state.categoriesData = data.categories; saveCategories(); }
+      if (data.members) { state.members = data.members; saveMembers(); }
+      if (data.accounts) { state.accounts = data.accounts; saveAccounts(); }
       saveData();
       saveBudgets();
       refreshAll();
@@ -60,8 +62,6 @@ function importJSON(file) {
 
 function registerServiceWorker() {
   if ('serviceWorker' in navigator) {
-    caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('finanzapp')).map(k => caches.delete(k))));
-    navigator.serviceWorker.getRegistrations().then(regs => Promise.all(regs.map(r => r.unregister())));
     navigator.serviceWorker.register('sw.js');
   }
 }

@@ -1,8 +1,9 @@
 import { MAX_DESC_LENGTH, MAX_AMOUNT, EMOJIS } from './config.js';
+import { state } from './state.js';
 
 /**
- * Helpers puros sin dependencias de estado. Escape HTML, formateo COP,
- * generación de IDs, validación de montos y renderizado de emoji picker.
+ * Helpers de UI. Escape HTML, formateo COP, generación de IDs,
+ * validación de montos, renderizado de emoji picker y lookups de estado.
  */
 
 /** Atajo para document.getElementById. */
@@ -88,4 +89,9 @@ export function renderEmojiPicker(selected, onSelect, pickerId) {
       picker.style.display = 'none';
     });
   });
+}
+
+/** Convierte el id de un miembro en su nombre legible para la UI. */
+export function getWhoLabel(who) {
+  return state.members[who] || state.members['compartido'] || 'Compartido 👥';
 }

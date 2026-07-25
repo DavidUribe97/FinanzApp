@@ -1,3 +1,5 @@
+import { DEFAULT_CATEGORIES, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS } from './config.js';
+
 /**
  * State centralizado — único dueño de variables mutables de la app.
  * Todos los módulos importan este objeto y mutan sus propiedades directamente
@@ -31,13 +33,13 @@ export const state = {
   roomCodeResolver: null,
 };
 
-/** Limpia datos de sala del state — evita que firstTimeSetup escriba data vieja a sala nueva. */
+/** Limpia datos de sala del state — restablece a defaults para que la sala nueva arranque con datos válidos. */
 export function resetRoomState() {
   state.transactions = [];
   state.budgets = {};
-  state.categoriesData = null;
-  state.accounts = {};
-  state.members = {};
+  state.categoriesData = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
+  state.accounts = JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
+  state.members = { ...DEFAULT_MEMBERS };
   state.editingId = null;
   state.undoData = null;
   state.selectedCategory = null;

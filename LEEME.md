@@ -14,7 +14,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 | Componente | Detalle |
 |---|---|
 | HTML | `index.html` (~453 líneas, solo estructura + modales) |
-| CSS | `css/styles.css` (~1002 líneas, variables, tema oscuro/claro) |
+| CSS | `css/styles.css` (~1142 líneas, variables, tema oscuro/claro, sin selectores duplicados) |
 | JS | 22 módulos ES (`js/*.js`), sin frameworks ni build tools |
 | Charts | Chart.js v4.4.7 local (`chart.min.js`, 202KB) |
 | Persistencia local | localStorage (`finanzas_data`, `finanzas_budgets`, `finanzas_categories`, etc.) |
@@ -43,7 +43,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 │   ├── app.js              # Orchestador: imports, init(), wiring de callbacks
 │   ├── state.js            # Objeto state centralizado (único dueño de variables mutables)
 │   ├── config.js           # Constantes, Firebase config, categorías default
-│   ├── utils.js            # Helpers: $, esc, formatCOP, getToday, etc.
+│   ├── utils.js            # Helpers: $, esc, formatCOP, getToday, getWhoLabel, etc.
 │   ├── data.js             # CRUD transacciones, sync, validación
 │   ├── members.js          # Miembros y cuentas
 │   ├── categories.js       # Categorías y subcategorías
@@ -112,7 +112,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 8. setMode(savedMode)    → restaura modo diario/análisis
 9. renderDaily...()      → render inicial con datos locales
 10. setup*()             → registra event listeners
-11. registerServiceWorker() → limpia caches viejas, registra SW
+11. registerServiceWorker() → registra SW (limpieza de cache delegada al SW activate handler)
 ```
 
 Los datos locales cargan **antes** de Firebase, así que el primer render es instantáneo (sin flash de "vacío → con datos").
@@ -130,6 +130,8 @@ Estas reglas mantienen el grafo de dependencias acíclico. Romperlas crea ciclos
 3. **state.js es el único dueño de variables mutables:** Todo lo demás lee/escribe `state.x`, nunca reasigna un import. `state` se exporta como `const` y sus propiedades se mutan directamente (`state.transactions = [...]`).
 
 4. **UI refresh sin dependencias circulares:** `ui-categories.js` y `ui-members.js` usan `setNotifyRefresh(fn)` para notificar a `app.js` que debe refrescar la vista. No importan `ui-navigation.js` directo (eso crearía un ciclo).
+
+5. **`getWhoLabel()` en utils.js:** La función `getWhoLabel(who)` vive en `utils.js` (no en `members.js`) para romper la dependencia circular `data.js ↔ members.js`. `members.js` la re-exporta para mantener backward compatibility con `ui-daily.js`, `ui-charts.js` y `ui-analysis.js`.
 
 ---
 
@@ -157,6 +159,24 @@ git push origin master --tags
 ---
 
 ## Mapa de funciones por módulo
+
+### Utils (`js/utils.js`)
+| Función | Qué hace |
+|---------|----------|
+| `$(id)` | Atajo para `document.getElementById` |
+| `esc(s)` | Escapa HTML para prevenir XSS en innerHTML |
+| `formatCOP(n)` | Formatea número como COP sin decimales |
+| `formatCOPShort(n)` | Formatea COP abreviado (1.5M, 50K) |
+| `sanitizeStr(str, maxLen)` | Elimina tags HTML y trunca a maxLen |
+| `validateAmount(amount)` | Retorna mensaje de error si el monto es inválido, null si es válido |
+| `downloadBlob(blob, filename)` | Descarga un Blob como archivo |
+| `generateId()` | Genera UUID; fallback a timestamp+random si crypto no disponible |
+| `safeRoomCode(code)` | Codifica código de sala para usar como ID de documento Firestore |
+| `getToday()` | Retorna `new Date()` — stub para testing futuro |
+| `parseLocalDate(dateStr)` | Convierte 'YYYY-MM-DD' a Date en hora local |
+| `toLocalDateStr(date)` | Convierte Date a string 'YYYY-MM-DD' en hora local |
+| `renderEmojiPicker(selected, onSelect, pickerId)` | Renderiza grilla de emojis con callback de selección |
+| `getWhoLabel(who)` | Convierte id de miembro en nombre legible (requiere `state.members`) |
 
 ### Datos (`js/data.js`)
 | Función | Qué hace |
@@ -250,7 +270,7 @@ git push origin master --tags
 | Función | Qué hace |
 |---------|----------|
 | `init()` | Punto de entrada: carga datos, inyecta callbacks, Firebase, render, listeners |
-| `registerServiceWorker()` | Registra SW + limpia caches viejas |
+| `registerServiceWorker()` | Registra SW (limpieza de cache delegada al SW activate handler) |
 
 ---
 
@@ -357,6 +377,10 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 - Estos módulos necesitan notificar a la app que refresque la vista después de CRUD, pero no pueden importar `ui-navigation.js` (crearía ciclo).
 - `app.js` inyecta `refreshAll` como callback.
 
+### Por qué `getWhoLabel()` vive en utils.js (no en members.js)
+- `data.js` necesitaba `getWhoLabel()` para `exportCSV()`, pero `members.js` ya importaba `getAccountBalance()` de `data.js` — crearía un ciclo `data.js ↔ members.js`.
+- Mover `getWhoLabel()` a `utils.js` rompe el ciclo. `members.js` la re-exporta (`export { getWhoLabel }`) para que los consumidores existentes (`ui-daily.js`, `ui-charts.js`, `ui-analysis.js`) no necesiten cambiar sus imports.
+
 ### Por qué nombres fijos (Él, Ella, Compartido 👥)
 - Los perfiles configurables NO se sincronizan entre dispositivos.
 - Se hardcodearon IDs simbólicos (`yo`, `pareja`, `compartido`) para garantizar consistencia en la sala compartida y retrocompatibilidad con transacciones legacy.
@@ -364,6 +388,11 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 ### Por qué `encodeURIComponent` para códigos de sala
 - Firestore interpreta `/` como subcolecciones.
 - `encodeURIComponent()` codifica `/` como `%2F`.
+
+### Por qué NO se borran caches en registerServiceWorker()
+- **Antes:** `registerServiceWorker()` borraba todos los caches y desregistraba el SW en cada carga. Esto rompía el offline mode.
+- **Ahora:** La limpieza de caches viejos la maneja el SW en su handler `activate` (compara el nombre del cache actual vs los existentes y borra los obsoletos). `registerServiceWorker()` solo llama `navigator.serviceWorker.register('sw.js')`.
+- El SW usa `skipWaiting()` + `clients.claim()` para activarse inmediatamente después de instalar.
 
 ### Por qué NO hay pruebas automatizadas
 - App personal para 2-4 personas. El riesgo es mínimo.
@@ -394,6 +423,18 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | Fecha de transacción con `toISOString()` en setup-daily | `getToday().toISOString().slice(0,10)` usaba UTC para fecha de transacción | Reemplazado por `toLocalDateStr(getToday())` | `bd4a917` |
 | Fuga de datos entre salas | `firstTimeSetup` escribía state (data vieja) a sala nueva | `resetRoomState()` limpia state al cambiar de sala | `5bef7c4` |
 | Acceso a sala protegida sin contraseña | Condición `data.passwordHash && state.roomPassword` se saltaba el check si no había password | Si room tiene `passwordHash` y usuario no ingresa contraseña → rechaza | `5bef7c4` |
+| `resetRoomState()` dejaba state con `null`/`{}` | TypeError al crear sala nueva (categories/members/accounts eran null) | Restaurar defaults (`DEFAULT_CATEGORIES`, `DEFAULT_MEMBERS`, `DEFAULT_ACCOUNTS`) | `v2.1` |
+| Service Worker borraba todos los caches en cada carga | Modo offline roto — el SW se desregistraba y limpiaba todo en `registerServiceWorker()` | Eliminar cache-busting agresivo; limpieza delegada al SW `activate` handler | `v2.1` |
+| `subscribeFirestore()` usaba `async` dentro de `Promise` constructor | Anti-pattern que puede causar unhandled rejection silencioso | Reescrito con función anidada `startSnapshot()` + `.then()` chains | `v2.1` |
+| SW sin cache de `css/styles.css` y módulos JS | Offline mode no funcionaba — assets faltantes en cache | Agregados `css/styles.css` + 22 `js/*.js` al array `ASSETS` del SW (cache v4) | `v2.1` |
+| `importJSON()` no persistía members/accounts | Al importar JSON, members y accounts del archivo se perdían | `importJSON()` ahora llama `saveMembers()` y `saveAccounts()` | `v2.1` |
+| `isValidTx()` no validaba largo de `subcategory` | Subcategorías >50 chars pasaban la validación de import | Agregado `tx.subcategory.length <= 50` a la validación | `v2.1` |
+| `parseAccountValue()` crasheaba con valor null/undefined | Select vacío causaba `TypeError: Cannot read properties of null` | Retornar defaults `{ who: 'yo', account: 'Efectivo' }` para valores falsy | `v2.1` |
+| Selector de cuentas ocultaba cuentas con balance 0 | En modo gasto, cuentas con $0 no aparecían en el select | Eliminado filtro `.filter(({...}) => getAccountBalance(...) > 0)` | `v2.1` |
+| Dependencia circular `data.js ↔ members.js` | `data.js` importaba `getWhoLabel` de `members.js`; `members.js` importaba `getAccountBalance` de `data.js` | `getWhoLabel()` movida a `utils.js`; `members.js` re-exporta para backward compat | `v2.1` |
+| Variable CSS `--card-bg` usada pero nunca definida | Emoji picker y display de emoji sin fondo correcto | Reemplazada por `--bg-card` (definida en temas dark/light) | `v2.1` |
+| Selectores `.feed-item` y `.feed-amount` definidos dos veces | CSS conflicto — segunda definición sobreescribía la primera | Consolidados en una sola definición cada uno | `v2.1` |
+| Regla `table th, table td` redundante en `@media 480px` | Dos reglas consecutivas en mismo media query; la primera era inmediatamente sobrescrita | Eliminada la regla redundante | `v2.1` |
 
 ### Hotfix #2 revertido (2026-07-25)
 
@@ -420,6 +461,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v1.3.0` | 2026-07-24 | Miembros editables, clave salas, colores | ✅ En master |
 | `v2.0` | 2026-07-24 | Modularización completa + 6 post-fixes | ✅ En master |
 | `bd38724` | 2026-07-25 | Hotfix #1 (data leak) + #3 (password bypass), revert #2, deploy limpio | ✅ En master + deployado |
+| `v2.1` | 2026-07-25 | 14 fixes: resetRoomState defaults, SW v4, subscribeFirestore refactor, CSS limpieza, circular dependency fix | ✅ En master + deployado |
 
 ---
 

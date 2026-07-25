@@ -1,12 +1,13 @@
 /**
  * Gestión de miembros y cuentas. CRUD con persistencia en localStorage
  * + sync a Firestore vía callback. Provee helpers para selects de UI
- * (updateAccountSelector, getWhoLabel, getMemberBadgeStyle).
+ * (updateAccountSelector, getMemberBadgeStyle).
  * Nunca importa firebase-sync.js directo.
  */
 import { state } from './state.js';
 import { MEMBERS_KEY, ACCOUNTS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, CASH_ACCOUNTS, MEMBER_COLORS } from './config.js';
-import { $, esc, formatCOPShort } from './utils.js';
+import { $, esc, formatCOPShort, getWhoLabel } from './utils.js';
+export { getWhoLabel };
 import { getAccountBalance } from './data.js';
 
 let syncToFirestoreFn = () => {};
@@ -37,11 +38,6 @@ export function getMemberIds() {
 /** Devuelve la lista de miembros como array de { id, name }. */
 export function getMemberList() {
   return Object.entries(state.members).map(([id, name]) => ({ id, name }));
-}
-
-/** Convierte el id de un miembro en su nombre legible para la UI. */
-export function getWhoLabel(who) {
-  return state.members[who] || state.members['compartido'] || 'Compartido 👥';
 }
 
 /** Carga las cuentas de cada miembro desde localStorage o aplica los valores por defecto. */
@@ -117,9 +113,7 @@ export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
   const prev = sel.dataset.prevValue || '';
 
   if (type === 'gasto') {
-    const all = getAllAccountsForMember().filter(({ memberId: mid, account }) => {
-      return getAccountBalance(`${mid}:${account}`) > 0;
-    });
+    const all = getAllAccountsForMember();
     sel.innerHTML = all.map(({ memberId: mid, label, account }) => {
       const fullKey = `${mid}:${account}`;
       const bal = getAccountBalance(fullKey);
@@ -143,6 +137,7 @@ export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
 
 /** Separa un valor de select 'miembro:cuenta' en { who, account }. */
 export function parseAccountValue(val) {
+  if (!val) return { who: 'yo', account: 'Efectivo' };
   const idx = val.indexOf(':');
   if (idx === -1) return { who: 'yo', account: val };
   return { who: val.slice(0, idx), account: val.slice(idx + 1) };
