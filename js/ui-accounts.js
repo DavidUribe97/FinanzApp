@@ -13,6 +13,7 @@ export function renderAccountsPanel() {
   if (!list) return;
   let html = '';
   Object.entries(state.members).forEach(([id, name]) => {
+    if (id === 'compartido') return;
     const accts = state.accounts[id] || [];
     html += `<div class="accounts-member-label">${esc(name)}</div>`;
     html += `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">`;
@@ -63,7 +64,7 @@ export function renderAccountsPanel() {
 export function setupAccountsPanel() {
   $('addAccountBtn').addEventListener('click', () => {
     const sel = $('accountMemberSelect');
-    sel.innerHTML = Object.entries(state.members).map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join('');
+    sel.innerHTML = Object.entries(state.members).filter(([id]) => id !== 'compartido').map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join('');
     $('accountNameInput').value = '';
     $('accountEditIdx').value = '-1';
     $('accountForm').style.display = 'block';

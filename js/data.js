@@ -96,17 +96,22 @@ export function getMonthRange(month, year) {
   return { start, end, days: end.getDate() };
 }
 
-/** Agrega una transacción al state y persiste cambios. */
+/** Agrega una transacción al state y persiste cambios. Bloquea compartido+ingreso. */
 export function addTransaction(data) {
+  if (data.who === 'compartido' && data.type === 'ingreso') return;
   state.transactions.push(data);
   saveData();
 }
 
-/** Actualiza una transacción existente por id, fusionando con los nuevos datos. */
+/** Actualiza una transacción existente por id, fusionando con los nuevos datos. Bloquea compartido+ingreso. */
 export function editTransaction(id, data) {
   const idx = state.transactions.findIndex(tx => String(tx.id) === String(id));
   if (idx === -1) return false;
-  state.transactions[idx] = { ...state.transactions[idx], ...data };
+  const existing = state.transactions[idx];
+  const who = data.who ?? existing.who;
+  const type = data.type ?? existing.type;
+  if (who === 'compartido' && type === 'ingreso') return false;
+  state.transactions[idx] = { ...existing, ...data };
   saveData();
   return true;
 }

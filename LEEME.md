@@ -222,6 +222,7 @@ git push origin master --tags
 | `renderMembers()` | Lista de miembros con editar/eliminar (defaults no se eliminan) |
 | `setupMembersPanel()` | CRUD de miembros: agregar, editar, eliminar con reasignación a compartido |
 | `updateWhoSelects()` | Actualiza los `<select>` de quién en formularios |
+| `filterWhoForType(type)` | Oculta Compartido si tipo es ingreso; fuerza gasto si Compartido seleccionado |
 | `renderAccountsPanel()` | Lista de cuentas por miembro con íconos efectivo/digital |
 | `setupAccountsPanel()` | CRUD de cuentas: agregar, editar, eliminar |
 | `renderCatManager()` | CRUD de categorías con emoji picker |
@@ -388,6 +389,9 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | SW sin cache de Firebase CDN | App no cargaba offline si el CDN de Firebase caía | Network-first cache para `gstatic.com/firebasejs/` | `38cdffb` |
 | Rename de categoría sin confirmación | Renombrar afectaba transacciones sin aviso | `showConfirmModal` antes del rename mostrando transacciones afectadas | `38cdffb` |
 | `refreshAll()` renderiza todo en remote update | Render innecesario del modo inactivo al recibir datos remotos | Solo renderizar modo activo | `38cdffb` |
+| Compartido podía registrar ingresos | `compartido+ingreso` se guardaba en data sin restricción | 4 capas: data, importación, sync y UI rechazan `compartido+ingreso` | `pendiente` |
+| Compartido visible en panel de cuentas | `renderAccountsPanel()` y `accountMemberSelect` mostraban Compartido como cuenta normal | Filtrado por `member !== 'compartido'` en ambos | `pendiente` |
+| Fecha de transacción con `toISOString()` en setup-daily | `getToday().toISOString().slice(0,10)` usaba UTC para fecha de transacción | Reemplazado por `toLocalDateStr(getToday())` | `pendiente` |
 
 ---
 

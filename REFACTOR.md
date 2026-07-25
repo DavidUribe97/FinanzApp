@@ -1880,3 +1880,37 @@ Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con
 - **Sin build tools** — `script type="module"` es todo lo que se necesita.
 - **Firebase no cambia** — mismo proyecto, misma config, mismo esquema Firestore.
 - **2-4 usuarios** — la escalabilidad no es prioridad. La mantenibilidad sí.
+
+---
+
+## Post-v2.0 Fixes #2: Compartido solo gastos + cuentas (8 archivos, +69/-12 líneas)
+
+### 1. `compartido+ingreso` rechazado en 4 capas
+
+**Problema:** `compartido` podía registrar ingresos (transacciones compartidas solo deberían ser gastos).
+
+**Capa 1 — data.js:** `addTransaction()` y `editTransaction()` rechazan si `who === 'compartido' && type === 'ingreso'` (return sin guardar).
+
+**Capa 2 — app.js:** `importJSON()` filtra transacciones `compartido+ingreso` antes de agregarlas a `state.transactions`.
+
+**Capa 3 — firebase-sync.js:** `onSnapshot` filtra `compartido+ingreso` después de deep clone del snapshot.
+
+**Capa 4 — UI:**
+- `setup-daily.js`: Click en "Compartido" fuerza gasto; click en "Ingreso" cuando Compartido está seleccionado no hace nada.
+- `setup-analysis.js`: `txWho`/`editWho` change fuerza gasto; `txType`/`editType` change llama `filterWhoForType()`.
+- `ui-daily.js`: `updateWhoToggle()` oculta botón Compartido cuando tipo es ingreso.
+- `ui-members.js`: Nueva función `filterWhoForType(type)` oculta/deshabilita Compartido en los `<select>`.
+
+### 2. Compartido excluido del panel de cuentas
+
+**Problema:** `compartido` aparecía como opción en el selector de cuentas y en el panel de administración de cuentas.
+
+**Solución (`ui-accounts.js`):**
+- `renderAccountsPanel()` filtra `member !== 'compartido'` al iterar miembros.
+- `accountMemberSelect` filtra `member !== 'compartido'` al generar opciones del `<select>`.
+
+### 3. Timezone en setup-daily.js
+
+**Problema:** `getToday().toISOString().slice(0,10)` usaba UTC para la fecha de la transacción. En UTC+8, transacciones de "hoy" se guardaban con fecha incorrecta.
+
+**Solución:** Reemplazado por `toLocalDateStr(getToday())` que usa hora local.

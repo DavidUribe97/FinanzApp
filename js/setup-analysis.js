@@ -3,7 +3,7 @@
 
 import { state } from './state.js';
 import { $, esc, formatCOP, sanitizeStr, validateAmount, generateId } from './utils.js';
-import { updateWhoSelects } from './ui-members.js';
+import { updateWhoSelects, filterWhoForType } from './ui-members.js';
 import { updateAccountSelector, parseAccountValue } from './members.js';
 import { updateCategories, updateSubcategories, updateEditCategories, closeEditModal, showToast, dismissAllToasts, showConfirmModal } from './ui-modals.js';
 import { addTransaction, editTransaction, getAccountBalance } from './data.js';
@@ -16,14 +16,23 @@ import { exportCSV, exportJSON } from './data.js';
 /** Wire analysis-mode listeners: tx form, search/filters with badges, budgets, CSV/JSON export, JSON import, edit modal. */
 export function setupAnalysisForm(onImportJSON) {
   updateWhoSelects();
+  filterWhoForType($('txWho'), $('txType').value);
+  filterWhoForType($('editWho'), $('editType').value);
   updateAccountSelector($('txWho').value, 'txAccount', $('txType').value);
   updateCategories();
   $('txType').addEventListener('change', () => {
+    filterWhoForType($('txWho'), $('txType').value);
     updateCategories();
     updateAccountSelector($('txWho').value, 'txAccount', $('txType').value);
   });
   $('txCategory').addEventListener('change', () => updateSubcategories('txType', 'txCategory', 'txSubcategory'));
-  $('txWho').addEventListener('change', () => updateAccountSelector($('txWho').value, 'txAccount', $('txType').value));
+  $('txWho').addEventListener('change', () => {
+    if ($('txWho').value === 'compartido' && $('txType').value === 'ingreso') {
+      $('txType').value = 'gasto';
+      updateCategories();
+    }
+    updateAccountSelector($('txWho').value, 'txAccount', $('txType').value);
+  });
   $('txDate').valueAsDate = new Date();
 
   $('txForm').addEventListener('submit', e => {
@@ -138,11 +147,18 @@ export function setupAnalysisForm(onImportJSON) {
   });
 
   $('editType').addEventListener('change', () => {
+    filterWhoForType($('editWho'), $('editType').value);
     updateEditCategories();
     updateAccountSelector($('editWho').value, 'editAccount', $('editType').value);
   });
   $('editCategory').addEventListener('change', () => updateSubcategories('editType', 'editCategory', 'editSubcategory'));
-  $('editWho').addEventListener('change', () => updateAccountSelector($('editWho').value, 'editAccount', $('editType').value));
+  $('editWho').addEventListener('change', () => {
+    if ($('editWho').value === 'compartido' && $('editType').value === 'ingreso') {
+      $('editType').value = 'gasto';
+      updateEditCategories();
+    }
+    updateAccountSelector($('editWho').value, 'editAccount', $('editType').value);
+  });
 
   $('editForm').addEventListener('submit', e => {
     e.preventDefault();

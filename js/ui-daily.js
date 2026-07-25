@@ -144,6 +144,15 @@ export function updateWhoToggle() {
   yo.className = state.selectedWho === 'yo' ? 'active-who-yo' : '';
   pareja.className = state.selectedWho === 'pareja' ? 'active-who-pareja' : '';
   comp.className = state.selectedWho === 'compartido' ? 'active-who-compartido' : '';
+  if (state.selectedType === 'ingreso') {
+    comp.style.display = 'none';
+    if (state.selectedWho === 'compartido') {
+      state.selectedWho = 'yo';
+      yo.className = 'active-who-yo';
+    }
+  } else {
+    comp.style.display = '';
+  }
   const extraMembers = Object.entries(state.members).filter(([id]) => !['yo','pareja','compartido'].includes(id));
   const used = new Set();
   extraMembers.forEach(([id, name]) => {

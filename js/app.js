@@ -42,7 +42,7 @@ function importJSON(file) {
       dismissAllToasts();
       const ok = await showConfirmModal(`Importar ${data.transactions.length} transacciones? Se reemplazaran los datos actuales.`);
       if (!ok) return;
-      state.transactions = data.transactions;
+      state.transactions = data.transactions.filter(tx => !(tx.who === 'compartido' && tx.type === 'ingreso'));
       if (data.budgets) state.budgets = data.budgets;
       if (data.categories) { state.categoriesData = data.categories; saveCategories(); }
       saveData();

@@ -98,3 +98,17 @@ export function updateWhoSelects() {
   $('editWho').innerHTML = opts;
   $('filterWho').innerHTML = '<option value="todos">Todos</option>' + opts;
 }
+
+/** Oculta/muestra "Compartido" en un select de quién según el tipo (ingreso lo excluye). */
+export function filterWhoForType(selectEl, type) {
+  const opt = selectEl.querySelector('option[value="compartido"]');
+  if (!opt) return;
+  if (type === 'ingreso') {
+    opt.disabled = true;
+    opt.style.display = 'none';
+    if (selectEl.value === 'compartido') selectEl.value = 'yo';
+  } else {
+    opt.disabled = false;
+    opt.style.display = '';
+  }
+}

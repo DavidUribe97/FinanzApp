@@ -2,7 +2,7 @@
 // con validación de saldo, flash visual en balance, restauración de última categoría.
 
 import { state } from './state.js';
-import { $, sanitizeStr, validateAmount, generateId, getToday, formatCOP } from './utils.js';
+import { $, sanitizeStr, validateAmount, generateId, getToday, formatCOP, toLocalDateStr } from './utils.js';
 import { updateTypeToggle, updateWhoToggle, renderDailyCategories, saveLastCategory, refreshDaily } from './ui-daily.js';
 import { updateAccountSelector, parseAccountValue } from './members.js';
 import { addTransaction, getAccountBalance } from './data.js';
@@ -15,6 +15,7 @@ export function setupDailyMode() {
     state.selectedCategory = null;
     state.selectedSubcategory = null;
     updateTypeToggle();
+    updateWhoToggle();
     renderDailyCategories();
     $('subcatGrid').style.display = 'none';
     updateAccountSelector(state.selectedWho, 'dailyAccount', 'gasto');
@@ -24,13 +25,24 @@ export function setupDailyMode() {
     state.selectedCategory = null;
     state.selectedSubcategory = null;
     updateTypeToggle();
+    updateWhoToggle();
     renderDailyCategories();
     $('subcatGrid').style.display = 'none';
     updateAccountSelector(state.selectedWho, 'dailyAccount', 'ingreso');
   });
   $('dailyWhoYo').addEventListener('click', () => { state.selectedWho = 'yo'; updateWhoToggle(); updateAccountSelector('yo', 'dailyAccount', state.selectedType); });
   $('dailyWhoPareja').addEventListener('click', () => { state.selectedWho = 'pareja'; updateWhoToggle(); updateAccountSelector('pareja', 'dailyAccount', state.selectedType); });
-  $('dailyWhoCompartido').addEventListener('click', () => { state.selectedWho = 'compartido'; updateWhoToggle(); updateAccountSelector('compartido', 'dailyAccount', state.selectedType); });
+  $('dailyWhoCompartido').addEventListener('click', () => {
+    state.selectedWho = 'compartido';
+    if (state.selectedType === 'ingreso') {
+      state.selectedType = 'gasto';
+      updateTypeToggle();
+      renderDailyCategories();
+      $('subcatGrid').style.display = 'none';
+    }
+    updateWhoToggle();
+    updateAccountSelector('compartido', 'dailyAccount', 'gasto');
+  });
 
   const dailyAmount = $('dailyAmount');
   const dailyDesc = $('dailyDesc');
@@ -41,7 +53,7 @@ export function setupDailyMode() {
     if (err) return showToast(err);
     if (!state.selectedCategory) return showToast('Elige una categoría');
     const desc = sanitizeStr(dailyDesc.value);
-    const date = getToday().toISOString().slice(0, 10);
+    const date = toLocalDateStr(getToday());
     const { who: accountOwner, account } = parseAccountValue($('dailyAccount').value || 'yo:Efectivo');
     const fullAccountKey = `${accountOwner}:${account}`;
     if (state.selectedType === 'gasto') {
