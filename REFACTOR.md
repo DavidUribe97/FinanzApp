@@ -1513,6 +1513,76 @@ La validación de contraseña ocurre en el cliente (`firebase-sync.js:subscribeF
 
 ---
 
+### Feature: Selector de cuentas global para gastos (2026-07-24)
+
+**Descripción:** Al hacer gastos, el selector de cuentas muestra TODAS las cuentas de TODOS los miembros. Para ingresos, solo las cuentas del miembro seleccionado.
+
+**Reglas de negocio:**
+- `who` = quién gasta (toggle de miembros)
+- `account` = fuente de fondos (selector de cuentas)
+- Gastos: selector muestra todas las cuentas (yo, pareja, compartido)
+- Ingresos: selector muestra solo cuentas del miembro seleccionado
+- Validación saldo: se valida contra el dueño de la cuenta seleccionada
+- En tabla/feed: se muestra `Cuenta (Dueño)` — ej: `Bancolombia (Ella)`
+
+**Valores del selector:**
+- Formato: `miembro:cuenta` — ej: `pareja:Bancolombia`
+- Permite cuentas con mismo nombre en diferentes miembros
+- `parseAccountValue()` extrae `who` y `account` del valor
+
+#### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `js/members.js:52-60` | `getAllAccountsForMember()` — retorna cuentas de todos los miembros |
+| `js/members.js:74-102` | `updateAccountSelector()` acepta `type` — gasto: todas, ingreso: solo miembro |
+| `js/members.js:104-108` | `parseAccountValue()` — extrae `who` y `account` de valor `who:account` |
+| `js/setup-daily.js:16,25` | Type change handlers llaman `updateAccountSelector` con type |
+| `js/setup-daily.js:27-29` | Who change handlers pasan `state.selectedType` |
+| `js/setup-daily.js:39-47` | Usa `parseAccountValue()` — `who` del toggle, saldo del dueño |
+| `js/setup-analysis.js:15-22` | Init + type change pasan type a `updateAccountSelector` |
+| `js/setup-analysis.js:22` | Type change actualiza cuentas |
+| `js/setup-analysis.js:48-56` | Create form usa `parseAccountValue()` |
+| `js/setup-analysis.js:107-112` | Edit type/who change pasan type |
+| `js/setup-analysis.js:118-132` | Edit form usa `parseAccountValue()` |
+| `js/ui-modals.js:58-59` | Edit modal设置 `who:account` format |
+| `js/ui-daily.js:145` | Extra who buttons pasan `state.selectedType` |
+| `js/ui-daily.js:261-270` | Feed muestra `cuenta (dueño)` |
+| `js/ui-analysis.js:5,36-49` | Tabla muestra `cuenta (dueño)` |
+| `js/app.js:89` | Init pasa `state.selectedType` |
+| `js/ui-accounts.js:84` | Al guardar cuenta pasa `state.selectedType` |
+
+#### Ejemplo de uso
+
+```
+Él gasta $50.000 de la cuenta de ella:
+
+who:  yo       (quién gasta)
+account: Bancolombia (fuente de fondos)
+validación: getAccountBalance('pareja', 'Bancolombia') >= 50000
+
+Tabla: | Él | 🏦 Bancolombia (Ella) | -$50.000 |
+Feed:  Almuerzo · Él · Bancolombia (Ella)
+```
+
+#### Verificación
+
+```
+[✓] Selector muestra todas las cuentas en modo gasto
+[✓] Selector muestra solo cuentas del miembro en modo ingreso
+[✓] Valores únicos (miembro:cuenta) evitan duplicados
+[✓] parseAccountValue() extrae correctamente who y account
+[✓] Salida del toggle (who) se respeta al guardar
+[✓] Validación saldo usa dueño de la cuenta
+[✓] Tabla muestra cuenta (dueño)
+[✓] Feed muestra cuenta (dueño)
+[✓] Edit modal carga valor who:account correctamente
+[✓] Type change actualiza selector de cuentas
+[✓] Todos los módulos accesibles vía HTTP
+```
+
+---
+
 ## Notas finales
 
 - **No es un rewrite** — es un refactor quirúrgico. En cada fase la app funciona.
