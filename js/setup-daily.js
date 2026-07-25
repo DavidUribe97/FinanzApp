@@ -38,15 +38,14 @@ export function setupDailyMode() {
     if (!state.selectedCategory) return showToast('Elige una categoría');
     const desc = sanitizeStr(dailyDesc.value);
     const date = getToday().toISOString().slice(0, 10);
-    const { who: accountWho, account } = parseAccountValue($('dailyAccount').value || 'yo:Efectivo');
-    const effectiveWho = state.selectedType === 'gasto' ? accountWho : state.selectedWho;
+    const { who: accountOwner, account } = parseAccountValue($('dailyAccount').value || 'yo:Efectivo');
     if (state.selectedType === 'gasto') {
-      const balance = getAccountBalance(effectiveWho, account);
+      const balance = getAccountBalance(accountOwner, account);
       if (balance < amount) {
         return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);
       }
     }
-    addTransaction({ id: generateId(), type: state.selectedType, amount, category: state.selectedCategory, subcategory: state.selectedSubcategory || '', description: desc, date, who: effectiveWho, account });
+    addTransaction({ id: generateId(), type: state.selectedType, amount, category: state.selectedCategory, subcategory: state.selectedSubcategory || '', description: desc, date, who: state.selectedWho, account });
     refreshDaily();
     saveLastCategory(state.selectedType, state.selectedCategory, state.selectedSubcategory);
     dailyAmount.value = '';

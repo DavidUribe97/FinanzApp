@@ -33,18 +33,17 @@ export function setupAnalysisForm(onImportJSON) {
     const description = $('txDescription').value;
     const date = $('txDate').value;
     const who = $('txWho').value;
-    const { who: accountWho, account } = parseAccountValue($('txAccount').value || 'yo:Efectivo');
-    const effectiveWho = type === 'gasto' ? accountWho : who;
+    const { who: accountOwner, account } = parseAccountValue($('txAccount').value || 'yo:Efectivo');
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
     if (type === 'gasto') {
-      const balance = getAccountBalance(effectiveWho, account);
+      const balance = getAccountBalance(accountOwner, account);
       if (balance < amount) {
         return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);
       }
     }
     const sanitizedDesc = sanitizeStr(description);
-    addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who: effectiveWho, account });
+    addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
     refreshAnalysis();
     $('txForm').reset();
     $('txDate').valueAsDate = new Date();
@@ -121,14 +120,13 @@ export function setupAnalysisForm(onImportJSON) {
     const description = $('editDescription').value;
     const date = $('editDate').value;
     const who = $('editWho').value;
-    const { who: accountWho, account } = parseAccountValue($('editAccount').value || 'yo:Efectivo');
-    const effectiveWho = type === 'gasto' ? accountWho : who;
+    const { who: accountOwner, account } = parseAccountValue($('editAccount').value || 'yo:Efectivo');
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
     if (type === 'gasto') {
       const prevTx = state.transactions.find(t => String(t.id) === String(state.editingId));
-      let balance = getAccountBalance(effectiveWho, account);
-      if (prevTx && prevTx.who === effectiveWho && prevTx.account === account) {
+      let balance = getAccountBalance(accountOwner, account);
+      if (prevTx && prevTx.who === accountOwner && prevTx.account === account) {
         balance += prevTx.amount;
       }
       if (balance < amount) {
@@ -136,7 +134,7 @@ export function setupAnalysisForm(onImportJSON) {
       }
     }
     const sanitizedDesc = sanitizeStr(description);
-    editTransaction(state.editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who: effectiveWho, account });
+    editTransaction(state.editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who, account });
     closeEditModal();
     showToast('Transacción actualizada');
   });
