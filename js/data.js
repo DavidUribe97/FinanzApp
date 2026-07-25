@@ -5,9 +5,8 @@
  */
 import { state } from './state.js';
 import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT } from './config.js';
-import { $, downloadBlob, formatCOP, parseLocalDate } from './utils.js';
+import { $, downloadBlob, formatCOP, parseLocalDate, getWhoLabel } from './utils.js';
 import { MONTHS } from './config.js';
-import { getWhoLabel } from './members.js';
 
 let syncToFirestoreFn = () => {};
 /** Registra el callback de sync a Firestore para disparar después de cada escritura. */
@@ -167,7 +166,7 @@ export function isValidTx(tx) {
     && typeof tx.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(tx.date)
     && (!tx.who || typeof tx.who === 'string')
     && (!tx.description || typeof tx.description === 'string')
-    && (!tx.subcategory || typeof tx.subcategory === 'string')
+    && (!tx.subcategory || (typeof tx.subcategory === 'string' && tx.subcategory.length <= 50))
     && (!tx.account || typeof tx.account === 'string');
 }
 

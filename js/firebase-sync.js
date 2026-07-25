@@ -97,61 +97,65 @@ async function firstTimeSetup(ref, resolve) {
 
 /** Suscribe un listener en tiempo real al documento de sala en Firestore, verificando passwordHash si existe. */
 export function subscribeFirestore() {
-  return new Promise(async resolve => {
+  return new Promise(resolve => {
     const ref = state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode));
 
-    if (!state.isCreatingRoom) {
-      const snap = await ref.get().catch(() => null);
-      if (snap && snap.exists) {
-        const data = snap.data();
-        if (data.passwordHash) {
-          if (!state.roomPassword) {
-            updateSyncStatusUI(false);
-            showToast('Esta sala requiere contraseña');
-            if (state.roomCodeResolver) { state.roomCodeResolver(); state.roomCodeResolver = null; }
-            resolve();
-            return;
-          }
-          const hash = await sha256(state.roomPassword);
-          if (hash !== data.passwordHash) {
-            updateSyncStatusUI(false);
-            if (state.roomCodeResolver) { state.roomCodeResolver(); state.roomCodeResolver = null; }
-            resolve();
-            return;
-          }
+    function startSnapshot() {
+      state.firestoreUnsub = ref.onSnapshot(snap => {
+        updateSyncStatusUI(true);
+        if (!snap.exists) {
+          firstTimeSetup(ref, resolve);
+          return;
         }
-      }
+        if (state.pendingSyncs > 0) { resolve(); return; }
+        const data = snap.data();
+        if (data.transactions) {
+          state.transactions = JSON.parse(JSON.stringify(data.transactions)).filter(tx => !(tx.who === 'compartido' && tx.type === 'ingreso'));
+        }
+        if (data.budgets) {
+          state.budgets = JSON.parse(JSON.stringify(data.budgets));
+        }
+        if (data.categories) {
+          state.categoriesData = JSON.parse(JSON.stringify(data.categories));
+        }
+        if (data.members) {
+          state.members = JSON.parse(JSON.stringify(data.members));
+        }
+        if (data.accounts) {
+          state.accounts = JSON.parse(JSON.stringify(data.accounts));
+        }
+        if (onRemoteUpdate) onRemoteUpdate();
+        resolve();
+      }, err => {
+        console.warn('Firestore snapshot error:', err.message);
+        updateSyncStatusUI(false);
+        resolve();
+      });
     }
 
-    state.firestoreUnsub = ref.onSnapshot(snap => {
-      updateSyncStatusUI(true);
-      if (!snap.exists) {
-        firstTimeSetup(ref, resolve);
+    if (state.isCreatingRoom) { startSnapshot(); return; }
+
+    ref.get().catch(() => null).then(snap => {
+      if (snap && snap.exists && snap.data().passwordHash) {
+        if (!state.roomPassword) {
+          updateSyncStatusUI(false);
+          showToast('Esta sala requiere contraseña');
+          if (state.roomCodeResolver) { state.roomCodeResolver(); state.roomCodeResolver = null; }
+          resolve();
+          return;
+        }
+        sha256(state.roomPassword).then(hash => {
+          if (hash !== snap.data().passwordHash) {
+            updateSyncStatusUI(false);
+            if (state.roomCodeResolver) { state.roomCodeResolver(); state.roomCodeResolver = null; }
+            resolve();
+            return;
+          }
+          startSnapshot();
+        });
         return;
       }
-      if (state.pendingSyncs > 0) { resolve(); return; }
-      const data = snap.data();
-      if (data.transactions) {
-        state.transactions = JSON.parse(JSON.stringify(data.transactions)).filter(tx => !(tx.who === 'compartido' && tx.type === 'ingreso'));
-      }
-      if (data.budgets) {
-        state.budgets = JSON.parse(JSON.stringify(data.budgets));
-      }
-      if (data.categories) {
-        state.categoriesData = JSON.parse(JSON.stringify(data.categories));
-      }
-      if (data.members) {
-        state.members = JSON.parse(JSON.stringify(data.members));
-      }
-      if (data.accounts) {
-        state.accounts = JSON.parse(JSON.stringify(data.accounts));
-      }
-      if (onRemoteUpdate) onRemoteUpdate();
-      resolve();
-    }, err => {
-      console.warn('Firestore snapshot error:', err.message);
-      updateSyncStatusUI(false);
-      resolve();
+      startSnapshot();
     });
   });
 }
