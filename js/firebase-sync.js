@@ -100,20 +100,25 @@ async function firstTimeSetup(ref, resolve) {
   resolve();
 }
 
-/** Extrae cuentas únicas desde transacciones existentes para salas viejas sin campo accounts. */
+/** Migra cuentas desde transacciones viejas y asigna account faltante. Retorna true si modificó transacciones. */
 function migrateAccountsFromTransactions() {
   const accounts = {};
   const memberIds = new Set(Object.keys(state.members));
+  let modified = false;
+
   (state.transactions || []).forEach(tx => {
-    if (!tx.account) return;
-    const idx = tx.account.indexOf(':');
-    if (idx === -1) return;
-    const memberId = tx.account.slice(0, idx);
-    const acctName = tx.account.slice(idx + 1);
-    memberIds.add(memberId);
-    if (!accounts[memberId]) accounts[memberId] = [];
-    if (!accounts[memberId].includes(acctName)) accounts[memberId].push(acctName);
+    if (tx.account) {
+      const idx = tx.account.indexOf(':');
+      if (idx !== -1) {
+        const memberId = tx.account.slice(0, idx);
+        const acctName = tx.account.slice(idx + 1);
+        memberIds.add(memberId);
+        if (!accounts[memberId]) accounts[memberId] = [];
+        if (!accounts[memberId].includes(acctName)) accounts[memberId].push(acctName);
+      }
+    }
   });
+
   memberIds.forEach(id => {
     if (id === 'compartido') return;
     if (!accounts[id] || accounts[id].length === 0) accounts[id] = ['Efectivo'];
@@ -122,7 +127,16 @@ function migrateAccountsFromTransactions() {
     accounts.yo = ['Efectivo'];
     accounts.pareja = ['Efectivo'];
   }
-  return accounts;
+
+  (state.transactions || []).forEach(tx => {
+    if (tx.account) return;
+    const who = tx.who || 'yo';
+    const acct = (accounts[who] && accounts[who][0]) || 'Efectivo';
+    tx.account = `${who}:${acct}`;
+    modified = true;
+  });
+
+  return modified ? accounts : null;
 }
 
 /** Suscribe un listener en tiempo real al documento de sala en Firestore, verificando passwordHash si existe. */
@@ -173,7 +187,14 @@ export function subscribeFirestore() {
       if (data.members) {
         state.members = JSON.parse(JSON.stringify(data.members));
       }
-      state.accounts = data.accounts ? JSON.parse(JSON.stringify(data.accounts)) : migrateAccountsFromTransactions();
+      const migratedAccounts = data.accounts ? JSON.parse(JSON.stringify(data.accounts)) : migrateAccountsFromTransactions();
+      if (migratedAccounts) {
+        state.accounts = migratedAccounts;
+        if (!data.accounts) {
+          const { saveData } = await import('./data.js');
+          saveData();
+        }
+      }
       if (onRemoteUpdate) onRemoteUpdate();
       resolve();
     }, err => {
