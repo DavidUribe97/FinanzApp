@@ -37,7 +37,7 @@ export function setupAnalysisForm(onImportJSON) {
     const fullAccountKey = `${accountOwner}:${account}`;
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
-    if (type === 'gasto' && who !== 'compartido') {
+    if (type === 'gasto') {
       const balance = getAccountBalance(fullAccountKey);
       if (balance < amount) {
         return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);
@@ -126,7 +126,7 @@ export function setupAnalysisForm(onImportJSON) {
     const fullAccountKey = `${accountOwner}:${account}`;
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
-    if (type === 'gasto' && who !== 'compartido') {
+    if (type === 'gasto') {
       const prevTx = state.transactions.find(t => String(t.id) === String(state.editingId));
       let balance = getAccountBalance(fullAccountKey);
       if (prevTx && prevTx.account === fullAccountKey) {

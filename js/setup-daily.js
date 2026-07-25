@@ -40,7 +40,7 @@ export function setupDailyMode() {
     const date = getToday().toISOString().slice(0, 10);
     const { who: accountOwner, account } = parseAccountValue($('dailyAccount').value || 'yo:Efectivo');
     const fullAccountKey = `${accountOwner}:${account}`;
-    if (state.selectedType === 'gasto' && state.selectedWho !== 'compartido') {
+    if (state.selectedType === 'gasto') {
       const balance = getAccountBalance(fullAccountKey);
       if (balance < amount) {
         return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);

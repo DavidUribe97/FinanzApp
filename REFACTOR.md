@@ -1615,6 +1615,104 @@ Feed:  Almuerzo · Él · Bancolombia (Ella)
 
 ---
 
+### Fix: tx.account guarda clave completa — saldos se actualizan correctamente (2026-07-24)
+
+**Descripción:** Las transacciones ahora guardan la clave completa `miembro:cuenta` en el campo `account`, permitiendo que los saldos se calculen correctamente sin importar quién hizo el gasto.
+
+**Problema anterior:**
+- `tx.account` solo guardaba el nombre (`Bancolombia`)
+- `getAccountBalance('pareja', 'Bancolombia')` filtraba por `tx.who === 'pareja'`
+- Si `yo` gasta desde la cuenta de `pareja`, la transacción tiene `who: 'yo'` → el saldo de `pareja` no se actualizaba
+
+**Solución:**
+- `tx.account` ahora guarda `pareja:Bancolombia` (clave completa)
+- `getAccountBalance('pareja:Bancolombia')` filtra solo por `tx.account` → encuentra todas las transacciones de esa cuenta
+- El `who` de la transacción sigue siendo quién gasto (`yo`), el `account` indica la fuente de fondos
+
+**Esquema de transacción:**
+```json
+{
+  "id": "abc123",
+  "type": "gasto",
+  "amount": 50000,
+  "category": "Almuerzo",
+  "who": "yo",
+  "account": "pareja:Bancolombia",
+  "date": "2026-07-24"
+}
+```
+
+#### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `js/data.js:62-66` | `getAccountBalance(key)` — recibe clave completa, filtra solo por `account` |
+| `js/members.js:90-105` | Selector construye y usa clave completa para saldos |
+| `js/setup-daily.js:39-48` | Guarda `fullAccountKey` en transacción |
+| `js/setup-analysis.js:39-50` | Create form guarda `fullAccountKey` |
+| `js/setup-analysis.js:125-138` | Edit form guarda `fullAccountKey` |
+| `js/ui-analysis.js:5,36-49` | Tabla parsea clave con `parseAccountValue()` |
+| `js/ui-daily.js:6,261-270` | Feed parsea clave con `parseAccountValue()` |
+| `js/ui-modals.js:59` | Edit modal usa `tx.account` directo (ya es clave completa) |
+| `js/ui-navigation.js:12,20` | `refreshAll()` actualiza selector de cuentas |
+
+#### Retrocompatibilidad
+
+Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con `parseAccountValue()` que retorna `{ who: 'yo', account: 'Bancolombia' }` por defecto. El balance será correcto solo para transacciones nuevas.
+
+#### Verificación
+
+```
+[✓] getAccountBalance() usa clave completa
+[✓] Selector calcula saldos correctamente
+[✓] Transacciones guardan clave completa
+[✓] Tabla parsea clave y muestra "Cuenta (Dueño)"
+[✓] Feed parsea clave y muestra "Cuenta (Dueño)"
+[✓] Edit modal carga clave completa correctamente
+[✓] refreshAll() actualiza selector de cuentas
+[✓] isCashAccount() sigue funcionando con clave completa
+[✓] Transacciones antiguas se parsean sin error
+[✓] Todos los módulos accesibles vía HTTP
+```
+
+---
+
+### Fix: Selector solo muestra cuentas con saldo + validación para compartido (2026-07-24)
+
+**Descripción:** Dos mejoras al selector de cuentas y validación de saldo.
+
+**1. Selector filtrado (gastos):**
+- Solo muestra cuentas con saldo > 0
+- Evita saturar la lista con cuentas en $0
+- Ingresos muestran todas las cuentas del miembro
+
+**2. Validación de saldo para compartido:**
+- Antes: `compartido` se saltaba la validación de saldo
+- Ahora: TODOS los gastos validan saldo, incluido compartido
+- Ingresos siguen sin validar saldo (suman dinero)
+
+#### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `js/members.js:91-93` | `.filter()` solo muestra cuentas con saldo > 0 en modo gasto |
+| `js/setup-daily.js:40` | Quitado `&& state.selectedWho !== 'compartido'` de validación |
+| `js/setup-analysis.js:40` | Quitado `&& who !== 'compartido'` de validación (create) |
+| `js/setup-analysis.js:129` | Quitado `&& who !== 'compartido'` de validación (edit) |
+
+#### Verificación
+
+```
+[✓] Selector gasto solo muestra cuentas con saldo > 0
+[✓] Selector ingreso muestra todas las cuentas del miembro
+[✓] Gasto desde compartido valida saldo
+[✓] Gasto desde yo/pareja valida saldo
+[✓] Ingreso no valida saldo
+[✓] Todos los módulos accesibles vía HTTP
+```
+
+---
+
 ## Notas finales
 
 - **No es un rewrite** — es un refactor quirúrgico. En cada fase la app funciona.
