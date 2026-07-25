@@ -188,12 +188,13 @@ export function subscribeFirestore() {
       if (data.members) {
         state.members = JSON.parse(JSON.stringify(data.members));
       }
-      const migratedAccounts = data.accounts ? JSON.parse(JSON.stringify(data.accounts)) : migrateAccountsFromTransactions();
-      if (migratedAccounts) {
-        state.accounts = migratedAccounts;
-        if (!data.accounts) {
-          saveData();
-        }
+      const hasAccountField = (state.transactions || []).some(tx => tx.account);
+      if (data.accounts && hasAccountField) {
+        state.accounts = JSON.parse(JSON.stringify(data.accounts));
+      } else {
+        const migrated = migrateAccountsFromTransactions();
+        state.accounts = migrated || (data.accounts ? JSON.parse(JSON.stringify(data.accounts)) : {});
+        saveData();
       }
       if (onRemoteUpdate) onRemoteUpdate();
       resolve();
