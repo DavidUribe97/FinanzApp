@@ -20,7 +20,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 | Persistencia local | localStorage (`finanzas_data`, `finanzas_budgets`, `finanzas_categories`, etc.) |
 | Sincronización | Firebase Firestore (Anonymous Auth + `onSnapshot` en tiempo real) |
 | Hosting | Firebase Hosting |
-| PWA | `manifest.json` + `sw.js` (cache-first de assets estáticos) |
+| PWA | `manifest.json` + `sw.js` (cache-first de assets estáticos + network-first de Firebase CDN) |
 | Fuentes | System font stack (sin Google Fonts, para offline) |
 | Moneda | COP (pesos colombianos) con `Intl.NumberFormat('es-CO')` |
 
@@ -240,7 +240,7 @@ git push origin master --tags
 |---------|----------|
 | `setupNavigation()` | Navegación meses, botones sala/modo/tema |
 | `setMode(daily)` | Cambia entre modo diario y análisis |
-| `refreshAll(animate)` | Refresca TODAS las vistas |
+| `refreshAll(animate)` | Refresca vistas del modo activo (diario o análisis, no ambos) |
 | `refreshAnalysis()` | Refresca solo vistas de análisis |
 | `updateMonthLabel()` | Actualiza etiqueta de mes en header |
 | `loadTheme()` / `toggleTheme()` | Tema oscuro/claro |
@@ -381,6 +381,13 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | API key restringida por HTTP referrer | Firebase Auth falla | Quitar restricción | — |
 | `getSubCatEmoji()` retorna `''` | Feed muestra emoji vacío | Fallback a `getCatEmoji()` | — |
 | Acumulación de listeners drag-scroll | Scroll errático | Guard `dataset.dragInit` | — |
+| `firstTimeSetup` sin campo `accounts` | No se podían crear salas nuevas (firestore.rules lo requiere) | Agregar `accounts: state.accounts` al objeto data | `38cdffb` |
+| `.catch(() => {})` silencioso en `firstTimeSetup` | Errores de Firestore invisibles | `try/catch` con `console.warn` + `updateSyncStatusUI(false)` | `38cdffb` |
+| Timezone: `T00:00:00` y `toISOString()` | Fechas se desalineaban en offsets UTC positivos | Helpers `parseLocalDate()` y `toLocalDateStr()` | `38cdffb` |
+| Sin validación de `:` en nombres de cuenta | `parseAccountValue()` se rompía con `:` en el nombre | `if (name.includes(':'))` al guardar cuenta | `38cdffb` |
+| SW sin cache de Firebase CDN | App no cargaba offline si el CDN de Firebase caía | Network-first cache para `gstatic.com/firebasejs/` | `38cdffb` |
+| Rename de categoría sin confirmación | Renombrar afectaba transacciones sin aviso | `showConfirmModal` antes del rename mostrando transacciones afectadas | `38cdffb` |
+| `refreshAll()` renderiza todo en remote update | Render innecesario del modo inactivo al recibir datos remotos | Solo renderizar modo activo | `38cdffb` |
 
 ---
 
@@ -394,6 +401,7 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | `pre-refactor` | 2026-07-24 | Última versión antes de refactor | 📌 Snapshot |
 | `fase-1` a `fase-9` | 2026-07-24 | Refactorización en 9 fases | ✅ |
 | `v1.3.0` | 2026-07-24 | Miembros editables, clave salas, colores | ✅ En master |
+| `v2.0` | 2026-07-24 | Modularización completa + 6 post-fixes | ✅ En master |
 
 ---
 

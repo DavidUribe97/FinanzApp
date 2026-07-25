@@ -3,7 +3,7 @@
 > Los bugs post-merge (fixes de features nuevas) no se documentan aquí — ver commits o CHANGELOG.md.
 >
 > **Fecha inicio:** 2026-07-24
-> **Estado actual:** ✅ Completado (9/9 fases + post-refactor validation + code review)
+> **Estado actual:** ✅ Completado (9/9 fases + post-refactor validation + code review + post-v2.0 fixes)
 > **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
 > 
 > **Progreso:** 9 fases completadas + post-refactor + code review (6 bugs corregidos). `index.html`: 3691 → 451 líneas (↓88%). CSS: 1002 líneas. JS modules: 22 archivos, ~2300 líneas. `app.js` (orquestador): 111 líneas.
@@ -1829,6 +1829,48 @@ Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con
 [✓] Se oculta cuando carry = 0 (primer mes sin datos previos)
 [✓] Todos los módulos accesibles vía HTTP
 ```
+
+---
+
+### Post-v2.0 Fixes: 6 bugs (2026-07-25)
+
+**Commit:** `38cdffb` — 9 archivos, +63/-16 líneas
+
+#### 1. CRÍTICO — `firstTimeSetup` sin campo `accounts` (firebase-sync.js)
+
+**Problema:** Las `firestore.rules` requieren los 5 campos (`transactions`, `budgets`, `categories`, `members`, `accounts`) en toda escritura. `firstTimeSetup()` solo enviaba 4 — el `set()` era rechazado silenciosamente por Firestore. Usuarios nuevos no podían crear salas.
+
+**Solución:** Agregar `accounts: state.accounts` al objeto `data` + reemplazar `.catch(() => {})` silencioso por `try/catch` con `console.warn` y `updateSyncStatusUI(false)`.
+
+#### 2. Timezone — fechas desalineadas en offsets positivos (data.js, ui-charts.js, ui-daily.js)
+
+**Problema:** `new Date(date + 'T00:00:00')` funcionaba en UTC-5 (Colombia) pero era frágil. El bug real estaba en `ui-daily.js` donde `toISOString().slice(0,10)` usaba UTC para calcular `todayStr` — en UTC+8, transacciones de "hoy" se mostraban como "ayer".
+
+**Solución:** Nuevos helpers en `utils.js`: `parseLocalDate(dateStr)` usa `new Date(y, m-1, d)` (siempre local). `toLocalDateStr(date)` retorna `YYYY-MM-DD` en hora local. Se reemplazaron las 6 instancias de `T00:00:00` y las 2 de `toISOString()`.
+
+#### 3. `:` en nombres de cuenta (ui-accounts.js)
+
+**Problema:** `parseAccountValue()` usa `indexOf(':')` para separar `miembro:cuenta`. Un nombre como "Banco: Colombia" generaba una key rota y violaba la convención interna.
+
+**Solución:** Validación `if (name.includes(':'))` al guardar. Rechaza el nombre con toast informativo.
+
+#### 4. SW sin cache de Firebase CDN (sw.js)
+
+**Problema:** El service worker cacheaba solo 5 archivos locales. Los scripts de Firebase (`gstatic.com/firebasejs/`) se cargaban directo de red. Si el CDN caía después de la primera carga, la app no funcionaba offline.
+
+**Solución:** Network-first cache para Firebase CDN: intentar red → guardar en cache → fallback a cache si offline. Cache separado `finanzapp-firebase` que no se limpia con los caches estáticos.
+
+#### 5. Rename de categoría sin confirmación (ui-categories.js)
+
+**Problema:** Renombrar una categoría mutaba inline todas las transacciones (`tx.category = name`) sin pedir confirmación ni guardar snapshot para undo.
+
+**Solución:** `showConfirmModal` antes del rename mostrando cuántas transacciones se verán afectadas. Handler vuelto `async`.
+
+#### 6. `refreshAll()` renderiza de más en remote update (ui-navigation.js)
+
+**Problema:** Al recibir datos remotos, `refreshAll()` ejecutaba `refreshDaily()` + `updateAccountSelector()` + `refreshAnalysis()` — incluso si el modo inactivo estaba oculto.
+
+**Solución:** Solo renderizar el modo activo: `if (state.isDailyMode) { refreshDaily + updateAccountSelector } else { refreshAnalysis }`.
 
 ---
 
