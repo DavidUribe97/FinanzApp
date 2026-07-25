@@ -49,14 +49,17 @@ export async function syncToFirestore() {
   if (!state.db || !state.roomCode) return;
   if (!state.firebaseInitialized) { state.pendingSyncs++; return; }
   try {
-    await state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode)).set({
+    const payload = {
       transactions: state.transactions,
       budgets: state.budgets,
       categories: state.categoriesData,
       members: state.members,
-      accounts: state.accounts,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    };
+    if (state.accounts && Object.keys(state.accounts).length > 0) {
+      payload.accounts = state.accounts;
+    }
+    await state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode)).set(payload, { merge: true });
   } catch (e) {
     console.warn('Error syncing to Firestore:', e.message);
     updateSyncStatusUI(false);
@@ -76,9 +79,11 @@ async function firstTimeSetup(ref, resolve) {
     budgets: state.budgets,
     categories: state.categoriesData,
     members: state.members,
-    accounts: state.accounts,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
+  if (state.accounts && Object.keys(state.accounts).length > 0) {
+    data.accounts = state.accounts;
+  }
   if (state.isCreatingRoom && state.roomPassword) {
     data.passwordHash = await sha256(state.roomPassword);
   }
@@ -135,9 +140,7 @@ export function subscribeFirestore() {
       if (data.members) {
         state.members = JSON.parse(JSON.stringify(data.members));
       }
-      if (data.accounts) {
-        state.accounts = JSON.parse(JSON.stringify(data.accounts));
-      }
+      state.accounts = data.accounts ? JSON.parse(JSON.stringify(data.accounts)) : {};
       if (onRemoteUpdate) onRemoteUpdate();
       resolve();
     }, err => {
