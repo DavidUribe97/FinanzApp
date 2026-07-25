@@ -1930,10 +1930,10 @@ Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con
 
 ---
 
-## Hotfixes post-v2.0: 3 bugs críticos (2026-07-25)
+## Hotfixes post-v2.0: 2 bugs críticos (2026-07-25)
 
-**Ramas:** `hotfix/data-leak-between-rooms`, `hotfix/auto-accounts-old-rooms`, `hotfix/password-bypass`
-**Merge:** Todos a `develop` con `--no-ff`
+**Ramas:** `hotfix/data-leak-between-rooms`, `hotfix/password-bypass`
+**Merge:** A `develop` → `master` (`5bef7c4`)
 
 ### 1. Fuga de datos entre salas (GRAVEDAD: CRÍTICA)
 
@@ -1947,22 +1947,7 @@ Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con
 
 **Archivos:** `js/state.js` (+13), `js/firebase-room.js` (+2)
 
-### 2. Cuentas en salas viejas — migración automática (GRAVEDAD: ALTA)
-
-**Problema:** Al abrir una sala vieja (sin campo `accounts` en Firestore), el usuario no tenía cuentas configuradas. El campo `account` de las transacciones existentes contenía la información pero no se usaba para reconstruir el mapa de cuentas.
-
-**Solución — `migrateAccountsFromTransactions()`:**
-- Nueva función que escanea `state.transactions` y extrae cuentas únicas del campo `account` (formato `"miembro:cuenta"`)
-- Agrupa por `who` de la transacción y construye `{ yo: ["Cuenta1", ...], pareja: ["Cuenta2", ...] }`
-- Si un miembro tiene transacciones pero no aparece en `state.members`, lo agrega automáticamente
-- Si un miembro queda sin cuentas, crea "Efectivo" como fallback
-- Si no hay transacciones con `account`, crea defaults mínimos (`yo: ["Efectivo"], pareja: ["Efectivo"]`)
-- Se ejecuta solo cuando Firestore no tiene campo `accounts` (sala vieja)
-- `firstTimeSetup()` y `syncToFirestore()` solo escriben `accounts` si tiene datos
-
-**Archivos:** `js/firebase-sync.js` (+25/-2) — función + cambio en snapshot handler
-
-### 3. Acceso a sala protegida sin contraseña (GRAVEDAD: ALTA)
+### 2. Acceso a sala protegida sin contraseña (GRAVEDAD: ALTA)
 
 **Problema:** La condición `if (data.passwordHash && state.roomPassword)` solo verificaba la contraseña si AMBOS eran truthy. Si el usuario no ingresa contraseña (`state.roomPassword = null`), la condición era falsa y el check se saltaba — acceso completo a la sala protegida.
 
