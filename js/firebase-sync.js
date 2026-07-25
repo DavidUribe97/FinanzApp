@@ -76,12 +76,20 @@ async function firstTimeSetup(ref, resolve) {
     budgets: state.budgets,
     categories: state.categoriesData,
     members: state.members,
+    accounts: state.accounts,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   if (state.isCreatingRoom && state.roomPassword) {
     data.passwordHash = await sha256(state.roomPassword);
   }
-  ref.set(data, { merge: true }).catch(() => {});
+  try {
+    await ref.set(data, { merge: true });
+  } catch (e) {
+    console.warn('Error creando sala:', e.message);
+    updateSyncStatusUI(false);
+    resolve();
+    return;
+  }
   if (onRemoteUpdate) onRemoteUpdate();
   resolve();
 }

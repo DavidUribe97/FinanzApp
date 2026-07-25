@@ -5,7 +5,7 @@
  */
 import { state } from './state.js';
 import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT } from './config.js';
-import { $, downloadBlob, formatCOP } from './utils.js';
+import { $, downloadBlob, formatCOP, parseLocalDate } from './utils.js';
 import { MONTHS } from './config.js';
 import { getWhoLabel } from './members.js';
 
@@ -46,7 +46,7 @@ export function saveBudgets() {
 /** Filtra transacciones del state por mes y año dados. */
 export function getFilteredTransactions(month, year) {
   return state.transactions.filter(tx => {
-    const d = new Date(tx.date + 'T00:00:00');
+    const d = parseLocalDate(tx.date);
     return d.getMonth() === month && d.getFullYear() === year;
   });
 }
@@ -81,7 +81,7 @@ export function getAccountBalance(accountKey) {
 export function getCumulativeBalance(month, year) {
   let balance = 0;
   state.transactions.forEach(tx => {
-    const d = new Date(tx.date + 'T00:00:00');
+    const d = parseLocalDate(tx.date);
     if (d.getFullYear() < year || (d.getFullYear() === year && d.getMonth() < month)) {
       balance += tx.type === 'ingreso' ? tx.amount : -tx.amount;
     }

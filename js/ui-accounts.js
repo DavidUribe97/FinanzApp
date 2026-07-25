@@ -76,6 +76,7 @@ export function setupAccountsPanel() {
     const memberId = $('accountMemberSelect').value;
     const name = sanitizeStr($('accountNameInput').value, 30).trim();
     if (!name) return showToast('Escribe un nombre de cuenta');
+    if (name.includes(':')) return showToast('El nombre no puede contener ":"');
     if (!state.accounts[memberId]) state.accounts[memberId] = [];
     const editIdx = parseInt($('accountEditIdx').value);
     if (editIdx >= 0) {

@@ -4,7 +4,7 @@
  */
 
 import { state } from './state.js';
-import { $, formatCOPShort } from './utils.js';
+import { $, formatCOPShort, parseLocalDate } from './utils.js';
 import { CHART_COLORS, MONTHS } from './config.js';
 import { getFilteredTransactions } from './data.js';
 import { getWhoLabel } from './members.js';
@@ -56,7 +56,7 @@ export function renderCharts() {
   });
 
   const getWeek = dateStr => {
-    const d = new Date(dateStr + 'T00:00:00');
+    const d = parseLocalDate(dateStr);
     const day = d.getDate();
     if (day <= 7) return 1;
     if (day <= 14) return 2;
@@ -106,7 +106,7 @@ export function renderLineChart() {
     monthlyData[key] = { label: MONTHS[d.getMonth()].slice(0,3) + ' ' + d.getFullYear(), ingresos: 0, gastos: 0 };
   }
   state.transactions.forEach(tx => {
-    const d = new Date(tx.date + 'T00:00:00');
+    const d = parseLocalDate(tx.date);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     if (monthlyData[key]) {
       monthlyData[key][tx.type === 'ingreso' ? 'ingresos' : 'gastos'] += tx.amount;

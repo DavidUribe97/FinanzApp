@@ -5,7 +5,7 @@
  */
 
 import { state } from './state.js';
-import { $, esc, formatCOP, formatCOPShort, getToday } from './utils.js';
+import { $, esc, formatCOP, formatCOPShort, getToday, parseLocalDate, toLocalDateStr } from './utils.js';
 import { MEMBER_COLORS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, LAST_CAT_KEY } from './config.js';
 import { getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji } from './categories.js';
 import { getFilteredTransactions } from './data.js';
@@ -271,8 +271,8 @@ export function renderDailyFeed() {
   });
 
   const t = getToday();
-  const todayStr = t.toISOString().slice(0, 10);
-  const yesterdayStr = new Date(t.getFullYear(), t.getMonth(), t.getDate() - 1).toISOString().slice(0, 10);
+  const todayStr = toLocalDateStr(t);
+  const yesterdayStr = toLocalDateStr(new Date(t.getFullYear(), t.getMonth(), t.getDate() - 1));
 
   let html = '';
   Object.entries(grouped).forEach(([date, txs]) => {
@@ -280,7 +280,7 @@ export function renderDailyFeed() {
     if (date === todayStr) label = 'Hoy';
     else if (date === yesterdayStr) label = 'Ayer';
     else {
-      const d = new Date(date + 'T00:00:00');
+      const d = parseLocalDate(date);
       label = `${d.getDate()} ${['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][d.getMonth()]}`;
     }
     const dayIngresos = txs.filter(tx => tx.type === 'ingreso').reduce((s, t) => s + t.amount, 0);

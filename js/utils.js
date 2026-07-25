@@ -57,6 +57,17 @@ export function getToday() {
   return new Date();
 }
 
+/** Convierte 'YYYY-MM-DD' a Date en hora local (sin offset de zona horaria). */
+export function parseLocalDate(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Convierte un Date a string 'YYYY-MM-DD' en hora local. */
+export function toLocalDateStr(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 /** Renderiza grilla de emojis en un contenedor con callback de selección. */
 export function renderEmojiPicker(selected, onSelect, pickerId) {
   const picker = $(pickerId || 'emojiPicker');

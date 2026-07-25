@@ -226,7 +226,7 @@ export function setupCategoryManager() {
       $('catManagerEmoji').value = emoji;
     }, 'emojiPicker');
   });
-  $('catManagerSave').addEventListener('click', () => {
+  $('catManagerSave').addEventListener('click', async () => {
     const type = $('catManagerType').value;
     const name = sanitizeStr($('catManagerName').value, 50);
     const emoji = sanitizeStr($('catManagerEmoji').value || '📋', 10);
@@ -237,6 +237,13 @@ export function setupCategoryManager() {
       const [origType, origIdx] = editId.split(':');
       const idx = parseInt(origIdx);
       const oldName = state.categoriesData[origType][idx]?.name;
+      if (oldName && oldName !== name) {
+        const affected = state.transactions.filter(tx => tx.category === oldName).length;
+        if (affected > 0) {
+          const ok = await showConfirmModal(`Renombrar "${oldName}" → "${name}" actualizará ${affected} transacciones. ¿Continuar?`);
+          if (!ok) return;
+        }
+      }
       if (origType !== type) {
         const subcats = state.categoriesData[origType][idx]?.subcats || [];
         state.categoriesData[origType].splice(idx, 1);

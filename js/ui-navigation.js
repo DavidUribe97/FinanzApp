@@ -35,9 +35,12 @@ export function refreshAnalysis() {
 /** Refresca todas las vistas: mes, diario, cuenta y análisis si corresponde. */
 export function refreshAll(animate = true) {
   updateMonthLabel();
-  refreshDaily(animate);
-  updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
-  if (!state.isDailyMode) refreshAnalysis();
+  if (state.isDailyMode) {
+    refreshDaily(animate);
+    updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
+  } else {
+    refreshAnalysis();
+  }
 }
 
 /** Cambia entre modo diario y análisis, renderizando las vistas correspondientes. */
