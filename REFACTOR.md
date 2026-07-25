@@ -1927,3 +1927,44 @@ Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con
 - Rama `develop` creada desde `master` (`bd4a917`)
 - Eliminadas 7 ramas viejas ya merged: `refactor/fase-1-css` a `refactor/fase-6-ui-panels`, `v1.3.0-beta` (locales + remote)
 - Creado `CONTRIBUTING.md` con documentación del flujo: `master`, `develop`, `feature/*`, `hotfix/*`
+
+---
+
+## Hotfixes post-v2.0: 3 bugs críticos (2026-07-25)
+
+**Ramas:** `hotfix/data-leak-between-rooms`, `hotfix/auto-accounts-old-rooms`, `hotfix/password-bypass`
+**Merge:** Todos a `develop` con `--no-ff`
+
+### 1. Fuga de datos entre salas (GRAVEDAD: CRÍTICA)
+
+**Problema:** Al crear una sala nueva, `firstTimeSetup()` escribía el state actual a Firestore. El state contenía datos de la sala anterior (cargados desde localStorage global al hacer `init()`). Resultado: sala nueva expone datos financieros de otra sala.
+
+**Causa raíz:** Claves de localStorage son globales (`finanzas_data`, `finanzas_members`, etc.), no namespaceadas por sala. Al cambiar de sala no se limpia el state.
+
+**Solución:**
+- Nueva función `resetRoomState()` en `state.js` que limpia transactions, budgets, categories, accounts, members
+- Se llama en `firebase-room.js` antes de establecer nuevo roomCode
+
+**Archivos:** `js/state.js` (+13), `js/firebase-room.js` (+2)
+
+### 2. Cuentas automáticas en salas viejas (GRAVEDAD: ALTA)
+
+**Problema:** Al abrir una sala vieja (sin campo `accounts` en Firestore), el snapshot no actualizaba `state.accounts` (condición `if (data.accounts)` falsa). `state.accounts` retenía los defaults de `loadAccounts()`. Cualquier sync posterior inyectaba esas cuentas al documento viejo con `merge: true`.
+
+**Solución:**
+- Snapshot handler: `state.accounts = data.accounts ? ... : {}` — resetea a `{}` si Firestore no tiene accounts
+- `firstTimeSetup()`: solo escribe `accounts` si tiene keys (`Object.keys().length > 0`)
+- `syncToFirestore()`: solo incluye `accounts` en payload si tiene keys
+
+**Archivos:** `js/firebase-sync.js` (+10/-7)
+
+### 3. Acceso a sala protegida sin contraseña (GRAVEDAD: ALTA)
+
+**Problema:** La condición `if (data.passwordHash && state.roomPassword)` solo verificaba la contraseña si AMBOS eran truthy. Si el usuario no ingresa contraseña (`state.roomPassword = null`), la condición era falsa y el check se saltaba — acceso completo a la sala protegida.
+
+**Solución:**
+- Si `data.passwordHash` existe → verificar que `state.roomPassword` no esté vacío
+- Si está vacío → rechazar con toast "Esta sala requiere contraseña"
+- Si tiene valor → verificar hash como antes
+
+**Archivos:** `js/firebase-sync.js` (+9/-1)

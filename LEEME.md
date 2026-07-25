@@ -389,9 +389,12 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | SW sin cache de Firebase CDN | App no cargaba offline si el CDN de Firebase caía | Network-first cache para `gstatic.com/firebasejs/` | `38cdffb` |
 | Rename de categoría sin confirmación | Renombrar afectaba transacciones sin aviso | `showConfirmModal` antes del rename mostrando transacciones afectadas | `38cdffb` |
 | `refreshAll()` renderiza todo en remote update | Render innecesario del modo inactivo al recibir datos remotos | Solo renderizar modo activo | `38cdffb` |
-| Compartido podía registrar ingresos | `compartido+ingreso` se guardaba en data sin restricción | 4 capas: data, importación, sync y UI rechazan `compartido+ingreso` | `pendiente` |
-| Compartido visible en panel de cuentas | `renderAccountsPanel()` y `accountMemberSelect` mostraban Compartido como cuenta normal | Filtrado por `member !== 'compartido'` en ambos | `pendiente` |
-| Fecha de transacción con `toISOString()` en setup-daily | `getToday().toISOString().slice(0,10)` usaba UTC para fecha de transacción | Reemplazado por `toLocalDateStr(getToday())` | `pendiente` |
+| Compartido podía registrar ingresos | `compartido+ingreso` se guardaba en data sin restricción | 4 capas: data, importación, sync y UI rechazan `compartido+ingreso` | `bd4a917` |
+| Compartido visible en panel de cuentas | `renderAccountsPanel()` y `accountMemberSelect` mostraban Compartido como cuenta normal | Filtrado por `member !== 'compartido'` en ambos | `bd4a917` |
+| Fecha de transacción con `toISOString()` en setup-daily | `getToday().toISOString().slice(0,10)` usaba UTC para fecha de transacción | Reemplazado por `toLocalDateStr(getToday())` | `bd4a917` |
+| Fuga de datos entre salas | `firstTimeSetup` escribía state (data vieja) a sala nueva | `resetRoomState()` limpia state al cambiar de sala | `hotfix` |
+| Cuentas automáticas en salas viejas | `syncToFirestore` con `merge: true` inyectaba defaults en docs sin `accounts` | Snapshot resetea accounts a `{}` si Firestore no lo tiene; sync no escribe accounts vacíos | `hotfix` |
+| Acceso a sala protegida sin contraseña | Condición `data.passwordHash && state.roomPassword` se saltaba el check si no había password | Si room tiene `passwordHash` y usuario no ingresa contraseña → rechaza | `hotfix` |
 
 ---
 
