@@ -1583,6 +1583,38 @@ Feed:  Almuerzo · Él · Bancolombia (Ella)
 
 ---
 
+### Fix: Compartido sin cuentas ni saldo (2026-07-24)
+
+**Descripción:** Las transacciones compartidas (`who: 'comportido'`) no tienen cuentas asociadas ni validación de saldo.
+
+**Reglas de negocio:**
+- `getAllAccountsForMember()` excluye `compartido` del selector de gastos
+- `updateAccountSelector()` oculta el selector cuando `who=compartido`
+- Validación de saldo se salta cuando `who=compartido`
+- Compartido no tiene cuentas propias ni saldo rastreado
+
+#### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `js/members.js:52` | `getAllAccountsForMember()` excluye `compartido` |
+| `js/members.js:74-82` | `updateAccountSelector()` oculta container para `compartido` |
+| `js/setup-daily.js:40` | Validación saldo excluye `compartido` |
+| `js/setup-analysis.js:36` | Create form excluye `compartido` |
+| `js/setup-analysis.js:120` | Edit form excluye `compartido` |
+
+#### Verificación
+
+```
+[✓] compartido no aparece en selector de cuentas (gasto)
+[✓] Selector se oculta cuando who=compartido
+[✓] No se valida saldo para compartido
+[✓] Edit modal oculta cuenta para compartido
+[✓] Todos los módulos accesibles vía HTTP
+```
+
+---
+
 ## Notas finales
 
 - **No es un rewrite** — es un refactor quirúrgico. En cada fase la app funciona.

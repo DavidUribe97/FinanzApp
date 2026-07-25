@@ -53,6 +53,7 @@ export function getAccountsForMember(memberId) {
 export function getAllAccountsForMember() {
   const result = [];
   for (const [memberId, accts] of Object.entries(state.accounts)) {
+    if (memberId === 'compartido') continue;
     const label = state.members[memberId] || memberId;
     accts.forEach(a => result.push({ memberId, label, account: a }));
   }
@@ -74,6 +75,15 @@ export function getPaymentLabel(method) {
 export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
   const sel = $(selectId);
   if (!sel) return;
+  const container = sel.closest('.account-select-row, .form-group');
+
+  if (memberId === 'compartido') {
+    if (container) container.style.display = 'none';
+    sel.innerHTML = '';
+    return;
+  }
+  if (container) container.style.display = '';
+
   const prev = sel.dataset.prevValue || '';
 
   if (type === 'gasto') {

@@ -36,7 +36,7 @@ export function setupAnalysisForm(onImportJSON) {
     const { who: accountOwner, account } = parseAccountValue($('txAccount').value || 'yo:Efectivo');
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
-    if (type === 'gasto') {
+    if (type === 'gasto' && who !== 'compartido') {
       const balance = getAccountBalance(accountOwner, account);
       if (balance < amount) {
         return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);
@@ -123,7 +123,7 @@ export function setupAnalysisForm(onImportJSON) {
     const { who: accountOwner, account } = parseAccountValue($('editAccount').value || 'yo:Efectivo');
     if (!category) return showToast('Selecciona una categoría');
     if (!date) return showToast('Selecciona una fecha');
-    if (type === 'gasto') {
+    if (type === 'gasto' && who !== 'compartido') {
       const prevTx = state.transactions.find(t => String(t.id) === String(state.editingId));
       let balance = getAccountBalance(accountOwner, account);
       if (prevTx && prevTx.who === accountOwner && prevTx.account === account) {
