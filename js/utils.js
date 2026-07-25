@@ -10,7 +10,7 @@ import { state } from './state.js';
 export const $ = id => document.getElementById(id);
 
 /** Escapa HTML para prevenir XSS en innerHTML. */
-export const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;');
+export const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#x27;').replace(/`/g,'&#x60;').replace(/\\/g,'&#x5C;');
 
 /** Formatea número como COP sin decimales. */
 export const formatCOP = n => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
@@ -39,7 +39,9 @@ export function downloadBlob(blob, filename) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = filename;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(a.href);
 }
 
@@ -69,25 +71,32 @@ export function toLocalDateStr(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 }
 
+let _emojiPickerDelegationInit = false;
+
 /** Renderiza grilla de emojis en un contenedor con callback de selección. */
 export function renderEmojiPicker(selected, onSelect, pickerId) {
   const picker = $(pickerId || 'emojiPicker');
   if (!picker) return;
   picker.style.display = 'grid';
+  picker._onSelect = onSelect || null;
   picker.innerHTML = EMOJIS.map(e =>
     `<button data-emoji="${e}" class="${e === (selected || '📋') ? 'selected' : ''}">${e}</button>`
   ).join('');
-  picker.querySelectorAll('button').forEach(btn => {
-    btn.addEventListener('click', () => {
-      picker.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      if (onSelect) {
-        onSelect(btn.dataset.emoji);
-      } else {
-        $('catManagerEmoji').value = btn.dataset.emoji;
-      }
-      picker.style.display = 'none';
-    });
+  if (_emojiPickerDelegationInit) return;
+  _emojiPickerDelegationInit = true;
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('.emoji-picker button[data-emoji]');
+    if (!btn) return;
+    const p = btn.closest('.emoji-picker');
+    p.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    if (p._onSelect) {
+      p._onSelect(btn.dataset.emoji);
+    } else {
+      const catEmoji = $('catManagerEmoji');
+      if (catEmoji) catEmoji.value = btn.dataset.emoji;
+    }
+    p.style.display = 'none';
   });
 }
 

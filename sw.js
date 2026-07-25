@@ -50,12 +50,13 @@ self.addEventListener('fetch', e => {
   if (e.request.url.includes(FIREBASE_CDN)) {
     e.respondWith(
       caches.open(FIREBASE_CACHE).then(cache =>
-        cache.match(e.request).then(cached =>
-          fetch(e.request).then(resp => {
+        cache.match(e.request).then(cached => {
+          const fetchPromise = fetch(e.request).then(resp => {
             cache.put(e.request, resp.clone());
             return resp;
-          }).catch(() => cached || new Response('', { status: 503 }))
-        )
+          }).catch(() => cached);
+          return cached || fetchPromise;
+        })
       )
     );
     return;

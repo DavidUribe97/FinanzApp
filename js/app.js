@@ -49,7 +49,7 @@ function importJSON(file) {
       if (data.accounts) { state.accounts = data.accounts; saveAccounts(); }
       saveData();
       saveBudgets();
-      refreshAll();
+  refreshAll(false);
       dismissAllToasts();
       showToast(`Importadas ${data.transactions.length} transacciones`);
     } catch (e) {

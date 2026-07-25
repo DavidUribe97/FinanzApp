@@ -10,6 +10,9 @@ let onRemoteUpdate = null;
 /** Registra un callback que se invoca cuando llegan datos remotos de Firestore. */
 export function setRemoteUpdateCallback(fn) { onRemoteUpdate = fn; }
 
+let _syncDebounceTimer = null;
+const SYNC_DEBOUNCE_MS = 600;
+
 async function sha256(str) {
   const enc = new TextEncoder().encode(str);
   const buf = await crypto.subtle.digest('SHA-256', enc);
@@ -45,10 +48,16 @@ function updateRoomLabel() {
 
 export { updateSyncStatusUI as updateSyncStatus, updateRoomLabel };
 
-/** Envía el estado completo de transacciones, presupuestos, categorías, miembros y cuentas a Firestore. */
-export async function syncToFirestore() {
+/** Envía el estado completo de transacciones, presupuestos, categorías, miembros y cuentas a Firestore (con debounce). */
+export function syncToFirestore() {
   if (!state.db || !state.roomCode) return;
   if (!state.firebaseInitialized) { state.pendingSyncs++; return; }
+  if (_syncDebounceTimer) clearTimeout(_syncDebounceTimer);
+  _syncDebounceTimer = setTimeout(_doSyncToFirestore, SYNC_DEBOUNCE_MS);
+}
+
+async function _doSyncToFirestore() {
+  if (!state.db || !state.roomCode) return;
   try {
     await state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode)).set({
       transactions: state.transactions,
@@ -186,7 +195,13 @@ export async function initFirebase() {
     if (!state.roomCode) {
       const { openRoomModal } = await import('./firebase-room.js');
       openRoomModal();
-      await new Promise(resolve => { state.roomCodeResolver = resolve; });
+      const ROOM_TIMEOUT_MS = 120000;
+      await new Promise(resolve => {
+        state.roomCodeResolver = resolve;
+        setTimeout(() => {
+          if (state.roomCodeResolver) { state.roomCodeResolver(); state.roomCodeResolver = null; }
+        }, ROOM_TIMEOUT_MS);
+      });
       state.roomCode = localStorage.getItem('finanzas_room');
       if (!state.roomCode) { state.firebaseInitialized = true; updateSyncStatusUI(false); return; }
     }

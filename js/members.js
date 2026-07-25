@@ -20,6 +20,7 @@ export function loadMembers() {
     const raw = localStorage.getItem(MEMBERS_KEY);
     state.members = raw ? JSON.parse(raw) : { ...DEFAULT_MEMBERS };
   } catch {
+    console.warn('Miembros corruptos en localStorage, usando defaults');
     state.members = { ...DEFAULT_MEMBERS };
   }
 }
@@ -46,6 +47,7 @@ export function loadAccounts() {
     const raw = localStorage.getItem(ACCOUNTS_KEY);
     state.accounts = raw ? JSON.parse(raw) : JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
   } catch {
+    console.warn('Cuentas corruptas en localStorage, usando defaults');
     state.accounts = JSON.parse(JSON.stringify(DEFAULT_ACCOUNTS));
   }
 }

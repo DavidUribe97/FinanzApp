@@ -316,7 +316,7 @@ export function renderDailyFeed() {
             <div class="feed-desc">${esc(tx.description || '—')} · ${esc(whoLabel)} · ${acctDisplay}</div>
           </div>
           <div class="feed-amount ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${tx.type === 'ingreso' ? '+' : '-'}${formatCOPShort(tx.amount)}</div>
-          <button class="feed-del-btn" data-edit="${tx.id}" title="Editar">✏️</button>
+          <button class="feed-del-btn" data-edit="${tx.id}" title="Editar" aria-label="Editar transaccion">✏️</button>
         </div>
       `;
     });

@@ -19,7 +19,9 @@ export function loadCategories() {
       state.categoriesData = JSON.parse(raw);
       migrateSubcats();
       return;
-    } catch {}
+    } catch {
+      console.warn('Categorias corruptas en localStorage, usando defaults');
+    }
   }
   state.categoriesData = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
 }

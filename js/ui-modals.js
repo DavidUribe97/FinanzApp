@@ -48,6 +48,9 @@ export function showConfirmModal(msg) {
   return new Promise(resolve => {
     $('confirmMsg').textContent = msg;
     $('confirmModal').classList.add('active');
+    const modal = $('confirmModal').querySelector('.modal');
+    const focusable = modal.querySelectorAll('button');
+    if (focusable.length) focusable[focusable.length - 1].focus();
     const cleanup = () => { $('confirmModal').classList.remove('active'); };
     $('confirmOk').onclick = () => { cleanup(); resolve(true); };
     $('confirmCancel').onclick = () => { cleanup(); resolve(false); };
@@ -73,6 +76,7 @@ export function openEditModal(id) {
   updateSubcategories('editType', 'editCategory', 'editSubcategory');
   if (tx.subcategory) $('editSubcategory').value = tx.subcategory;
   $('editModal').classList.add('active');
+  $('editAmount').focus();
 }
 
 /** Cierra el modal de edición y limpia el estado de edición. */

@@ -10,6 +10,7 @@ import { getFilteredTransactions, getCumulativeBalance, getDisplayTransactions, 
 import { getSubCatEmoji } from './categories.js';
 import { isCashAccount, getMemberBadgeStyle, getWhoLabel, getAccountsForMember, updateAccountSelector, parseAccountValue } from './members.js';
 import { openEditModal, showToast } from './ui-modals.js';
+import { refreshAnalysis } from './ui-navigation.js';
 
 /** Renderiza las tarjetas de resumen con ingresos, gastos, saldo y número de transacciones. */
 export function renderSummary() {
@@ -60,8 +61,8 @@ export function renderTable() {
       <td><span class="account-tag ${acctCls}" style="margin:0;font-size:12px">${acctIcon} ${acctDisplay}</span></td>
       <td class="monto ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${formatCOP(tx.amount)}</td>
       <td>
-        <button class="btn-sm" data-edit="${tx.id}" title="Editar">✏️</button>
-        <button class="btn-sm danger" data-del="${tx.id}" title="Eliminar">🗑️</button>
+        <button class="btn-sm" data-edit="${tx.id}" title="Editar" aria-label="Editar transaccion">✏️</button>
+        <button class="btn-sm danger" data-del="${tx.id}" title="Eliminar" aria-label="Eliminar transaccion">🗑️</button>
       </td>
     </tr>
   `}).join('');
@@ -69,11 +70,11 @@ export function renderTable() {
     btn.addEventListener('click', () => {
       const tx = deleteTransactionData(btn.dataset.del);
       if (tx) {
-        renderTable();
+        refreshAnalysis();
         updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
         showToast(`"${tx.description || tx.category}" eliminado`, 'Deshacer', () => {
           restoreTransaction();
-          renderTable();
+          refreshAnalysis();
           updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
         });
       }

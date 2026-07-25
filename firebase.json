@@ -11,7 +11,8 @@
       "**/.*",
       "**/node_modules/**",
       "LEEME.md",
-      "REFACTOR.md"
+      "REFACTOR.md",
+      "CONTRIBUTING.md"
     ]
   }
 }
