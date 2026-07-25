@@ -47,6 +47,11 @@ export function setupDailyMode() {
       }
     }
     addTransaction({ id: generateId(), type: state.selectedType, amount, category: state.selectedCategory, subcategory: state.selectedSubcategory || '', description: desc, date, who: state.selectedWho, account: fullAccountKey });
+    const flashClass = state.selectedType === 'gasto' ? 'flash-error' : 'flash-success';
+    const balanceEl = $('dailyBalance');
+    balanceEl.classList.remove('flash-success', 'flash-error');
+    void balanceEl.offsetWidth;
+    balanceEl.classList.add(flashClass);
     refreshDaily();
     updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
     saveLastCategory(state.selectedType, state.selectedCategory, state.selectedSubcategory);
@@ -62,5 +67,8 @@ export function setupDailyMode() {
   $('dailyAddBtn').addEventListener('click', addDailyTx);
   dailyAmount.addEventListener('keydown', e => {
     if (e.key === 'Enter') addDailyTx();
+  });
+  $('feedEmptyAdd').addEventListener('click', () => {
+    $('dailyAmount').focus();
   });
 }

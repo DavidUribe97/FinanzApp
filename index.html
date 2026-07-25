@@ -89,8 +89,10 @@
     <div class="feed-section">
       <div class="feed-title" id="feedTitle">Hoy</div>
       <div id="feedList"></div>
-      <div id="feedEmpty" class="feed-empty" style="display:none">
-        Sin movimientos este mes
+      <div id="feedEmpty" class="feed-empty-action" style="display:none">
+        <span class="empty-icon">📭</span>
+        <span class="empty-text">Sin movimientos este mes</span>
+        <button class="empty-btn" id="feedEmptyAdd">+ Agregar primer movimiento</button>
       </div>
     </div>
   </div>
@@ -325,8 +327,8 @@
                 <th>Fecha</th>
                 <th>Tipo</th>
                 <th>Categoría</th>
-                <th>Subcategoría</th>
-                <th>Descripción</th>
+                <th class="hide-mobile">Subcategoría</th>
+                <th class="hide-mobile">Descripción</th>
                 <th>Quién</th>
                 <th>Cuenta</th>
                 <th>Monto</th>

@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { $, formatCOP, sanitizeStr, validateAmount, generateId } from './utils.js';
+import { $, esc, formatCOP, sanitizeStr, validateAmount, generateId } from './utils.js';
 import { updateWhoSelects } from './ui-members.js';
 import { updateAccountSelector, parseAccountValue } from './members.js';
 import { updateCategories, updateSubcategories, updateEditCategories, closeEditModal, showToast, dismissAllToasts, showConfirmModal } from './ui-modals.js';
@@ -45,6 +45,12 @@ export function setupAnalysisForm(onImportJSON) {
     }
     const sanitizedDesc = sanitizeStr(description);
     addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who, account: fullAccountKey });
+    const flashCard = type === 'gasto' ? document.querySelector('.card.gastos') : document.querySelector('.card.ingresos');
+    if (flashCard) {
+      flashCard.classList.remove('flash-success', 'flash-error');
+      void flashCard.offsetWidth;
+      flashCard.classList.add(type === 'gasto' ? 'flash-error' : 'flash-success');
+    }
     refreshAnalysis();
     updateAccountSelector($('txWho').value, 'txAccount', $('txType').value);
     $('txForm').reset();
@@ -61,9 +67,33 @@ export function setupAnalysisForm(onImportJSON) {
     else btn.classList.remove('pulse');
   });
 
-  $('searchInput').addEventListener('input', () => { dismissAllToasts(); state.undoData = null; renderTable(); });
-  $('filterType').addEventListener('change', () => { dismissAllToasts(); state.undoData = null; renderTable(); });
-  $('filterWho').addEventListener('change', () => { dismissAllToasts(); state.undoData = null; renderTable(); });
+  $('searchInput').addEventListener('input', () => { dismissAllToasts(); state.undoData = null; renderTable(); updateFilterBadges(); });
+  $('filterType').addEventListener('change', () => { dismissAllToasts(); state.undoData = null; renderTable(); updateFilterBadges(); });
+  $('filterWho').addEventListener('change', () => { dismissAllToasts(); state.undoData = null; renderTable(); updateFilterBadges(); });
+
+  function updateFilterBadges() {
+    let container = $('activeFilters');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'activeFilters';
+      container.className = 'active-filters';
+      $('searchInput').parentElement.appendChild(container);
+    }
+    const badges = [];
+    const search = $('searchInput').value.trim();
+    const type = $('filterType').value;
+    const who = $('filterWho').value;
+    if (search) badges.push({ label: `Buscar: ${search}`, clear: () => { $('searchInput').value = ''; renderTable(); updateFilterBadges(); } });
+    if (type !== 'todos') badges.push({ label: type === 'gasto' ? 'Gastos' : 'Ingresos', clear: () => { $('filterType').value = 'todos'; renderTable(); updateFilterBadges(); } });
+    if (who !== 'todos') {
+      const whoLabel = state.members[who] || who;
+      badges.push({ label: whoLabel, clear: () => { $('filterWho').value = 'todos'; renderTable(); updateFilterBadges(); } });
+    }
+    container.innerHTML = badges.map((b, i) => `<span class="filter-badge" data-idx="${i}">${esc(b.label)} <span class="filter-x">×</span></span>`).join('');
+    container.querySelectorAll('.filter-badge').forEach((el, i) => {
+      el.addEventListener('click', () => badges[i].clear());
+    });
+  }
 
   $('toggleBudgetForm').addEventListener('click', () => {
     const wrap = $('budgetFormWrap');

@@ -46,8 +46,8 @@ export function renderTable() {
       <td>${tx.date}</td>
       <td><span class="badge badge-${tx.type}">${tx.type === 'ingreso' ? 'Ingreso' : 'Gasto'}</span></td>
       <td>${esc(tx.category)}</td>
-      <td>${tx.subcategory ? getSubCatEmoji(tx.type, tx.category, tx.subcategory) + ' ' + esc(tx.subcategory) : '—'}</td>
-      <td>${esc(tx.description || '—')}</td>
+      <td class="hide-mobile">${tx.subcategory ? getSubCatEmoji(tx.type, tx.category, tx.subcategory) + ' ' + esc(tx.subcategory) : '—'}</td>
+      <td class="hide-mobile">${esc(tx.description || '—')}</td>
       <td><span class="badge" style="background:${getMemberBadgeStyle(whoVal).bg};color:${getMemberBadgeStyle(whoVal).color}">${getWhoLabel(whoVal)}</span></td>
       <td><span class="account-tag ${acctCls}" style="margin:0;font-size:12px">${acctIcon} ${acctDisplay}</span></td>
       <td class="monto ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${formatCOP(tx.amount)}</td>

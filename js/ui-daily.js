@@ -257,7 +257,7 @@ export function renderDailyFeed() {
     const dayNet = dayIngresos - dayGastos;
     const dayColor = dayNet >= 0 ? 'var(--accent-green)' : 'var(--accent-red)';
     const daySign = dayNet >= 0 ? '+' : '';
-    html += `<div class="feed-title" style="margin-top:12px">${label} <span style="float:right;color:${dayColor};font-family:'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;font-size:12px">${daySign}${formatCOPShort(dayNet)}</span></div>`;
+    html += `<div class="feed-day-header"><span>${label}</span><span class="feed-day-total" style="color:${dayColor}">${daySign}${formatCOPShort(dayNet)}</span></div>`;
     txs.forEach(tx => {
       const emoji = tx.subcategory ? getSubCatEmoji(tx.type, tx.category, tx.subcategory) : getCatEmoji(tx.category);
       const whoLabel = getWhoLabel(tx.who || 'yo');
@@ -265,7 +265,7 @@ export function renderDailyFeed() {
       const parsed = parseAccountValue(tx.account || 'yo:Efectivo');
       const acctDisplay = `${esc(parsed.account)} (${getWhoLabel(parsed.who)})`;
       html += `
-        <div class="feed-item">
+        <div class="feed-item ${tx.type}">
           <div class="feed-emoji">${esc(emoji)}</div>
           <div class="feed-info">
             <div class="feed-cat">${esc(tx.category)}${subLabel}</div>

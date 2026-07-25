@@ -1713,6 +1713,60 @@ Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con
 
 ---
 
+### Mejoras UX/UI — Diario y Análisis (2026-07-24)
+
+**Descripción:** 8 mejoras de usabilidad y visual en ambos modos.
+
+#### Diario (1-4)
+
+| # | Mejora | Detalle |
+|---|---|---|
+| 1 | Flash visual | Animación verde/rojo al agregar ingreso/gasto en el saldo |
+| 2 | Feed legible | Separadores de día con `feed-day-header`, borde lateral por tipo (rojo=gasto, verde=ingreso), montos con bold monospace |
+| 3 | Empty state | Botón "+ Agregar primer movimiento" en vez de solo texto |
+| 4 | Selector cuenta | Cuentas con saldo > 0 únicamente, formato `Cuenta (Dueño) — Saldo` |
+
+#### Análisis (5-8)
+
+| # | Mejora | Detalle |
+|---|---|---|
+| 5 | Form compacto | Tipo/monto en fila, botón "Agregar" más grande y visible |
+| 6 | Tabla responsive | Columnas Subcategoría y Descripción ocultas en móvil (`hide-mobile`) |
+| 7 | Resumen sticky | Cards de ingresos/gastos se quedan fijas al hacer scroll en escritorio |
+| 8 | Filtros badges | Filtros activos se muestran como badges clickeables debajo del search |
+
+#### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `css/styles.css` | Estilos: flash animation, feed-day-header, feed-item.gasto/ingreso, empty state, sticky summary, filter badges, responsive table |
+| `index.html:89-95` | Empty state con botón de acción |
+| `index.html:324-333` | Tabla con `hide-mobile` en Subcategoría y Descripción |
+| `js/setup-daily.js:48-52` | Flash feedback en balance al agregar |
+| `js/setup-daily.js:63-65` | Empty state button handler |
+| `js/setup-analysis.js:46-52` | Flash feedback en cards de resumen |
+| `js/setup-analysis.js:70-95` | Filter badges con updateFilterBadges() |
+| `js/ui-daily.js:258-278` | Feed con `feed-day-header` y clases `gasto/ingreso` |
+| `js/ui-analysis.js:47-55` | Tabla con `hide-mobile` en td |
+
+#### Verificación
+
+```
+[✓] Flash verde al agregar ingreso
+[✓] Flash rojo al agregar gasto
+[✓] Feed muestra separadores de día con total
+[✓] Feed items tienen borde lateral por tipo
+[✓] Empty state tiene botón funcional
+[✓] Selector solo muestra cuentas con saldo
+[✓] Tabla oculta columnas en móvil
+[✓] Summary cards sticky en escritorio
+[✓] Filtros activos muestran badges clickeables
+[✓] Badges se pueden quitar con ×
+[✓] Todos los módulos accesibles vía HTTP
+```
+
+---
+
 ## Notas finales
 
 - **No es un rewrite** — es un refactor quirúrgico. En cada fase la app funciona.
