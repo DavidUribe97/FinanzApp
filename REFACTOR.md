@@ -1957,3 +1957,47 @@ Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con
 - Si tiene valor → verificar hash como antes
 
 **Archivos:** `js/firebase-sync.js` (+9/-1)
+
+---
+
+## Revert de hotfix #2 y limpieza (2026-07-25)
+
+### Contexto
+
+Hotfix #2 intentó resolver el problema de cuentas fantasma en salas viejas (sin campo `accounts` en Firestore). Se implementó `migrateAccountsFromTransactions()` que escaneaba transacciones existentes para reconstruir el mapa de cuentas. El intento causó múltiples problemas:
+
+1. **SyntaxError**: `await` en callback no async (`saveData` import estático)
+2. **Balances incorrectos**: valores excedían el total
+3. **Revert**: se restauró el auto-inject de defaults (`5bef7c4`)
+
+### Intento de fix de balances
+
+Se intentó corregir `getAccountBalance()` para que usara fallback (`tx.account || 'yo:Efectivo'`) igual que `renderDailyBalance()`. Esto alineaba el saldo individual con el total del mes.
+
+Pero el problema real era otro: `getAllAccountsForMember()` itera las cuentas de **todos** los miembros. Con fallback fijo `'yo:Efectivo'`, las transacciones viejas se duplicaban — una vez para cada miembro. Resultado: el saldo de "el" y "ella" sumaban más que el total.
+
+Se intentó fallback por miembro (`tx.account || \`${tx.who}:Efectivo\``) y función `resolveAccountKey()` para manejar compartido. Pero en la sala vieja con datos mixtos, los montos seguían sin coincidir.
+
+### Decisión
+
+Crear una **nueva sala** y migrar datos manualmente (exportar JSON → importar JSON) en vez de intentar arreglar datos viejos con código.
+
+### Limpieza final
+
+1. **Revert completo de hotfix #2**: todo el código de migración eliminado
+2. **Master reseteado a develop** (`bd38724`): solo hotfixes #1 y #3 activos
+3. **Ramas hotfix eliminadas**: `hotfix/auto-accounts-old-rooms`, `hotfix/data-leak-between-rooms`, `hotfix/password-bypass`
+4. **Docs actualizadas**: referencias a hotfix #2 removidas de LEEME.md y REFACTOR.md
+5. **Deploy**: hosting + firestore:rules (`bd38724`)
+
+### Estado final
+
+| Componente | Estado |
+|---|---|
+| Hotfix #1 (data leak) | ✅ Activo |
+| Hotfix #3 (password bypass) | ✅ Activo |
+| Hotfix #2 (cuentas viejas) | ❌ Eliminado |
+| Master | `bd38724` |
+| Develop | `a4e7c29` |
+| Firebase | Deployado desde `bd38724` |
+| SW cache | `finanzapp-v3` (sin bump) |

@@ -395,6 +395,17 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | Fuga de datos entre salas | `firstTimeSetup` escribía state (data vieja) a sala nueva | `resetRoomState()` limpia state al cambiar de sala | `5bef7c4` |
 | Acceso a sala protegida sin contraseña | Condición `data.passwordHash && state.roomPassword` se saltaba el check si no había password | Si room tiene `passwordHash` y usuario no ingresa contraseña → rechaza | `5bef7c4` |
 
+### Hotfix #2 revertido (2026-07-25)
+
+Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el mismo día. Causó SyntaxError, balances incorrectos y data leak entre cuentas de miembros. Decisión: crear nueva sala y migrar datos manualmente via exportar/importar JSON.
+
+| Evento | Commit | Detalle |
+|--------|--------|---------|
+| Intento hotfix #2 | `1fc43c6` → `d77d71d` | 4 commits: migración automática de cuentas desde transacciones |
+| Revert | `5bef7c4` | Restaurar auto-inject de defaults, ajuste manual |
+| Fix de balance (revertido) | Sin commit | `resolveAccountKey()` — fallback por miembro para transacciones viejas. No resolvió el problema de sala vieja |
+| Limpieza final | `bd38724` | Master reseteado, ramas hotfix eliminadas, deploy |
+
 ---
 
 ## Tags (versiones)
@@ -408,6 +419,7 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | `fase-1` a `fase-9` | 2026-07-24 | Refactorización en 9 fases | ✅ |
 | `v1.3.0` | 2026-07-24 | Miembros editables, clave salas, colores | ✅ En master |
 | `v2.0` | 2026-07-24 | Modularización completa + 6 post-fixes | ✅ En master |
+| `bd38724` | 2026-07-25 | Hotfix #1 (data leak) + #3 (password bypass), revert #2, deploy limpio | ✅ En master + deployado |
 
 ---
 
