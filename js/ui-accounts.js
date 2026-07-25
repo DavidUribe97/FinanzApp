@@ -1,8 +1,13 @@
+/**
+ * Panel de cuentas por miembro — lista con íconos efectivo/digital, agregar, editar, eliminar.
+ * Si un miembro queda sin cuentas, se recrea "Efectivo" automáticamente.
+ */
 import { state } from './state.js';
 import { $, esc, sanitizeStr } from './utils.js';
 import { saveAccounts, isCashAccount, updateAccountSelector } from './members.js';
 import { showToast } from './ui-modals.js';
 
+/** Renderiza las cuentas de cada miembro con íconos de efectivo/digital y acciones. */
 export function renderAccountsPanel() {
   const list = $('accountsList');
   if (!list) return;
@@ -54,6 +59,7 @@ export function renderAccountsPanel() {
   });
 }
 
+/** Vincula eventos del formulario de agregar/editar cuenta. */
 export function setupAccountsPanel() {
   $('addAccountBtn').addEventListener('click', () => {
     const sel = $('accountMemberSelect');

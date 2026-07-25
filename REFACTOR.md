@@ -1,5 +1,7 @@
-# REFACTOR.md — Plan de Modularización de FinanzApp
-
+> **ARCHIVO HISTÓRICO — Registro del refactor (jul 2026).**
+> **No se actualiza con cambios posteriores.** Ver LEEME.md para el estado actual.
+> Los bugs post-merge (fixes de features nuevas) no se documentan aquí — ver commits o CHANGELOG.md.
+>
 > **Fecha inicio:** 2026-07-24
 > **Estado actual:** ✅ Completado (9/9 fases + post-refactor validation + code review)
 > **Objetivo:** Separar `index.html` (~3690 líneas autocontenido) en módulos ES separados (CSS, JS, HTML) sin perder funcionalidad, sin build tools, manteniendo Firebase.
@@ -1125,6 +1127,18 @@ tag: fase-9
 ### Errores encontrados
 _(Ninguno — solo cambios de configuración y documentación)_
 
+### Lo que realmente se hizo
+
+**Commit:** `9d3dce8` | **Tag:** `fase-9` | **Fecha:** 2026-07-24
+
+1. **`firestore.rules`** — Se agregaron validaciones de `members` (map) y `accounts` (map) al write rule. Antes solo validaba `transactions`, `budgets` y `categories`. El bug B1 del plan (firestore.rules no valida members ni accounts) quedó resuelto.
+
+2. **`firebase.json`** — Se verificó que sirve las carpetas `css/` y `js/`. El `hosting.rewrites` ya apuntaba a `index.html` para todas las rutas, y las carpetas estáticas se sirven automáticamente.
+
+3. **`LEEME.md`** — Se actualizó la estructura del proyecto, mapa de funciones y secciones de arquitectura modular post-refactor.
+
+**No se creó carpeta `rules/`** — las rules se mantuvieron en la raíz del proyecto (mismo patrón que antes del refactor).
+
 ---
 
 ## 14. Checklist de humo (post-fase)
@@ -1475,6 +1489,14 @@ La validación de contraseña ocurre en el cliente (`firebase-sync.js:subscribeF
 [✓] Sin dependencias circulares
 [✓] Sintaxis ES modules válida en todos los archivos
 ```
+
+---
+
+### ⚠️ CONTENIDO POST-MERGE (no parte del refactor original)
+
+> Los bloques a continuación se agregaron después del merge a master (features nuevas, fixes).
+> **No pertenecen al plan de refactor.** Se conservan como referencia histórica pero no se
+> actualizan. Para cambios posteriores al merge, ver commits o CHANGELOG.md.
 
 ---
 

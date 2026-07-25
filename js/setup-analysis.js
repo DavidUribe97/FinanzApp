@@ -1,3 +1,6 @@
+// Event listeners del modo análisis — formulario de transacciones, búsqueda/filtros
+// con badges, presupuestos, exportación CSV/JSON, importación JSON, modal de edición.
+
 import { state } from './state.js';
 import { $, esc, formatCOP, sanitizeStr, validateAmount, generateId } from './utils.js';
 import { updateWhoSelects } from './ui-members.js';
@@ -10,6 +13,7 @@ import { renderTable } from './ui-analysis.js';
 import { refreshAnalysis } from './ui-navigation.js';
 import { exportCSV, exportJSON } from './data.js';
 
+/** Wire analysis-mode listeners: tx form, search/filters with badges, budgets, CSV/JSON export, JSON import, edit modal. */
 export function setupAnalysisForm(onImportJSON) {
   updateWhoSelects();
   updateAccountSelector($('txWho').value, 'txAccount', $('txType').value);

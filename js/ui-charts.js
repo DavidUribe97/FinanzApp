@@ -1,9 +1,15 @@
+/**
+ * Gráficos Chart.js — dona de gastos por categoría (con tooltip por miembro),
+ * barras de ingresos/gastos por semana, línea de evolución mensual 12 meses.
+ */
+
 import { state } from './state.js';
 import { $, formatCOPShort } from './utils.js';
 import { CHART_COLORS, MONTHS } from './config.js';
 import { getFilteredTransactions } from './data.js';
 import { getWhoLabel } from './members.js';
 
+/** Renderiza la dona de gastos por categoría y las barras semanales de ingresos/gastos. */
 export function renderCharts() {
   const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
 
@@ -91,6 +97,7 @@ export function renderCharts() {
   });
 }
 
+/** Renderiza la línea de evolución mensual con balance, ingresos y gastos de los últimos 12 meses. */
 export function renderLineChart() {
   const monthlyData = {};
   for (let i = 11; i >= 0; i--) {

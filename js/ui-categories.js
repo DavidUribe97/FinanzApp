@@ -1,3 +1,7 @@
+/**
+ * Gestor de categorías y subcategorías — CRUD completo con emoji picker, migración de formato, restaurar a defaults.
+ * Usa setNotifyRefresh(fn) para notificar refresco (regla 4 de dependencias).
+ */
 import { state } from './state.js';
 import { $, esc, sanitizeStr, renderEmojiPicker } from './utils.js';
 import { DEFAULT_CATEGORIES } from './config.js';
@@ -7,8 +11,10 @@ import { showConfirmModal, showToast, updateCategories } from './ui-modals.js';
 import { updateBudgetCategorySelect } from './ui-budgets.js';
 
 let notifyRefreshFn = () => {};
+/** Registra callback que se invoca al modificar categorías para notificar refresco. */
 export function setNotifyRefresh(fn) { notifyRefreshFn = fn; }
 
+/** Renderiza la lista de categorías con botones de editar/eliminar. */
 export function renderCatManager() {
   const list = $('catManagerList');
   let html = '';
@@ -66,6 +72,7 @@ export function renderCatManager() {
   });
 }
 
+/** Renderiza las subcategorías de una categoría con acciones de editar/eliminar. */
 export function renderSubcatList(type, idx) {
   const cat = state.categoriesData[type] && state.categoriesData[type][idx];
   const list = $('subcatList');
@@ -120,6 +127,7 @@ export function renderSubcatList(type, idx) {
   });
 }
 
+/** Resetea el formulario de subcategoría a su estado inicial. */
 export function clearSubcatEdit() {
   $('subcatInput').value = '';
   $('subcatEmojiDisplay').textContent = '📋';
@@ -132,6 +140,7 @@ export function clearSubcatEdit() {
   $('cancelSubcatEdit').style.display = 'none';
 }
 
+/** Vincula eventos del gestor: crear, editar, restaurar defaults, emoji pickers y subcategorías. */
 export function setupCategoryManager() {
   $('resetCategoriesBtn').addEventListener('click', async () => {
     const ok = await showConfirmModal('¿Restaurar categorías por defecto? Se perderán las personalizadas.');

@@ -1,3 +1,9 @@
+/**
+ * Renderizado del modo diario — saldo total (efectivo/digital + carry), feed
+ * agrupado por fecha, categorías/subcategorías en fila horizontal, who-toggle
+ * con miembros extra y colores, drag-to-scroll.
+ */
+
 import { state } from './state.js';
 import { $, esc, formatCOP, formatCOPShort, getToday } from './utils.js';
 import { MEMBER_COLORS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, LAST_CAT_KEY } from './config.js';
@@ -13,6 +19,7 @@ function loadLastCategory() {
   } catch { return {}; }
 }
 
+/** Guarda la última categoría y subcategoría seleccionadas para un tipo. */
 export function saveLastCategory(type, cat, subcat) {
   const data = loadLastCategory();
   data[type] = cat;
@@ -21,6 +28,7 @@ export function saveLastCategory(type, cat, subcat) {
   localStorage.setItem(LAST_CAT_KEY, JSON.stringify(data));
 }
 
+/** Renderiza el grid de categorías del tipo seleccionado con restauración opcional. */
 export function renderDailyCategories(restore = true) {
   const grid = $('catGrid');
   const cats = getCatNames(state.selectedType);
@@ -64,6 +72,7 @@ export function renderDailyCategories(restore = true) {
   setupCategoryDragScroll(grid);
 }
 
+/** Renderiza el grid de subcategorías según categoría y tipo actuales. */
 export function renderDailySubcategories() {
   const sg = $('subcatGrid');
   if (!state.selectedCategory) { sg.style.display = 'none'; return; }
@@ -87,6 +96,7 @@ export function renderDailySubcategories() {
   setupCategoryDragScroll(sg);
 }
 
+/** Habilita drag-to-scroll horizontal en un contenedor. */
 export function setupCategoryDragScroll(container) {
   if (container.dataset.dragInit) return;
   container.dataset.dragInit = '1';
@@ -114,6 +124,7 @@ export function setupCategoryDragScroll(container) {
   });
 }
 
+/** Actualiza el estado visual del toggle gasto/ingreso según el tipo seleccionado. */
 export function updateTypeToggle() {
   const g = $('dailyTypeGasto');
   const i = $('dailyTypeIngreso');
@@ -121,6 +132,7 @@ export function updateTypeToggle() {
   i.className = state.selectedType === 'ingreso' ? 'active-ingreso' : '';
 }
 
+/** Actualiza el toggle de quién con miembros extra y colores dinámicos. */
 export function updateWhoToggle() {
   const toggle = $('whoToggle');
   const yo = $('dailyWhoYo');
@@ -167,6 +179,7 @@ export function updateWhoToggle() {
   setupCategoryDragScroll(toggle);
 }
 
+/** Renderiza el saldo total del mes desglosado por efectivo/digital y carry. */
 export function renderDailyBalance(animate = false) {
   const saldoPorCuenta = {};
   const carryPorCuenta = {};
@@ -229,6 +242,7 @@ export function renderDailyBalance(animate = false) {
   }
 }
 
+/** Renderiza el feed de transacciones agrupadas por fecha con totales diarios. */
 export function renderDailyFeed() {
   const filtered = getFilteredTransactions(state.currentMonth, state.currentYear)
     .map((tx, i) => ({ tx, i }))
@@ -303,6 +317,7 @@ export function renderDailyFeed() {
   });
 }
 
+/** Actualiza balance y feed del modo diario. */
 export function refreshDaily(animate = false) {
   renderDailyBalance(animate);
   renderDailyFeed();

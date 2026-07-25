@@ -1,3 +1,8 @@
+/**
+ * Constantes de la app: keys de localStorage, configuración de Firebase
+ * (API key pública por diseño), categorías por defecto, paleta de colores
+ * de miembros y lista de emojis. Sin imports de otros módulos.
+ */
 export const CATS_KEY = 'finanzas_categories';
 export const STORAGE_KEY = 'finanzas_data';
 export const BUDGET_KEY = 'finanzas_budgets';
@@ -8,20 +13,18 @@ export const ROOM_KEY = 'finanzas_room';
 export const MEMBERS_KEY = 'finanzas_members';
 export const ACCOUNTS_KEY = 'finanzas_accounts';
 
+/** Nombres por defecto de los miembros del hogar (key → label). */
 export const DEFAULT_MEMBERS = { yo: 'Él', pareja: 'Ella', compartido: 'Compartido 👥' };
+/** Cuentas bancarias/wallet por defecto para cada miembro. */
 export const DEFAULT_ACCOUNTS = {
   yo: ['Bancolombia', 'Nequi', 'Efectivo'],
   pareja: ['Bancolombia', 'Daviplata', 'Efectivo'],
   compartido: ['Bancolombia', 'Efectivo']
 };
+/** Variantes de texto que se consideran cuentas de efectivo. */
 export const CASH_ACCOUNTS = ['efectivo', 'cash', 'efec', 'billete', 'plata'];
 
-/**
- * Firebase API Key — PÚBLICA por diseño de Firebase.
- * La seguridad real vive en Firestore Security Rules,
- * no en ocultar esta key. NO restringir por HTTP referrer
- * (rompe Auth anónimo). Ver LEEME.md sección "Seguridad".
- */
+/** API key pública de Firebase — la seguridad real vive en Firestore Security Rules. */
 export const FIREBASE_CONFIG = {
   apiKey: "AIzaSyBI4ZQJU2N7Tqht9eCLt1YXzMEbpV6-L7Q",
   authDomain: "presupuesto-cddeb.firebaseapp.com",
@@ -31,14 +34,21 @@ export const FIREBASE_CONFIG = {
   appId: "1:561524123795:web:89df1890188e42aef98566"
 };
 
+/** Monto máximo permitido en una transacción. */
 export const MAX_AMOUNT = 999999999;
+/** Largo máximo del campo descripción. */
 export const MAX_DESC_LENGTH = 100;
+/** Número de cuadros de la animación de contador. */
 export const ANIMATION_STEPS = 20;
+/** Milisegundos entre cada cuadro de la animación. */
 export const ANIMATION_INTERVAL_MS = 20;
+/** Paleta de colores para gráficas (doughnut, bar, line). */
 export const CHART_COLORS = ['#00d4aa','#ff4d6d','#f5c842','#4f8ef7','#a855f7','#f97316','#06b6d4','#e11d48','#84cc16','#d946ef','#14b8a6','#f43f5e','#8b5cf6'];
+/** Nombre de la colección raíz en Firestore. */
 export const FIRESTORE_COLLECTION = 'rooms';
 export const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+/** Árbol de categorías y subcategorías predefinidas para ingreso y gasto. */
 export const DEFAULT_CATEGORIES = {
   ingreso: [
     { name: 'Salario', emoji: '💼', subcats: [{ name: 'Sueldo base', emoji: '📄' }, { name: 'Horas extra', emoji: '⏰' }, { name: 'Bonos', emoji: '🎁' }, { name: 'Primas', emoji: '🏅' }] },
@@ -62,6 +72,7 @@ export const DEFAULT_CATEGORIES = {
   ]
 };
 
+/** Pares de colores (fondo, texto) para resaltar miembros en la UI. */
 export const MEMBER_COLORS = [
   { bg: 'rgba(79,142,247,0.15)', text: 'var(--accent-blue)' },
   { bg: 'rgba(245,200,66,0.15)', text: 'var(--accent-gold)' },
@@ -75,6 +86,7 @@ export const MEMBER_COLORS = [
   { bg: 'rgba(20,184,166,0.15)', text: '#14b8a6' },
 ];
 
+/** Lista completa de emojis disponibles para el picker de categorías. */
 export const EMOJIS = [
   '🍕','🥩','🥗','🥦','🍎','🥑','🍞','🧀','🥤','☕','🍷',
   '🍺','🍹','🥂','🍸','🧊','🍜','🍝','🍣','🍱','🥟','🍪',

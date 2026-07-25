@@ -1,9 +1,15 @@
+/**
+ * Presupuestos — barras de progreso por categoría con porcentaje usado,
+ * colores dinámicos (verde/dorado/rojo) y botón eliminar.
+ */
+
 import { state } from './state.js';
 import { $, esc, formatCOPShort } from './utils.js';
 import { getFilteredTransactions } from './data.js';
 import { saveBudgets } from './data.js';
 import { getAllGastoNames } from './categories.js';
 
+/** Renderiza las barras de progreso de presupuesto por categoría con colores dinámicos. */
 export function renderBudgets() {
   const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
   const spentMap = {};
@@ -48,6 +54,7 @@ export function renderBudgets() {
   });
 }
 
+/** Actualiza el select de categorías disponibles sin presupuesto. */
 export function updateBudgetCategorySelect() {
   const sel = $('budgetCategory');
   const used = new Set(Object.keys(state.budgets));

@@ -1,3 +1,9 @@
+/**
+ * Renderizado del modo análisis — tarjetas de resumen (ingresos, gastos, saldo),
+ * tabla de transacciones con búsqueda/filtros/badges de miembro y cuentas,
+ * edición y eliminación con undo.
+ */
+
 import { state } from './state.js';
 import { $, esc, formatCOP } from './utils.js';
 import { getFilteredTransactions, getCumulativeBalance, getDisplayTransactions, deleteTransaction as deleteTransactionData, restoreTransaction } from './data.js';
@@ -5,6 +11,7 @@ import { getSubCatEmoji } from './categories.js';
 import { isCashAccount, getMemberBadgeStyle, getWhoLabel, getAccountsForMember, updateAccountSelector, parseAccountValue } from './members.js';
 import { openEditModal, showToast } from './ui-modals.js';
 
+/** Renderiza las tarjetas de resumen con ingresos, gastos, saldo y número de transacciones. */
 export function renderSummary() {
   const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
   const totalIngresos = filtered.filter(tx => tx.type === 'ingreso').reduce((s, t) => s + t.amount, 0);
@@ -21,6 +28,7 @@ export function renderSummary() {
   $('numTransacciones').textContent = filtered.length;
 }
 
+/** Renderiza la tabla de transacciones con badges, cuentas, búsqueda y acciones de editar/eliminar. */
 export function renderTable() {
   const display = getDisplayTransactions();
   const body = $('txBody');

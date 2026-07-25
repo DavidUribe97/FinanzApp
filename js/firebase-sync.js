@@ -1,8 +1,12 @@
+// Firebase Auth anónimo + Firestore sync en tiempo real.
+// Usa setRemoteUpdateCallback(fn) para notificar datos remotos (nunca importa módulos de dominio — regla 2 de dependencias).
+// Incluye verificación de passwordHash de sala.
 import { state } from './state.js';
 import { FIREBASE_CONFIG, FIRESTORE_COLLECTION } from './config.js';
 import { $, safeRoomCode } from './utils.js';
 
 let onRemoteUpdate = null;
+/** Registra un callback que se invoca cuando llegan datos remotos de Firestore. */
 export function setRemoteUpdateCallback(fn) { onRemoteUpdate = fn; }
 
 async function sha256(str) {
@@ -11,6 +15,7 @@ async function sha256(str) {
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+/** Actualiza el indicador visual de estado de conexión y la etiqueta de sala. */
 function updateSyncStatusUI(connected) {
   const el = $('syncStatus');
   if (connected) {
@@ -25,6 +30,7 @@ function updateSyncStatusUI(connected) {
   updateRoomLabel();
 }
 
+/** Muestra el código de sala actual en la etiqueta de la UI. */
 function updateRoomLabel() {
   const label = $('roomCodeLabel');
   if (state.roomCode) {
@@ -38,6 +44,7 @@ function updateRoomLabel() {
 
 export { updateSyncStatusUI as updateSyncStatus, updateRoomLabel };
 
+/** Envía el estado completo de transacciones, presupuestos, categorías, miembros y cuentas a Firestore. */
 export async function syncToFirestore() {
   if (!state.db || !state.roomCode) return;
   if (!state.firebaseInitialized) { state.pendingSyncs++; return; }
@@ -79,6 +86,7 @@ async function firstTimeSetup(ref, resolve) {
   resolve();
 }
 
+/** Suscribe un listener en tiempo real al documento de sala en Firestore, verificando passwordHash si existe. */
 export function subscribeFirestore() {
   return new Promise(async resolve => {
     const ref = state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode));
@@ -132,6 +140,7 @@ export function subscribeFirestore() {
   });
 }
 
+/** Inicializa Firebase Auth anónimo, Firestore y abre el modal de sala si no hay sala guardada. */
 export async function initFirebase() {
   if (state.firebaseInitialized) return;
   try {

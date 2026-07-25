@@ -1,3 +1,8 @@
+/**
+ * State centralizado — único dueño de variables mutables de la app.
+ * Todos los módulos importan este objeto y mutan sus propiedades directamente
+ * (state.x = ...), nunca reasignan el import.
+ */
 export const state = {
   transactions: [],
   budgets: {},

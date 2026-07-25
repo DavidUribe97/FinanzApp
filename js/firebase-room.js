@@ -1,9 +1,13 @@
+// Modal de sala: crear, unirse y salir.
+// Maneja código de sala, contraseña y persistencia en localStorage.
+// Importa showToast de ui-modals.js para feedback.
 import { state } from './state.js';
 import { ROOM_KEY } from './config.js';
 import { $ } from './utils.js';
 import { updateSyncStatus, updateRoomLabel, subscribeFirestore } from './firebase-sync.js';
 import { showToast } from './ui-modals.js';
 
+/** Abre el modal de sala, configurando tabs y campos según si hay sala activa. */
 export function openRoomModal() {
   $('roomCodeDisplay').textContent = state.roomCode || '—';
   $('roomCodeInput').value = state.roomCode || '';
@@ -34,10 +38,12 @@ export function openRoomModal() {
   $('roomModal').classList.add('active');
 }
 
+/** Cierra el modal de sala. */
 export function closeRoomModal() {
   $('roomModal').classList.remove('active');
 }
 
+/** Desuscribe Firestore, limpia roomCode/password del state y localStorage, y cierra el modal. */
 export function leaveRoom() {
   if (state.firestoreUnsub) { state.firestoreUnsub(); state.firestoreUnsub = null; }
   state.roomCode = null;
@@ -50,6 +56,7 @@ export function leaveRoom() {
   showToast('Has salido de la sala');
 }
 
+/** Asocia los event listeners del modal de sala (tabs, formulario, skip, backdrop, salir). */
 export function setupRoomModal() {
   $('roomTabCreate').addEventListener('click', () => {
     state.isCreatingRoom = true;

@@ -1,3 +1,7 @@
+// Orquestador de la app — importa todos los módulos, inyecta callbacks de sync y refresh,
+// coordina init(), wiring de Firebase y registro de service worker.
+// Punto de entrada vía DOMContentLoaded.
+
 import { state } from './state.js';
 import { MODE_KEY, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY, ACCOUNTS_KEY } from './config.js';
 import { renderEmojiPicker, validateAmount } from './utils.js';

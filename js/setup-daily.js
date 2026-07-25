@@ -1,3 +1,6 @@
+// Event listeners del modo diario — toggles de tipo/quién, agregar transacción
+// con validación de saldo, flash visual en balance, restauración de última categoría.
+
 import { state } from './state.js';
 import { $, sanitizeStr, validateAmount, generateId, getToday, formatCOP } from './utils.js';
 import { updateTypeToggle, updateWhoToggle, renderDailyCategories, saveLastCategory, refreshDaily } from './ui-daily.js';
@@ -5,6 +8,7 @@ import { updateAccountSelector, parseAccountValue } from './members.js';
 import { addTransaction, getAccountBalance } from './data.js';
 import { showToast } from './ui-modals.js';
 
+/** Wire daily-mode event listeners: type/who toggles, add-transaction, and last-category restore. */
 export function setupDailyMode() {
   $('dailyTypeGasto').addEventListener('click', () => {
     state.selectedType = 'gasto';

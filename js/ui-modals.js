@@ -1,3 +1,9 @@
+/**
+ * Modales y feedback — toasts con acción de deshacer, confirm modal genérico,
+ * modal de edición de transacciones, selectores de categorías/subcategorías
+ * actualizados dinámicamente.
+ */
+
 import { state } from './state.js';
 import { $, esc } from './utils.js';
 import { getCatNames, getSubCatNames, getSubCatEmoji } from './categories.js';
@@ -6,6 +12,7 @@ import { updateAccountSelector } from './members.js';
 let updateWhoSelectsFn = () => {};
 export function setUpdateWhoSelects(fn) { updateWhoSelectsFn = fn; }
 
+/** Muestra un toast con mensaje y opcionalmente una acción de deshacer. */
 export function showToast(message, actionLabel, actionFn) {
   const container = $('toastContainer');
   if (!container) return;
@@ -30,10 +37,12 @@ function dismiss(el) {
   setTimeout(() => el.remove(), 300);
 }
 
+/** Cierra todos los toasts visibles. */
 export function dismissAllToasts() {
   $('toastContainer').querySelectorAll('.toast').forEach(dismiss);
 }
 
+/** Muestra un modal de confirmación y devuelve una promesa con true/false. */
 export function showConfirmModal(msg) {
   return new Promise(resolve => {
     $('confirmMsg').textContent = msg;
@@ -45,6 +54,7 @@ export function showConfirmModal(msg) {
   });
 }
 
+/** Abre el modal de edición precargando los datos de la transacción indicada. */
 export function openEditModal(id) {
   const tx = state.transactions.find(t => String(t.id) === String(id));
   if (!tx) return;
@@ -64,11 +74,13 @@ export function openEditModal(id) {
   $('editModal').classList.add('active');
 }
 
+/** Cierra el modal de edición y limpia el estado de edición. */
 export function closeEditModal() {
   $('editModal').classList.remove('active');
   state.editingId = null;
 }
 
+/** Actualiza las categorías del modal de edición según el tipo seleccionado. */
 export function updateEditCategories() {
   const type = $('editType').value;
   const sel = $('editCategory');
@@ -76,6 +88,7 @@ export function updateEditCategories() {
   updateSubcategories('editType', 'editCategory', 'editSubcategory');
 }
 
+/** Actualiza las categorías del formulario principal según el tipo seleccionado. */
 export function updateCategories() {
   const type = $('txType').value;
   const catSel = $('txCategory');
@@ -83,6 +96,7 @@ export function updateCategories() {
   updateSubcategories('txType', 'txCategory', 'txSubcategory');
 }
 
+/** Actualiza las subcategorías de un select según tipo y categoría dados. */
 export function updateSubcategories(typeId, catId, subcatId) {
   const type = $(typeId).value;
   const catName = $(catId).value;

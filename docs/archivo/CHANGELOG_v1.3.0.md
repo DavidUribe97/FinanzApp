@@ -1,9 +1,15 @@
+> **ARCHIVO HISTÓRICO** — Estas features ya están mergeadas a master (jul 2026).
+> Ver LEEME.md para el estado actual de la app. Este documento se conserva como
+> referencia del razonamiento original detrás de cada feature.
+
+---
+
 # v1.3.0 — Miembros editables, clave de salas, identidad visual por miembro
 
-> ⚠️ **VERSIÓN EN PRUEBAS - NO DESPLEGAR A PRODUCCIÓN**
+> ⚠️ ~~VERSIÓN EN PRUEBAS - NO DESPLEGAR A PRODUCCIÓN~~ **YA MERGEADO A MASTER**
 > 
-> Esta versión está en la rama `v1.3.0-beta` y **NO está desplegada en Firebase Hosting**.
-> La versión estable en producción es `v1.2.1` (rama `master`).
+> ~~Esta versión está en la rama `v1.3.0-beta` y **NO está desplegada en Firebase Hosting**.~~
+> ~~La versión estable en producción es `v1.2.1` (rama `master`).~~
 > 
 > **Para probar localmente:**
 > ```bash

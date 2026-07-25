@@ -1,3 +1,8 @@
+/**
+ * Panel de administración de miembros — lista, agregar, editar, eliminar (defaults no se eliminan).
+ * Al eliminar, reasigna transacciones a "Compartido".
+ * Usa setNotifyRefresh(fn) para notificar refresco (regla 4 de dependencias).
+ */
 import { state } from './state.js';
 import { $, esc, sanitizeStr } from './utils.js';
 import { loadMembers, saveMembers, updateAccountSelector } from './members.js';
@@ -6,8 +11,10 @@ import { saveData } from './data.js';
 import { updateWhoToggle } from './ui-daily.js';
 
 let notifyRefreshFn = () => {};
+/** Registra callback que se invoca al modificar miembros para notificar refresco. */
 export function setNotifyRefresh(fn) { notifyRefreshFn = fn; }
 
+/** Renderiza la lista de miembros con botones de editar/eliminar. */
 export function renderMembers() {
   const list = $('membersList');
   list.innerHTML = Object.entries(state.members).map(([id, name]) => {
@@ -51,6 +58,7 @@ export function renderMembers() {
   });
 }
 
+/** Vincula eventos del formulario de agregar/editar miembro. */
 export function setupMembersPanel() {
   $('addMemberBtn').addEventListener('click', () => {
     $('memberNameInput').value = '';
@@ -83,6 +91,7 @@ export function setupMembersPanel() {
   });
 }
 
+/** Actualiza los selectores de miembro (filtro, tx, edit) con la lista actual. */
 export function updateWhoSelects() {
   const opts = Object.entries(state.members).map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join('');
   $('txWho').innerHTML = opts;

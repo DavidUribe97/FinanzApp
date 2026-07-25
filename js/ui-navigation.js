@@ -1,3 +1,7 @@
+/**
+ * Navegación entre meses, cambio de modo (diario/análisis), refresh global de todas las vistas,
+ * apertura de modal de sala.
+ */
 import { state } from './state.js';
 import { $ } from './utils.js';
 import { MONTHS, MODE_KEY } from './config.js';
@@ -13,10 +17,12 @@ import { updateAccountSelector } from './members.js';
 import { toggleTheme } from './ui-theme.js';
 import { openRoomModal } from './firebase-room.js';
 
+/** Actualiza el texto del label de mes/año en la UI. */
 export function updateMonthLabel() {
   $('monthLabel').textContent = `${MONTHS[state.currentMonth]} ${state.currentYear}`;
 }
 
+/** Refresca todas las vistas del modo análisis (resumen, tabla, charts, budgets, stats). */
 export function refreshAnalysis() {
   renderSummary();
   renderTable();
@@ -26,6 +32,7 @@ export function refreshAnalysis() {
   renderStats();
 }
 
+/** Refresca todas las vistas: mes, diario, cuenta y análisis si corresponde. */
 export function refreshAll(animate = true) {
   updateMonthLabel();
   refreshDaily(animate);
@@ -33,6 +40,7 @@ export function refreshAll(animate = true) {
   if (!state.isDailyMode) refreshAnalysis();
 }
 
+/** Cambia entre modo diario y análisis, renderizando las vistas correspondientes. */
 export function setMode(daily) {
   state.isDailyMode = daily;
   document.body.classList.toggle('mode-analysis', !daily);
@@ -50,6 +58,7 @@ export function setMode(daily) {
   }
 }
 
+/** Vincula eventos de navegación: meses, modo, tema y modal de sala. */
 export function setupNavigation() {
   $('prevMonth').addEventListener('click', () => {
     state.currentMonth--;

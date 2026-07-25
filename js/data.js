@@ -1,3 +1,8 @@
+/**
+ * CRUD de transacciones y presupuestos.
+ * Maneja persistencia en localStorage y dispara sync a Firestore vía callback inyectado.
+ * Nunca importa firebase-sync.js directo (regla 1 de dependencias).
+ */
 import { state } from './state.js';
 import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT } from './config.js';
 import { $, downloadBlob, formatCOP } from './utils.js';
@@ -5,8 +10,10 @@ import { MONTHS } from './config.js';
 import { getWhoLabel } from './members.js';
 
 let syncToFirestoreFn = () => {};
+/** Registra el callback de sync a Firestore para disparar después de cada escritura. */
 export function setSyncToFirestore(fn) { syncToFirestoreFn = fn; }
 
+/** Carga transacciones y presupuestos desde localStorage hacia el state global. */
 export function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -24,16 +31,19 @@ export function loadData() {
   localStorage.setItem(BUDGET_KEY, JSON.stringify(state.budgets));
 }
 
+/** Persiste transacciones en localStorage y dispara sync a Firestore. */
 export function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
   syncToFirestoreFn();
 }
 
+/** Persiste presupuestos en localStorage y dispara sync a Firestore. */
 export function saveBudgets() {
   localStorage.setItem(BUDGET_KEY, JSON.stringify(state.budgets));
   syncToFirestoreFn();
 }
 
+/** Filtra transacciones del state por mes y año dados. */
 export function getFilteredTransactions(month, year) {
   return state.transactions.filter(tx => {
     const d = new Date(tx.date + 'T00:00:00');
@@ -41,6 +51,7 @@ export function getFilteredTransactions(month, year) {
   });
 }
 
+/** Aplica filtros de UI (búsqueda, tipo, quién) sobre las transacciones del mes actual. */
 export function getDisplayTransactions() {
   const monthFiltered = getFilteredTransactions(state.currentMonth, state.currentYear);
   const search = $('searchInput')?.value.toLowerCase().trim() || '';
@@ -59,12 +70,14 @@ export function getDisplayTransactions() {
   }).sort((a, b) => b.date.localeCompare(a.date));
 }
 
+/** Suma ingresos menos gastos de una cuenta específica. */
 export function getAccountBalance(accountKey) {
   return state.transactions
     .filter(tx => tx.account === accountKey)
     .reduce((sum, tx) => sum + (tx.type === 'ingreso' ? tx.amount : -tx.amount), 0);
 }
 
+/** Calcula el saldo acumulado de todas las cuentas hasta el inicio del mes dado. */
 export function getCumulativeBalance(month, year) {
   let balance = 0;
   state.transactions.forEach(tx => {
@@ -76,17 +89,20 @@ export function getCumulativeBalance(month, year) {
   return balance;
 }
 
+/** Devuelve las fechas de inicio, fin y cantidad de días del mes dado. */
 export function getMonthRange(month, year) {
   const start = new Date(year, month, 1);
   const end = new Date(year, month + 1, 0);
   return { start, end, days: end.getDate() };
 }
 
+/** Agrega una transacción al state y persiste cambios. */
 export function addTransaction(data) {
   state.transactions.push(data);
   saveData();
 }
 
+/** Actualiza una transacción existente por id, fusionando con los nuevos datos. */
 export function editTransaction(id, data) {
   const idx = state.transactions.findIndex(tx => String(tx.id) === String(id));
   if (idx === -1) return false;
@@ -95,6 +111,7 @@ export function editTransaction(id, data) {
   return true;
 }
 
+/** Elimina una transacción por id y la almacena en undoData para posible restauración. */
 export function deleteTransaction(id) {
   const tx = state.transactions.find(t => String(t.id) === String(id));
   if (!tx) return null;
@@ -104,6 +121,7 @@ export function deleteTransaction(id) {
   return tx;
 }
 
+/** Restaura la última transacción eliminada desde undoData. */
 export function restoreTransaction() {
   if (state.undoData) {
     state.transactions.push(state.undoData);
@@ -114,6 +132,7 @@ export function restoreTransaction() {
   return false;
 }
 
+/** Genera y descarga un archivo CSV con las transacciones visibles en la tabla. */
 export function exportCSV() {
   const display = getDisplayTransactions();
   if (display.length === 0) return 'empty';
@@ -128,12 +147,14 @@ export function exportCSV() {
   return 'ok';
 }
 
+/** Genera y descarga un backup completo en formato JSON. */
 export function exportJSON() {
   const data = { transactions: state.transactions, budgets: state.budgets, categories: state.categoriesData, exportedAt: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   downloadBlob(blob, `finanzas_backup_${state.currentYear}-${String(state.currentMonth+1).padStart(2,'0')}.json`);
 }
 
+/** Valida la estructura y rangos de una transacción antes de persistirla. */
 export function isValidTx(tx) {
   return tx && typeof tx.id !== 'undefined' && typeof tx.type === 'string' && (tx.type === 'ingreso' || tx.type === 'gasto')
     && typeof tx.amount === 'number' && tx.amount > 0 && tx.amount <= MAX_AMOUNT
@@ -145,6 +166,7 @@ export function isValidTx(tx) {
     && (!tx.account || typeof tx.account === 'string');
 }
 
+/** Valida que el objeto de categorías tenga la estructura requerida. */
 export function isValidCategories(cats) {
   if (!cats || typeof cats !== 'object') return false;
   for (const type of ['ingreso','gasto']) {
@@ -164,6 +186,7 @@ export function isValidCategories(cats) {
   return true;
 }
 
+/** Valida que el objeto de presupuestos contenga solo montos positivos. */
 export function isValidBudgets(budgets) {
   if (!budgets || typeof budgets !== 'object') return false;
   for (const [cat, amount] of Object.entries(budgets)) {

@@ -1,7 +1,13 @@
+/**
+ * Estadísticas del mes — gasto diario promedio, categoría top, total ingresos/gastos,
+ * comparativa vs mes anterior, desglose por miembro.
+ */
+
 import { state } from './state.js';
 import { $, esc, formatCOP, getToday } from './utils.js';
 import { getFilteredTransactions, getMonthRange } from './data.js';
 
+/** Renderiza las tarjetas de estadísticas: promedio diario, top categoría, totales y comparativa. */
 export function renderStats() {
   const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
   const { days } = getMonthRange(state.currentMonth, state.currentYear);

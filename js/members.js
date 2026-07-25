@@ -1,11 +1,19 @@
+/**
+ * Gestión de miembros y cuentas. CRUD con persistencia en localStorage
+ * + sync a Firestore vía callback. Provee helpers para selects de UI
+ * (updateAccountSelector, getWhoLabel, getMemberBadgeStyle).
+ * Nunca importa firebase-sync.js directo.
+ */
 import { state } from './state.js';
 import { MEMBERS_KEY, ACCOUNTS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, CASH_ACCOUNTS, MEMBER_COLORS } from './config.js';
 import { $, esc, formatCOPShort } from './utils.js';
 import { getAccountBalance } from './data.js';
 
 let syncToFirestoreFn = () => {};
+/** Registra el callback de sync a Firestore para disparar después de cada escritura. */
 export function setSyncToFirestore(fn) { syncToFirestoreFn = fn; }
 
+/** Carga la lista de miembros desde localStorage o aplica los valores por defecto. */
 export function loadMembers() {
   try {
     const raw = localStorage.getItem(MEMBERS_KEY);
@@ -15,23 +23,28 @@ export function loadMembers() {
   }
 }
 
+/** Persiste miembros en localStorage y dispara sync a Firestore. */
 export function saveMembers() {
   localStorage.setItem(MEMBERS_KEY, JSON.stringify(state.members));
   syncToFirestoreFn();
 }
 
+/** Devuelve los ids de todos los miembros registrados. */
 export function getMemberIds() {
   return Object.keys(state.members);
 }
 
+/** Devuelve la lista de miembros como array de { id, name }. */
 export function getMemberList() {
   return Object.entries(state.members).map(([id, name]) => ({ id, name }));
 }
 
+/** Convierte el id de un miembro en su nombre legible para la UI. */
 export function getWhoLabel(who) {
   return state.members[who] || state.members['compartido'] || 'Compartido 👥';
 }
 
+/** Carga las cuentas de cada miembro desde localStorage o aplica los valores por defecto. */
 export function loadAccounts() {
   try {
     const raw = localStorage.getItem(ACCOUNTS_KEY);
@@ -41,15 +54,18 @@ export function loadAccounts() {
   }
 }
 
+/** Persiste cuentas en localStorage y dispara sync a Firestore. */
 export function saveAccounts() {
   localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
   syncToFirestoreFn();
 }
 
+/** Devuelve las cuentas de un miembro específico, o las compartidas como fallback. */
 export function getAccountsForMember(memberId) {
   return state.accounts[memberId] || state.accounts['compartido'] || ['Efectivo'];
 }
 
+/** Devuelve todas las cuentas de miembros individuales (excluye compartido). */
 export function getAllAccountsForMember() {
   const result = [];
   for (const [memberId, accts] of Object.entries(state.accounts)) {
@@ -60,6 +76,7 @@ export function getAllAccountsForMember() {
   return result;
 }
 
+/** Devuelve todas las cuentas de todos los miembros incluyendo compartido. */
 export function getAllAccounts() {
   const result = [];
   for (const [memberId, accts] of Object.entries(state.accounts)) {
@@ -69,18 +86,22 @@ export function getAllAccounts() {
   return result;
 }
 
+/** Indica si un nombre de cuenta corresponde a una cuenta de efectivo. */
 export function isCashAccount(accountName) {
   return CASH_ACCOUNTS.some(c => accountName.toLowerCase().includes(c));
 }
 
+/** Devuelve 'efectivo' o 'digital' según el nombre de la cuenta. */
 export function getPaymentMethod(accountName) {
   return isCashAccount(accountName) ? 'efectivo' : 'digital';
 }
 
+/** Convierte el valor interno del método de pago a su etiqueta legible. */
 export function getPaymentLabel(method) {
   return method === 'efectivo' ? 'Efectivo' : 'Digital';
 }
 
+/** Puebla un select del DOM con las cuentas disponibles para un miembro y tipo de transacción. */
 export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
   const sel = $(selectId);
   if (!sel) return;
@@ -120,12 +141,14 @@ export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
   sel.dataset.prevValue = sel.value;
 }
 
+/** Separa un valor de select 'miembro:cuenta' en { who, account }. */
 export function parseAccountValue(val) {
   const idx = val.indexOf(':');
   if (idx === -1) return { who: 'yo', account: val };
   return { who: val.slice(0, idx), account: val.slice(idx + 1) };
 }
 
+/** Devuelve el estilo de color (bg, text) para el badge de un miembro dado. */
 export function getMemberBadgeStyle(who) {
   const ids = Object.keys(state.members);
   const idx = ids.indexOf(who);
