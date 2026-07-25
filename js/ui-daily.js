@@ -2,8 +2,8 @@ import { state } from './state.js';
 import { $, esc, formatCOP, formatCOPShort, getToday } from './utils.js';
 import { MEMBER_COLORS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, LAST_CAT_KEY } from './config.js';
 import { getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji } from './categories.js';
-import { getFilteredTransactions, getCumulativeBalance } from './data.js';
-import { getPaymentMethod, getMemberBadgeStyle, updateAccountSelector, getWhoLabel, getAccountsForMember, parseAccountValue } from './members.js';
+import { getFilteredTransactions } from './data.js';
+import { getPaymentMethod, getMemberBadgeStyle, updateAccountSelector, getWhoLabel, getAccountsForMember, parseAccountValue, getAllAccounts, isCashAccount } from './members.js';
 import { openEditModal } from './ui-modals.js';
 
 function loadLastCategory() {
@@ -168,31 +168,25 @@ export function updateWhoToggle() {
 }
 
 export function renderDailyBalance(animate = false) {
+  const allAccounts = getAllAccounts();
+  let saldoTotal = 0;
+  let totalCash = 0;
+  let totalDigital = 0;
+  allAccounts.forEach(({ memberId, account }) => {
+    const bal = getAccountBalance(`${memberId}:${account}`);
+    saldoTotal += bal;
+    if (isCashAccount(account)) totalCash += bal;
+    else totalDigital += bal;
+  });
   const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
   const totalIngresos = filtered.filter(tx => tx.type === 'ingreso').reduce((s, t) => s + t.amount, 0);
   const totalGastos = filtered.filter(tx => tx.type === 'gasto').reduce((s, t) => s + t.amount, 0);
-  const carryBalance = getCumulativeBalance(state.currentMonth, state.currentYear);
-  const saldoTotal = carryBalance + totalIngresos - totalGastos;
   const el = $('dailyBalance');
   $('dailyIngresos').textContent = formatCOP(totalIngresos);
   $('dailyGastos').textContent = formatCOP(totalGastos);
+  $('dailyCash').textContent = formatCOP(totalCash);
+  $('dailyDigital').textContent = formatCOP(totalDigital);
 
-  const totalCash = filtered
-    .filter(tx => getPaymentMethod(tx.account || 'Efectivo') === 'efectivo')
-    .reduce((s, t) => s + (t.type === 'ingreso' ? t.amount : -t.amount), 0);
-  const totalDigital = saldoTotal - totalCash;
-  $('dailyCash').textContent = formatCOP(Math.abs(totalCash));
-  $('dailyDigital').textContent = formatCOP(Math.abs(totalDigital));
-
-  const carriedEl = $('balanceCarried');
-  if (carryBalance !== 0) {
-    const label = carryBalance > 0 ? 'Saldo a favor mes anterior' : 'Deuda mes anterior';
-    const cls = carryBalance > 0 ? 'positive' : 'negative';
-    carriedEl.innerHTML = `<span class="${cls}">${label}: ${formatCOP(Math.abs(carryBalance))}</span>`;
-    carriedEl.style.display = 'block';
-  } else {
-    carriedEl.style.display = 'none';
-  }
   if (animate) {
     const oldText = el.textContent;
     const oldVal = parseInt(oldText.replace(/[^0-9-]/g, '')) || 0;

@@ -60,6 +60,15 @@ export function getAllAccountsForMember() {
   return result;
 }
 
+export function getAllAccounts() {
+  const result = [];
+  for (const [memberId, accts] of Object.entries(state.accounts)) {
+    const label = state.members[memberId] || memberId;
+    accts.forEach(a => result.push({ memberId, label, account: a }));
+  }
+  return result;
+}
+
 export function isCashAccount(accountName) {
   return CASH_ACCOUNTS.some(c => accountName.toLowerCase().includes(c));
 }
