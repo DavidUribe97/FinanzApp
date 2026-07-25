@@ -5,6 +5,7 @@ import { state } from './state.js';
 import { FIREBASE_CONFIG, FIRESTORE_COLLECTION } from './config.js';
 import { $, safeRoomCode } from './utils.js';
 import { showToast } from './ui-modals.js';
+import { saveData } from './data.js';
 
 let onRemoteUpdate = null;
 /** Registra un callback que se invoca cuando llegan datos remotos de Firestore. */
@@ -191,7 +192,6 @@ export function subscribeFirestore() {
       if (migratedAccounts) {
         state.accounts = migratedAccounts;
         if (!data.accounts) {
-          const { saveData } = await import('./data.js');
           saveData();
         }
       }
