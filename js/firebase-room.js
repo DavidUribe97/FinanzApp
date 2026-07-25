@@ -1,7 +1,7 @@
 // Modal de sala: crear, unirse y salir.
 // Maneja código de sala, contraseña y persistencia en localStorage.
 // Importa showToast de ui-modals.js para feedback.
-import { state } from './state.js';
+import { state, resetRoomState } from './state.js';
 import { ROOM_KEY } from './config.js';
 import { $ } from './utils.js';
 import { updateSyncStatus, updateRoomLabel, subscribeFirestore } from './firebase-sync.js';
@@ -99,6 +99,7 @@ export function setupRoomModal() {
     }
 
     state.roomCode = newCode;
+    resetRoomState();
     localStorage.setItem(ROOM_KEY, state.roomCode);
     if (state.roomPassword) localStorage.setItem(ROOM_KEY + '_pwd', state.roomPassword);
     else localStorage.removeItem(ROOM_KEY + '_pwd');

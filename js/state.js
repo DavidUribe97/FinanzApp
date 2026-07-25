@@ -30,3 +30,16 @@ export const state = {
   isCreatingRoom: true,
   roomCodeResolver: null,
 };
+
+/** Limpia datos de sala del state — evita que firstTimeSetup escriba data vieja a sala nueva. */
+export function resetRoomState() {
+  state.transactions = [];
+  state.budgets = {};
+  state.categoriesData = null;
+  state.accounts = {};
+  state.members = {};
+  state.editingId = null;
+  state.undoData = null;
+  state.selectedCategory = null;
+  state.selectedSubcategory = null;
+}
