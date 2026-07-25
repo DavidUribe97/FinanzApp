@@ -2,7 +2,7 @@ import { state } from './state.js';
 import { $, esc, formatCOP } from './utils.js';
 import { getFilteredTransactions, getCumulativeBalance, getDisplayTransactions, deleteTransaction as deleteTransactionData, restoreTransaction } from './data.js';
 import { getSubCatEmoji } from './categories.js';
-import { isCashAccount, getMemberBadgeStyle, getWhoLabel } from './members.js';
+import { isCashAccount, getMemberBadgeStyle, getWhoLabel, getAccountsForMember } from './members.js';
 import { openEditModal, showToast } from './ui-modals.js';
 
 export function renderSummary() {
@@ -38,6 +38,11 @@ export function renderTable() {
     const acctName = tx.account || 'Efectivo';
     const acctCls = isCashAccount(acctName) ? 'cash' : 'digital';
     const acctIcon = isCashAccount(acctName) ? '💵' : '🏦';
+    let acctOwner = '';
+    for (const [mid, accts] of Object.entries(state.accounts)) {
+      if (accts.includes(acctName)) { acctOwner = getWhoLabel(mid); break; }
+    }
+    const acctDisplay = acctOwner ? `${esc(acctName)} (${acctOwner})` : esc(acctName);
     return `
     <tr class="fade-in">
       <td>${tx.date}</td>
@@ -46,7 +51,7 @@ export function renderTable() {
       <td>${tx.subcategory ? getSubCatEmoji(tx.type, tx.category, tx.subcategory) + ' ' + esc(tx.subcategory) : '—'}</td>
       <td>${esc(tx.description || '—')}</td>
       <td><span class="badge" style="background:${getMemberBadgeStyle(whoVal).bg};color:${getMemberBadgeStyle(whoVal).color}">${getWhoLabel(whoVal)}</span></td>
-      <td><span class="account-tag ${acctCls}" style="margin:0;font-size:12px">${acctIcon} ${esc(acctName)}</span></td>
+      <td><span class="account-tag ${acctCls}" style="margin:0;font-size:12px">${acctIcon} ${acctDisplay}</span></td>
       <td class="monto ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${formatCOP(tx.amount)}</td>
       <td>
         <button class="btn-sm" data-edit="${tx.id}" title="Editar">✏️</button>

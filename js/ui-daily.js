@@ -3,7 +3,7 @@ import { $, esc, formatCOP, formatCOPShort, getToday } from './utils.js';
 import { MEMBER_COLORS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, LAST_CAT_KEY } from './config.js';
 import { getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji } from './categories.js';
 import { getFilteredTransactions, getCumulativeBalance } from './data.js';
-import { getPaymentMethod, getMemberBadgeStyle, updateAccountSelector, getWhoLabel } from './members.js';
+import { getPaymentMethod, getMemberBadgeStyle, updateAccountSelector, getWhoLabel, getAccountsForMember } from './members.js';
 import { openEditModal } from './ui-modals.js';
 
 function loadLastCategory() {
@@ -262,12 +262,18 @@ export function renderDailyFeed() {
       const emoji = tx.subcategory ? getSubCatEmoji(tx.type, tx.category, tx.subcategory) : getCatEmoji(tx.category);
       const whoLabel = getWhoLabel(tx.who || 'yo');
       const subLabel = tx.subcategory ? ' · ' + esc(tx.subcategory) : '';
+      const acctName = tx.account || 'Efectivo';
+      let acctOwner = '';
+      for (const [mid, accts] of Object.entries(state.accounts)) {
+        if (accts.includes(acctName)) { acctOwner = getWhoLabel(mid); break; }
+      }
+      const acctDisplay = acctOwner ? `${esc(acctName)} (${acctOwner})` : esc(acctName);
       html += `
         <div class="feed-item">
           <div class="feed-emoji">${esc(emoji)}</div>
           <div class="feed-info">
             <div class="feed-cat">${esc(tx.category)}${subLabel}</div>
-            <div class="feed-desc">${esc(tx.description || '—')} · ${esc(whoLabel)}</div>
+            <div class="feed-desc">${esc(tx.description || '—')} · ${esc(whoLabel)} · ${acctDisplay}</div>
           </div>
           <div class="feed-amount ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${tx.type === 'ingreso' ? '+' : '-'}${formatCOPShort(tx.amount)}</div>
           <button class="feed-del-btn" data-edit="${tx.id}" title="Editar">✏️</button>
