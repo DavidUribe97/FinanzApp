@@ -187,7 +187,7 @@ export function renderDailyBalance(animate = false) {
     const key = tx.account || 'yo:Efectivo';
     if (!saldoPorCuenta[key]) saldoPorCuenta[key] = 0;
     saldoPorCuenta[key] += tx.type === 'ingreso' ? tx.amount : -tx.amount;
-    const d = new Date(tx.date + 'T00:00:00');
+    const d = parseLocalDate(tx.date);
     if (d.getFullYear() < state.currentYear || (d.getFullYear() === state.currentYear && d.getMonth() < state.currentMonth)) {
       if (!carryPorCuenta[key]) carryPorCuenta[key] = 0;
       carryPorCuenta[key] += tx.type === 'ingreso' ? tx.amount : -tx.amount;
