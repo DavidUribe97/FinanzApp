@@ -168,16 +168,29 @@ export function updateWhoToggle() {
 }
 
 export function renderDailyBalance(animate = false) {
-  const allAccounts = getAllAccounts();
+  const saldoPorCuenta = {};
+  const carryPorCuenta = {};
+  state.transactions.forEach(tx => {
+    const key = tx.account || 'yo:Efectivo';
+    if (!saldoPorCuenta[key]) saldoPorCuenta[key] = 0;
+    saldoPorCuenta[key] += tx.type === 'ingreso' ? tx.amount : -tx.amount;
+    const d = new Date(tx.date + 'T00:00:00');
+    if (d.getFullYear() < state.currentYear || (d.getFullYear() === state.currentYear && d.getMonth() < state.currentMonth)) {
+      if (!carryPorCuenta[key]) carryPorCuenta[key] = 0;
+      carryPorCuenta[key] += tx.type === 'ingreso' ? tx.amount : -tx.amount;
+    }
+  });
   let saldoTotal = 0;
   let totalCash = 0;
   let totalDigital = 0;
-  allAccounts.forEach(({ memberId, account }) => {
-    const bal = getAccountBalance(`${memberId}:${account}`);
+  for (const [key, bal] of Object.entries(saldoPorCuenta)) {
     saldoTotal += bal;
-    if (isCashAccount(account)) totalCash += bal;
+    const accountName = key.includes(':') ? key.split(':').slice(1).join(':') : key;
+    if (isCashAccount(accountName)) totalCash += bal;
     else totalDigital += bal;
-  });
+  }
+  let carryBalance = 0;
+  for (const bal of Object.values(carryPorCuenta)) carryBalance += bal;
   const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
   const totalIngresos = filtered.filter(tx => tx.type === 'ingreso').reduce((s, t) => s + t.amount, 0);
   const totalGastos = filtered.filter(tx => tx.type === 'gasto').reduce((s, t) => s + t.amount, 0);
@@ -186,6 +199,16 @@ export function renderDailyBalance(animate = false) {
   $('dailyGastos').textContent = formatCOP(totalGastos);
   $('dailyCash').textContent = formatCOP(totalCash);
   $('dailyDigital').textContent = formatCOP(totalDigital);
+
+  const carriedEl = $('balanceCarried');
+  if (carryBalance !== 0) {
+    const label = carryBalance > 0 ? 'Saldo mes anterior' : 'Deuda mes anterior';
+    const cls = carryBalance > 0 ? 'positive' : 'negative';
+    carriedEl.innerHTML = `<span class="${cls}">${label}: ${formatCOP(Math.abs(carryBalance))}</span>`;
+    carriedEl.style.display = 'block';
+  } else {
+    carriedEl.style.display = 'none';
+  }
 
   if (animate) {
     const oldText = el.textContent;

@@ -1767,6 +1767,49 @@ Transacciones antiguas con `account: 'Bancolombia'` (sin prefijo) se parsean con
 
 ---
 
+### Fix: Saldo efectivo/digital persiste entre meses + mensaje saldo anterior (2026-07-24)
+
+**Descripción:** El saldo de efectivo y digital ahora se calcula en una sola pasada sobre TODAS las transacciones (sin filtro de mes), asegurando que los montos se mantengan iguales al navegar entre meses. Se restauró el mensaje de saldo del mes anterior.
+
+**Problema anterior:**
+- `renderDailyBalance()` usaba `getAllAccounts()` + `getAccountBalance()` por separado, creando inconsistencias entre el total y la suma efectivo+digital
+- Al cambiar de mes, los saldos cambiaban porque no se recalculaban desde cero
+- El mensaje de saldo del mes anterior (`balanceCarried`) se había eliminado
+
+**Solución:**
+- Un solo `saldoPorCuenta` recorre todas las transacciones en una pasada
+- Se extrae `accountName` de la clave completa (`miembro:cuenta`) para clasificar cash/digital
+- `carryPorCuenta` acumula saldos de transacciones ANTES del mes actual (separado del total)
+- Se restauró el elemento `#balanceCarried` con "Saldo mes anterior: $X" (positivo) o "Deuda mes anterior: $X" (negativo)
+- Se eliminaron los `console.log` de debug
+
+**Algoritmo:**
+```
+1. Recorrer TODAS las transacciones → saldoPorCuenta[key] += ingreso - gasto
+2. Separar carryPorCuenta → solo transacciones antes del mes actual
+3. Clasificar cada cuenta como cash/digital por isCashAccount(accountName)
+4. Mostrar: Total, Efectivo, Digital + carry del mes anterior
+```
+
+#### Archivos modificados
+
+| Archivo | Cambio |
+|---|---|
+| `js/ui-daily.js:170-210` | Reescrito `renderDailyBalance()` — pasada única, carry balance restaurado, console.log eliminados |
+
+#### Verificación
+
+```
+[✓] Efectivo y digital muestran montos correctos (suma = total)
+[✓] Al cambiar de mes, los montos se mantienen iguales
+[✓] Mensaje "Saldo mes anterior: $X" se muestra cuando carry ≠ 0
+[✓] Mensaje "Deuda mes anterior: $X" se muestra cuando carry < 0
+[✓] Se oculta cuando carry = 0 (primer mes sin datos previos)
+[✓] Todos los módulos accesibles vía HTTP
+```
+
+---
+
 ## Notas finales
 
 - **No es un rewrite** — es un refactor quirúrgico. En cada fase la app funciona.
