@@ -36,6 +36,7 @@ export function openRoomModal() {
     $('roomPasswordInput').required = true;
   }
   $('roomModal').classList.add('active');
+  $('roomCodeInput').focus();
 }
 
 /** Cierra el modal de sala. */

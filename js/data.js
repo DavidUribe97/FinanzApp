@@ -8,9 +8,30 @@ import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT } from './config.js';
 import { $, downloadBlob, formatCOP, parseLocalDate, getWhoLabel } from './utils.js';
 import { MONTHS } from './config.js';
 
+/** Soft limit warning threshold for Firestore's 10K hard limit. */
+const TX_SOFT_LIMIT = 9000;
+
 let syncToFirestoreFn = () => {};
 /** Registra el callback de sync a Firestore para disparar después de cada escritura. */
 export function setSyncToFirestore(fn) { syncToFirestoreFn = fn; }
+
+/** Cache de saldos por cuenta — se invalida al modificar transacciones. */
+let accountBalanceCache = null;
+
+/** Invalida la caché de saldos (llamar después de cada saveData). */
+function invalidateBalanceCache() { accountBalanceCache = null; }
+
+/** Construye el mapa de saldos por cuenta desde todas las transacciones. */
+function getBalanceMap() {
+  if (accountBalanceCache) return accountBalanceCache;
+  accountBalanceCache = {};
+  state.transactions.forEach(tx => {
+    const key = tx.account || 'yo:Efectivo';
+    if (!accountBalanceCache[key]) accountBalanceCache[key] = 0;
+    accountBalanceCache[key] += tx.type === 'ingreso' ? tx.amount : -tx.amount;
+  });
+  return accountBalanceCache;
+}
 
 /** Carga transacciones y presupuestos desde localStorage hacia el state global. */
 export function loadData() {
@@ -33,6 +54,7 @@ export function loadData() {
 /** Persiste transacciones en localStorage y dispara sync a Firestore. */
 export function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
+  invalidateBalanceCache();
   syncToFirestoreFn();
 }
 
@@ -69,11 +91,15 @@ export function getDisplayTransactions() {
   }).sort((a, b) => b.date.localeCompare(a.date));
 }
 
-/** Suma ingresos menos gastos de una cuenta específica. */
+/** Suma ingresos menos gastos de una cuenta específica (usa caché). */
 export function getAccountBalance(accountKey) {
-  return state.transactions
-    .filter(tx => tx.account === accountKey)
-    .reduce((sum, tx) => sum + (tx.type === 'ingreso' ? tx.amount : -tx.amount), 0);
+  const map = getBalanceMap();
+  return map[accountKey] || 0;
+}
+
+/** Devuelve el mapa completo de saldos por cuenta (para uso externo). */
+export function getAllBalances() {
+  return getBalanceMap();
 }
 
 /** Calcula el saldo acumulado de todas las cuentas hasta el inicio del mes dado. */
@@ -100,6 +126,9 @@ export function addTransaction(data) {
   if (data.who === 'compartido' && data.type === 'ingreso') return;
   state.transactions.push(data);
   saveData();
+  if (state.transactions.length >= TX_SOFT_LIMIT && state.transactions.length % 500 === 0) {
+    import('./ui-modals.js').then(m => m.showToast(`Atención: ${state.transactions.length.toLocaleString()} transacciones. Límite Firestore: 10,000`));
+  }
 }
 
 /** Actualiza una transacción existente por id, fusionando con los nuevos datos. Bloquea compartido+ingreso. */
@@ -153,7 +182,14 @@ export function exportCSV() {
 
 /** Genera y descarga un backup completo en formato JSON. */
 export function exportJSON() {
-  const data = { transactions: state.transactions, budgets: state.budgets, categories: state.categoriesData, exportedAt: new Date().toISOString() };
+  const data = {
+    transactions: state.transactions,
+    budgets: state.budgets,
+    categories: state.categoriesData,
+    members: state.members,
+    accounts: state.accounts,
+    exportedAt: new Date().toISOString()
+  };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   downloadBlob(blob, `finanzas_backup_${state.currentYear}-${String(state.currentMonth+1).padStart(2,'0')}.json`);
 }

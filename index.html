@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0e1a">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://identitytoolkit.googleapis.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.gstatic.com; img-src 'self' data:; font-src 'self'; manifest-src 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://identitytoolkit.googleapis.com; style-src 'self'; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.gstatic.com; img-src 'self' data:; font-src 'self'; manifest-src 'self'">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.svg" type="image/svg+xml" sizes="192x192">
 <title>FinanzApp</title>
@@ -22,11 +22,11 @@
   <div class="header">
     <div class="header-title"><span>Finanz</span>App</div>
     <div class="header-actions">
-      <button class="header-btn" id="roomBtn" title="Sala">🔗</button>
+      <button class="header-btn" id="roomBtn" title="Sala" aria-label="Sala de sincronizacion">🔗</button>
       <span id="roomCodeLabel" style="font-size:11px;color:var(--text-muted);display:flex;align-items:center;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-      <span id="syncStatus" style="font-size:12px;color:var(--text-muted);display:flex;align-items:center">○</span>
-      <button class="header-btn" id="modeToggle" title="Análisis">📊</button>
-      <button class="header-btn" id="themeToggle" title="Tema">🌓</button>
+      <span id="syncStatus" role="status" aria-label="Estado de conexion" style="font-size:12px;color:var(--text-muted);display:flex;align-items:center">○</span>
+      <button class="header-btn" id="modeToggle" title="Analisis" aria-label="Vista de analisis">📊</button>
+      <button class="header-btn" id="themeToggle" title="Tema" aria-label="Cambiar tema">🌓</button>
     </div>
   </div>
 
@@ -136,39 +136,39 @@
         <form id="txForm" autocomplete="off" novalidate>
           <div class="form-row">
             <div class="form-group">
-              <label>Tipo</label>
+              <label for="txType">Tipo</label>
               <select id="txType">
                 <option value="ingreso">Ingreso</option>
                 <option value="gasto">Gasto</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Monto *</label>
+              <label for="txAmount">Monto *</label>
               <input type="number" id="txAmount" placeholder="0" step="1" min="1" required>
             </div>
           </div>
           <div class="form-group">
-            <label>Categoría *</label>
+            <label for="txCategory">Categoria *</label>
             <select id="txCategory" required></select>
           </div>
           <div class="form-group">
-            <label>Subcategoría</label>
-            <select id="txSubcategory"><option value="">Sin subcategoría</option></select>
+            <label for="txSubcategory">Subcategoria</label>
+            <select id="txSubcategory"><option value="">Sin subcategoria</option></select>
           </div>
           <div class="form-group">
-            <label>Quién</label>
+            <label for="txWho">Quien</label>
             <select id="txWho"></select>
           </div>
           <div class="form-group">
-            <label>Cuenta</label>
+            <label for="txAccount">Cuenta</label>
             <select id="txAccount"></select>
           </div>
           <div class="form-group">
-            <label>Descripción</label>
-            <textarea id="txDescription" placeholder="Descripción opcional" maxlength="100"></textarea>
+            <label for="txDescription">Descripcion</label>
+            <textarea id="txDescription" placeholder="Descripcion opcional" maxlength="100"></textarea>
           </div>
           <div class="form-group">
-            <label>Fecha *</label>
+            <label for="txDate">Fecha *</label>
             <input type="date" id="txDate" required>
           </div>
           <button type="submit" class="btn btn-primary pulse" id="btnAgregar">Agregar</button>
@@ -361,16 +361,16 @@
     </div>
     <form id="roomForm" autocomplete="off" novalidate>
       <div class="form-group">
-        <label>Código de sala</label>
+        <label for="roomCodeInput">Codigo de sala</label>
         <input type="text" id="roomCodeInput" placeholder="Ej: Pareja2024" maxlength="50" required>
       </div>
       <div class="form-group">
-        <label>Contraseña</label>
-        <input type="password" id="roomPasswordInput" placeholder="Contraseña (opcional en salas existentes sin clave)" maxlength="100">
+        <label for="roomPasswordInput">Contrasena</label>
+        <input type="password" id="roomPasswordInput" placeholder="Contrasena (opcional en salas existentes sin clave)" maxlength="100">
       </div>
       <div class="form-group" id="roomConfirmGroup" style="display:none">
-        <label>Confirmar contraseña</label>
-        <input type="password" id="roomPasswordConfirm" placeholder="Repite la contraseña" maxlength="100">
+        <label for="roomPasswordConfirm">Confirmar contrasena</label>
+        <input type="password" id="roomPasswordConfirm" placeholder="Repite la contrasena" maxlength="100">
       </div>
       <div class="btn-row">
         <button type="submit" class="btn btn-primary" id="roomSubmitBtn">Crear sala</button>
@@ -393,39 +393,39 @@
     <form id="editForm" autocomplete="off" novalidate>
       <div class="form-row">
         <div class="form-group">
-          <label>Tipo</label>
+          <label for="editType">Tipo</label>
           <select id="editType">
             <option value="ingreso">Ingreso</option>
             <option value="gasto">Gasto</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Monto *</label>
+          <label for="editAmount">Monto *</label>
           <input type="number" id="editAmount" step="1" min="1" required>
         </div>
       </div>
       <div class="form-group">
-        <label>Categoría *</label>
+        <label for="editCategory">Categoria *</label>
         <select id="editCategory" required></select>
       </div>
       <div class="form-group">
-        <label>Subcategoría</label>
-        <select id="editSubcategory"><option value="">Sin subcategoría</option></select>
+        <label for="editSubcategory">Subcategoria</label>
+        <select id="editSubcategory"><option value="">Sin subcategoria</option></select>
       </div>
       <div class="form-group">
-        <label>Quién</label>
+        <label for="editWho">Quien</label>
         <select id="editWho"></select>
       </div>
       <div class="form-group">
-        <label>Cuenta</label>
+        <label for="editAccount">Cuenta</label>
         <select id="editAccount"></select>
       </div>
       <div class="form-group">
-        <label>Descripción</label>
+        <label for="editDescription">Descripcion</label>
         <textarea id="editDescription" maxlength="100"></textarea>
       </div>
       <div class="form-group">
-        <label>Fecha *</label>
+        <label for="editDate">Fecha *</label>
         <input type="date" id="editDate" required>
       </div>
       <div class="btn-row">
