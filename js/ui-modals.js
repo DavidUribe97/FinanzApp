@@ -10,6 +10,7 @@ import { getCatNames, getSubCatNames, getSubCatEmoji } from './categories.js';
 import { updateAccountSelector } from './members.js';
 
 let updateWhoSelectsFn = () => {};
+/** Registra el callback que refresca los <select> de "quién" al cambiar miembros. */
 export function setUpdateWhoSelects(fn) { updateWhoSelectsFn = fn; }
 
 /** Muestra un toast con mensaje y opcionalmente una acción de deshacer. */
