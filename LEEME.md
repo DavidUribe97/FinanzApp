@@ -435,6 +435,8 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | Variable CSS `--card-bg` usada pero nunca definida | Emoji picker y display de emoji sin fondo correcto | Reemplazada por `--bg-card` (definida en temas dark/light) | `v2.1` |
 | Selectores `.feed-item` y `.feed-amount` definidos dos veces | CSS conflicto — segunda definición sobreescribía la primera | Consolidados en una sola definición cada uno | `v2.1` |
 | Regla `table th, table td` redundante en `@media 480px` | Dos reglas consecutivas en mismo media query; la primera era inmediatamente sobrescrita | Eliminada la regla redundante | `v2.1` |
+| Auto-creación de salas en modo "Unirse" | `subscribeFirestore()` creaba la sala automáticamente si `!snap.exists`, sin importar si el usuario quería crear o unirse | Rechaza con toast "Sala no encontrada" si `isCreatingRoom === false` y el doc no existe | `v2.2` |
+| Sin límite de creación de salas | Cualquiera podía crear salas indefinidas sin verificación pre-existencia ni tope | Pre-existence check + conteo de salas (máx 50) antes de crear | `v2.2` |
 
 ### Hotfix #2 revertido (2026-07-25)
 
@@ -462,6 +464,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.0` | 2026-07-24 | Modularización completa + 6 post-fixes | ✅ En master |
 | `bd38724` | 2026-07-25 | Hotfix #1 (data leak) + #3 (password bypass), revert #2, deploy limpio | ✅ En master + deployado |
 | `v2.1` | 2026-07-25 | 14 fixes: resetRoomState defaults, SW v4, subscribeFirestore refactor, CSS limpieza, circular dependency fix | ✅ En master + deployado |
+| `v2.2` | 2026-07-25 | Anti-spam salas: rechazo en join, pre-existence check, límite 50 salas | ✅ En master + deployado |
 
 ---
 
