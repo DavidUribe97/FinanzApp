@@ -88,6 +88,11 @@ async function firstTimeSetup(ref, resolve) {
   } catch (e) {
     console.warn('Error creando sala:', e.message);
     updateSyncStatusUI(false);
+    if (e.code === 'permission-denied') {
+      showToast('Límite de salas alcanzado');
+    } else {
+      showToast('Error al crear sala');
+    }
     resolve();
     return;
   }
@@ -104,7 +109,13 @@ export function subscribeFirestore() {
       state.firestoreUnsub = ref.onSnapshot(snap => {
         updateSyncStatusUI(true);
         if (!snap.exists) {
-          firstTimeSetup(ref, resolve);
+          if (state.isCreatingRoom) {
+            firstTimeSetup(ref, resolve);
+          } else {
+            updateSyncStatusUI(false);
+            showToast('Sala no encontrada');
+            resolve();
+          }
           return;
         }
         if (state.pendingSyncs > 0) { resolve(); return; }
@@ -129,6 +140,9 @@ export function subscribeFirestore() {
       }, err => {
         console.warn('Firestore snapshot error:', err.message);
         updateSyncStatusUI(false);
+        if (err.code === 'permission-denied') {
+          showToast('Límite de salas alcanzado');
+        }
         resolve();
       });
     }

@@ -2,8 +2,8 @@
 // Maneja código de sala, contraseña y persistencia en localStorage.
 // Importa showToast de ui-modals.js para feedback.
 import { state, resetRoomState } from './state.js';
-import { ROOM_KEY } from './config.js';
-import { $ } from './utils.js';
+import { ROOM_KEY, FIRESTORE_COLLECTION } from './config.js';
+import { $, safeRoomCode } from './utils.js';
 import { updateSyncStatus, updateRoomLabel, subscribeFirestore } from './firebase-sync.js';
 import { showToast } from './ui-modals.js';
 
@@ -93,6 +93,14 @@ export function setupRoomModal() {
       if (password.length < 4) return showToast('La contraseña debe tener al menos 4 caracteres');
       const confirm = $('roomPasswordConfirm').value;
       if (password !== confirm) return showToast('Las contraseñas no coinciden');
+      // Verificar que el código no exista ya en Firestore
+      const MAX_ROOMS = 50;
+      try {
+        const snap = await state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(newCode)).get();
+        if (snap.exists) return showToast('Ese código ya está en uso');
+        const allRooms = await state.db.collection(FIRESTORE_COLLECTION).get();
+        if (allRooms.size >= MAX_ROOMS) return showToast(`Límite de ${MAX_ROOMS} salas alcanzado`);
+      } catch (e) { /* offline — permitir crear localmente */ }
       state.roomPassword = password;
     } else {
       state.roomPassword = password || null;
