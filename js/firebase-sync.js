@@ -5,7 +5,6 @@ import { state } from './state.js';
 import { FIREBASE_CONFIG, FIRESTORE_COLLECTION } from './config.js';
 import { $, safeRoomCode } from './utils.js';
 import { showToast } from './ui-modals.js';
-import { saveData } from './data.js';
 
 let onRemoteUpdate = null;
 /** Registra un callback que se invoca cuando llegan datos remotos de Firestore. */
@@ -51,17 +50,14 @@ export async function syncToFirestore() {
   if (!state.db || !state.roomCode) return;
   if (!state.firebaseInitialized) { state.pendingSyncs++; return; }
   try {
-    const payload = {
+    await state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode)).set({
       transactions: state.transactions,
       budgets: state.budgets,
       categories: state.categoriesData,
       members: state.members,
+      accounts: state.accounts,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    if (state.accounts && Object.keys(state.accounts).length > 0) {
-      payload.accounts = state.accounts;
-    }
-    await state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode)).set(payload, { merge: true });
+    }, { merge: true });
   } catch (e) {
     console.warn('Error syncing to Firestore:', e.message);
     updateSyncStatusUI(false);
@@ -81,11 +77,9 @@ async function firstTimeSetup(ref, resolve) {
     budgets: state.budgets,
     categories: state.categoriesData,
     members: state.members,
+    accounts: state.accounts,
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-  if (state.accounts && Object.keys(state.accounts).length > 0) {
-    data.accounts = state.accounts;
-  }
   if (state.isCreatingRoom && state.roomPassword) {
     data.passwordHash = await sha256(state.roomPassword);
   }
@@ -99,45 +93,6 @@ async function firstTimeSetup(ref, resolve) {
   }
   if (onRemoteUpdate) onRemoteUpdate();
   resolve();
-}
-
-/** Migra cuentas desde transacciones viejas y asigna account faltante. Retorna true si modificó transacciones. */
-function migrateAccountsFromTransactions() {
-  const accounts = {};
-  const memberIds = new Set(Object.keys(state.members));
-  let modified = false;
-
-  (state.transactions || []).forEach(tx => {
-    if (tx.account) {
-      const idx = tx.account.indexOf(':');
-      if (idx !== -1) {
-        const memberId = tx.account.slice(0, idx);
-        const acctName = tx.account.slice(idx + 1);
-        memberIds.add(memberId);
-        if (!accounts[memberId]) accounts[memberId] = [];
-        if (!accounts[memberId].includes(acctName)) accounts[memberId].push(acctName);
-      }
-    }
-  });
-
-  memberIds.forEach(id => {
-    if (id === 'compartido') return;
-    if (!accounts[id] || accounts[id].length === 0) accounts[id] = ['Efectivo'];
-  });
-  if (Object.keys(accounts).length === 0) {
-    accounts.yo = ['Efectivo'];
-    accounts.pareja = ['Efectivo'];
-  }
-
-  (state.transactions || []).forEach(tx => {
-    if (tx.account) return;
-    const who = tx.who || 'yo';
-    const acct = (accounts[who] && accounts[who][0]) || 'Efectivo';
-    tx.account = `${who}:${acct}`;
-    modified = true;
-  });
-
-  return modified ? accounts : null;
 }
 
 /** Suscribe un listener en tiempo real al documento de sala en Firestore, verificando passwordHash si existe. */
@@ -188,13 +143,8 @@ export function subscribeFirestore() {
       if (data.members) {
         state.members = JSON.parse(JSON.stringify(data.members));
       }
-      const hasAccountField = (state.transactions || []).some(tx => tx.account);
-      if (data.accounts && hasAccountField) {
+      if (data.accounts) {
         state.accounts = JSON.parse(JSON.stringify(data.accounts));
-      } else {
-        const migrated = migrateAccountsFromTransactions();
-        state.accounts = migrated || (data.accounts ? JSON.parse(JSON.stringify(data.accounts)) : {});
-        saveData();
       }
       if (onRemoteUpdate) onRemoteUpdate();
       resolve();
