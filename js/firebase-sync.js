@@ -4,6 +4,7 @@
 import { state } from './state.js';
 import { FIREBASE_CONFIG, FIRESTORE_COLLECTION } from './config.js';
 import { $, safeRoomCode } from './utils.js';
+import { showToast } from './ui-modals.js';
 
 let onRemoteUpdate = null;
 /** Registra un callback que se invoca cuando llegan datos remotos de Firestore. */
@@ -108,7 +109,14 @@ export function subscribeFirestore() {
       const snap = await ref.get().catch(() => null);
       if (snap && snap.exists) {
         const data = snap.data();
-        if (data.passwordHash && state.roomPassword) {
+        if (data.passwordHash) {
+          if (!state.roomPassword) {
+            updateSyncStatusUI(false);
+            showToast('Esta sala requiere contraseña');
+            if (state.roomCodeResolver) { state.roomCodeResolver(); state.roomCodeResolver = null; }
+            resolve();
+            return;
+          }
           const hash = await sha256(state.roomPassword);
           if (hash !== data.passwordHash) {
             updateSyncStatusUI(false);
