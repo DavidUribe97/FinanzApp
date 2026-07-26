@@ -512,7 +512,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `bd38724` | 2026-07-25 | Hotfix #1 (data leak) + #3 (password bypass), revert #2, deploy limpio | ✅ En master + deployado |
 | `v2.1` | 2026-07-25 | 14 fixes: resetRoomState defaults, SW v4, subscribeFirestore refactor, CSS limpieza, circular dependency fix | ✅ En master + deployado |
 | `v2.2` | 2026-07-25 | Anti-spam salas: rechazo en join, pre-existence check, límite 50 salas | ✅ En master + deployado |
-| `v2.3` | 2026-07-26 | Seguridad: config/meta, sessionStorage, prompt contraseña, balance cache, circular dependency, dead code, CSP | ✅ En develop |
+| `v2.3` | 2026-07-26 | Seguridad: config/meta, sessionStorage, prompt contraseña, balance cache, circular dependency, dead code, CSP | ✅ En master |
 
 ---
 
