@@ -10,7 +10,10 @@ import { getFilteredTransactions, getCumulativeBalance, getDisplayTransactions, 
 import { getSubCatEmoji } from './categories.js';
 import { isCashAccount, getMemberBadgeStyle, getWhoLabel, getAccountsForMember, updateAccountSelector, parseAccountValue } from './members.js';
 import { openEditModal, showToast } from './ui-modals.js';
-import { refreshAnalysis } from './ui-navigation.js';
+
+let onRefreshAnalysis = null;
+/** Registra un callback para refrescar la vista de análisis después de editar/eliminar. */
+export function setRefreshAnalysis(fn) { onRefreshAnalysis = fn; }
 
 /** Renderiza las tarjetas de resumen con ingresos, gastos, saldo y número de transacciones. */
 export function renderSummary() {
@@ -70,11 +73,11 @@ export function renderTable() {
     btn.addEventListener('click', () => {
       const tx = deleteTransactionData(btn.dataset.del);
       if (tx) {
-        refreshAnalysis();
+        if (onRefreshAnalysis) onRefreshAnalysis();
         updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
         showToast(`"${tx.description || tx.category}" eliminado`, 'Deshacer', () => {
           restoreTransaction();
-          refreshAnalysis();
+          if (onRefreshAnalysis) onRefreshAnalysis();
           updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
         });
       }

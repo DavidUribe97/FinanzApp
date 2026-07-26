@@ -16,8 +16,9 @@ import { renderMembers, setupMembersPanel, updateWhoSelects } from './ui-members
 import { setupAccountsPanel } from './ui-accounts.js';
 import { setupCategoryManager, setNotifyRefresh as setNotifyRefreshCategories } from './ui-categories.js';
 import { setNotifyRefresh as setNotifyRefreshMembers } from './ui-members.js';
+import { setRefreshAnalysis } from './ui-analysis.js';
 import { loadTheme } from './ui-theme.js';
-import { setupNavigation, setMode, updateMonthLabel, refreshAll } from './ui-navigation.js';
+import { setupNavigation, setMode, updateMonthLabel, refreshAll, refreshAnalysis } from './ui-navigation.js';
 import { refreshDaily } from './ui-daily.js';
 import { setupDailyMode } from './setup-daily.js';
 import { setupAnalysisForm } from './setup-analysis.js';
@@ -80,6 +81,7 @@ function init() {
   setNotifyRefreshCategories(refreshAll);
   setNotifyRefreshMembers(refreshAll);
   setUpdateWhoSelects(updateWhoSelects);
+  setRefreshAnalysis(refreshAnalysis);
 
   initFirebase();
 

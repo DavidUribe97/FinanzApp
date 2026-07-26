@@ -2,7 +2,7 @@
 // Usa setRemoteUpdateCallback(fn) para notificar datos remotos (nunca importa módulos de dominio — regla 2 de dependencias).
 // Incluye verificación de passwordHash de sala.
 import { state } from './state.js';
-import { FIREBASE_CONFIG, FIRESTORE_COLLECTION } from './config.js';
+import { FIREBASE_CONFIG, FIRESTORE_COLLECTION, ROOM_KEY } from './config.js';
 import { $, safeRoomCode } from './utils.js';
 import { showToast } from './ui-modals.js';
 
@@ -203,8 +203,8 @@ export async function initFirebase() {
       state.roomCode = localStorage.getItem('finanzas_room');
       if (!state.roomCode) { state.firebaseInitialized = true; updateSyncStatusUI(false); return; }
     }
-    state.roomPassword = localStorage.getItem('finanzas_room_pwd');
     state.isCreatingRoom = false;
+    state.roomPassword = sessionStorage.getItem(ROOM_KEY + '_pwd');
     updateSyncStatusUI(true);
     await subscribeFirestore();
     state.firebaseInitialized = true;

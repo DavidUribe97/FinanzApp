@@ -97,11 +97,6 @@ export function getAccountBalance(accountKey) {
   return map[accountKey] || 0;
 }
 
-/** Devuelve el mapa completo de saldos por cuenta (para uso externo). */
-export function getAllBalances() {
-  return getBalanceMap();
-}
-
 /** Calcula el saldo acumulado de todas las cuentas hasta el inicio del mes dado. */
 export function getCumulativeBalance(month, year) {
   let balance = 0;
@@ -217,8 +212,7 @@ export function isValidCategories(cats) {
       if (c.subcats) {
         if (!Array.isArray(c.subcats)) return false;
         for (const s of c.subcats) {
-          if (typeof s === 'string') continue;
-          if (!s || typeof s.name !== 'string' || typeof s.emoji !== 'string') return false;
+          if (!s || typeof s.name !== 'string' || !s.name || typeof s.emoji !== 'string') return false;
         }
       }
     }
