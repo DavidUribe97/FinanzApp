@@ -30,18 +30,18 @@ function importJSON(file) {
   reader.onload = async e => {
     try {
       const data = JSON.parse(e.target.result);
-      if (!data || typeof data !== 'object') throw new Error('Datos invalidos');
+      if (!data || typeof data !== 'object') throw new Error('Datos inválidos');
       if (!Array.isArray(data.transactions) || !data.transactions.every(isValidTx)) {
-        throw new Error('Transacciones invalidas');
+        throw new Error('Transacciones inválidas');
       }
       if (data.budgets && !isValidBudgets(data.budgets)) {
-        throw new Error('Presupuestos invalidos');
+        throw new Error('Presupuestos inválidos');
       }
       if (data.categories && !isValidCategories(data.categories)) {
-        throw new Error('Categorias invalidas');
+        throw new Error('Categorías inválidas');
       }
       dismissAllToasts();
-      const ok = await showConfirmModal(`Importar ${data.transactions.length} transacciones? Se reemplazaran los datos actuales.`);
+      const ok = await showConfirmModal(`Importar ${data.transactions.length} transacciones? Se reemplazarán los datos actuales.`);
       if (!ok) return;
       state.transactions = data.transactions.filter(tx => !(tx.who === 'compartido' && tx.type === 'ingreso'));
       if (data.budgets) state.budgets = data.budgets;
@@ -50,12 +50,12 @@ function importJSON(file) {
       if (data.accounts) { state.accounts = data.accounts; saveAccounts(); }
       saveData();
       saveBudgets();
-  refreshAll(false);
+      refreshAll(false);
       dismissAllToasts();
       showToast(`Importadas ${data.transactions.length} transacciones`);
     } catch (e) {
       dismissAllToasts();
-      showToast('Error: ' + (e.message || 'Archivo invalido'));
+      showToast('Error: ' + (e.message || 'Archivo inválido'));
     }
   };
   reader.readAsText(file);

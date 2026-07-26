@@ -5,8 +5,7 @@
 
 import { state } from './state.js';
 import { $, esc, formatCOPShort } from './utils.js';
-import { getFilteredTransactions } from './data.js';
-import { saveBudgets } from './data.js';
+import { getFilteredTransactions, saveBudgets } from './data.js';
 import { getAllGastoNames } from './categories.js';
 
 /** Renderiza las barras de progreso de presupuesto por categoría con colores dinámicos. */

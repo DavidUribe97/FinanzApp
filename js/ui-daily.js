@@ -9,7 +9,7 @@ import { $, esc, formatCOP, formatCOPShort, getToday, parseLocalDate, toLocalDat
 import { MEMBER_COLORS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, LAST_CAT_KEY } from './config.js';
 import { getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji } from './categories.js';
 import { getFilteredTransactions } from './data.js';
-import { getMemberBadgeStyle, updateAccountSelector, getWhoLabel, getAccountsForMember, parseAccountValue, isCashAccount } from './members.js';
+import { updateAccountSelector, getWhoLabel, parseAccountValue, isCashAccount } from './members.js';
 import { openEditModal } from './ui-modals.js';
 
 function loadLastCategory() {
@@ -316,7 +316,7 @@ export function renderDailyFeed() {
             <div class="feed-desc">${esc(tx.description || '—')} · ${esc(whoLabel)} · ${acctDisplay}</div>
           </div>
           <div class="feed-amount ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${tx.type === 'ingreso' ? '+' : '-'}${formatCOPShort(tx.amount)}</div>
-          <button class="feed-del-btn" data-edit="${tx.id}" title="Editar" aria-label="Editar transaccion">✏️</button>
+          <button class="feed-del-btn" data-edit="${tx.id}" title="Editar" aria-label="Editar transacción">✏️</button>
         </div>
       `;
     });

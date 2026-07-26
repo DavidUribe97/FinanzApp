@@ -8,7 +8,7 @@ import { state } from './state.js';
 import { $, esc, formatCOP } from './utils.js';
 import { getFilteredTransactions, getCumulativeBalance, getDisplayTransactions, deleteTransaction as deleteTransactionData, restoreTransaction } from './data.js';
 import { getSubCatEmoji } from './categories.js';
-import { isCashAccount, getMemberBadgeStyle, getWhoLabel, getAccountsForMember, updateAccountSelector, parseAccountValue } from './members.js';
+import { isCashAccount, getMemberBadgeStyle, getWhoLabel, updateAccountSelector, parseAccountValue } from './members.js';
 import { openEditModal, showToast } from './ui-modals.js';
 
 let onRefreshAnalysis = null;
@@ -64,8 +64,8 @@ export function renderTable() {
       <td><span class="account-tag ${acctCls}" style="margin:0;font-size:12px">${acctIcon} ${acctDisplay}</span></td>
       <td class="monto ${tx.type === 'ingreso' ? 'positive' : 'negative'}">${formatCOP(tx.amount)}</td>
       <td>
-        <button class="btn-sm" data-edit="${tx.id}" title="Editar" aria-label="Editar transaccion">✏️</button>
-        <button class="btn-sm danger" data-del="${tx.id}" title="Eliminar" aria-label="Eliminar transaccion">🗑️</button>
+        <button class="btn-sm" data-edit="${tx.id}" title="Editar" aria-label="Editar transacción">✏️</button>
+        <button class="btn-sm danger" data-del="${tx.id}" title="Eliminar" aria-label="Eliminar transacción">🗑️</button>
       </td>
     </tr>
   `}).join('');

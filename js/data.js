@@ -4,9 +4,8 @@
  * Nunca importa firebase-sync.js directo (regla 1 de dependencias).
  */
 import { state } from './state.js';
-import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT } from './config.js';
+import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT, MONTHS } from './config.js';
 import { $, downloadBlob, formatCOP, parseLocalDate, getWhoLabel } from './utils.js';
-import { MONTHS } from './config.js';
 
 /** Soft limit warning threshold for Firestore's 10K hard limit. */
 const TX_SOFT_LIMIT = 9000;

@@ -136,6 +136,8 @@ Estas reglas mantienen el grafo de dependencias acíclico. Romperlas crea ciclos
 
 6. **`getWhoLabel()` en utils.js:** La función `getWhoLabel(who)` vive en `utils.js` (no en `members.js`) para romper la dependencia circular `data.js ↔ members.js`. `members.js` la re-exporta para mantener backward compatibility con `ui-daily.js`, `ui-charts.js` y `ui-analysis.js`.
 
+7. **Helpers puras en utils.js:** Si una función helper pura (sin dependencia de otro módulo de dominio) es necesaria en dos módulos que ya se importan mutuamente, muévela a `utils.js` en vez de importarla cruzada — así se evita crear un ciclo nuevo cada vez que crece una feature.
+
 ---
 
 ## Cómo usar
@@ -208,7 +210,7 @@ git push origin master --tags
 |---------|----------|
 | `initFirebase()` | Firebase Auth + Firestore init; si no hay sala, abre modal y espera |
 | `subscribeFirestore()` | `onSnapshot` en tiempo real; verifica passwordHash si existe |
-| `promptRoomPassword(roomCode, isCreate)` | Modal para ingresar contraseña de sala; retorna Promise con hash o null |
+| `promptRoomPassword(ref, passwordHash, onVerified, resolve)` | Abre modal en modo "Unirse" cuando falta la contraseña; valida SHA-256 contra el hash; reintenta si es incorrecta |
 | `syncToFirestore()` | Sube transactions, budgets, categories, members y accounts a Firestore |
 | `setRemoteUpdateCallback(fn)` | Callback para notificar cuando llegan datos remotos |
 | `sha256(str)` | Hash SHA-256 via Web Crypto API (para passwords de sala) |
@@ -248,7 +250,7 @@ git push origin master --tags
 | `renderMembers()` | Lista de miembros con editar/eliminar (defaults no se eliminan) |
 | `setupMembersPanel()` | CRUD de miembros: agregar, editar, eliminar con reasignación a compartido |
 | `updateWhoSelects()` | Actualiza los `<select>` de quién en formularios |
-| `filterWhoForType(type)` | Oculta Compartido si tipo es ingreso; fuerza gasto si Compartido seleccionado |
+| `filterWhoForType(selectEl, type)` | Oculta Compartido si tipo es ingreso; fuerza gasto si Compartido seleccionado |
 | `renderAccountsPanel()` | Lista de cuentas por miembro con íconos efectivo/digital |
 | `setupAccountsPanel()` | CRUD de cuentas: agregar, editar, eliminar |
 | `renderCatManager()` | CRUD de categorías con emoji picker |
@@ -513,6 +515,15 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.1` | 2026-07-25 | 14 fixes: resetRoomState defaults, SW v4, subscribeFirestore refactor, CSS limpieza, circular dependency fix | ✅ En master + deployado |
 | `v2.2` | 2026-07-25 | Anti-spam salas: rechazo en join, pre-existence check, límite 50 salas | ✅ En master + deployado |
 | `v2.3` | 2026-07-26 | Seguridad: config/meta, sessionStorage, prompt contraseña, balance cache, circular dependency, dead code, CSP | ✅ En master |
+
+---
+
+## Reglas para agentes trabajando en este repo
+
+- Antes de reportar un import/función como "no usado" o "dead code", confirma con grep en el archivo completo (no solo por nombre en el import), incluyendo cómo se usa en template strings / atributos HTML generados.
+- Antes de documentar la firma de una función en este README, cópiala literalmente del código (`grep -n "function nombreFn"`), no la reconstruyas de memoria o por el nombre.
+- Todo texto visible al usuario (labels, toasts, mensajes de error) va con tildes y ñ correctos — verifica encoding UTF-8 al escribir archivos.
+- Antes de agregar lógica nueva a un flujo compartido (ej. el formulario de sala usado tanto para crear como para reconectar), verifica en qué otros casos se dispara ese mismo código y si el comportamiento aplica a todos ellos por igual (ver bug de `resetRoomState()` en salas ya conocidas, corregido en v2.3).
 
 ---
 
