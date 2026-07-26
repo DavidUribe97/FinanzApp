@@ -47,6 +47,15 @@ export function closeRoomModal() {
 /** Desuscribe Firestore, limpia roomCode/password del state y localStorage, y cierra el modal. */
 export function leaveRoom() {
   if (state.firestoreUnsub) { state.firestoreUnsub(); state.firestoreUnsub = null; }
+  if (state.db && state.roomCode) {
+    const counterRef = state.db.collection('config').doc('meta');
+    counterRef.get().then(snap => {
+      const count = snap.exists ? (snap.data().roomCount || 0) : 0;
+      if (count > 0) {
+        counterRef.set({ roomCount: firebase.firestore.FieldValue.increment(-1) }, { merge: true }).catch(() => {});
+      }
+    }).catch(() => {});
+  }
   state.roomCode = null;
   state.roomPassword = null;
   localStorage.removeItem(ROOM_KEY);
@@ -94,13 +103,13 @@ export function setupRoomModal() {
       if (password.length < 4) return showToast('La contraseña debe tener al menos 4 caracteres');
       const confirm = $('roomPasswordConfirm').value;
       if (password !== confirm) return showToast('Las contraseñas no coinciden');
-      // Verificar que el código no exista ya en Firestore
-      const MAX_ROOMS = 50;
       try {
         const snap = await state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(newCode)).get();
         if (snap.exists) return showToast('Ese código ya está en uso');
-        const allRooms = await state.db.collection(FIRESTORE_COLLECTION).get();
-        if (allRooms.size >= MAX_ROOMS) return showToast(`Límite de ${MAX_ROOMS} salas alcanzado`);
+        const counterRef = state.db.collection('config').doc('meta');
+        const counterSnap = await counterRef.get();
+        const currentCount = counterSnap.exists ? (counterSnap.data().roomCount || 0) : 0;
+        if (currentCount >= 50) return showToast('Límite de 50 salas alcanzado');
       } catch (e) { /* offline — permitir crear localmente */ }
       state.roomPassword = password;
     } else {
