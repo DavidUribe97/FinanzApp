@@ -131,6 +131,38 @@
     </div>
 
     <div class="content-grid">
+      <div class="panel table-panel" style="grid-column:1/-1">
+        <div class="panel-header">
+          <h3>Transacciones</h3>
+          <div style="display:flex;gap:6px">
+            <button class="btn-sm" id="btnImport">📥 Importar</button>
+            <button class="btn-sm" id="btnExportCSV">Exportar CSV</button>
+            <button class="btn-sm" id="btnExportJSON">⬇ JSON</button>
+          </div>
+        </div>
+        <div class="table-wrap" id="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Categoría</th>
+                <th class="hide-mobile">Subcategoría</th>
+                <th class="hide-mobile">Descripción</th>
+                <th>Quién</th>
+                <th>Cuenta</th>
+                <th>Monto</th>
+                <th style="width:70px"></th>
+              </tr>
+            </thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty-msg" style="display:none">
+          <span class="icon">📭</span>No hay transacciones este mes
+        </div>
+      </div>
+
       <div class="panel">
         <h3>Nueva transacción</h3>
         <form id="txForm" autocomplete="off" novalidate>
@@ -308,38 +340,6 @@
             <button class="btn btn-primary" id="catManagerSave" style="flex:2;padding:10px">Guardar</button>
           </div>
           <input type="hidden" id="catManagerEditId">
-        </div>
-      </div>
-
-      <div class="panel" style="grid-column:1/-1">
-        <div class="panel-header">
-          <h3>Transacciones</h3>
-          <div style="display:flex;gap:6px">
-            <button class="btn-sm" id="btnImport">📥 Importar</button>
-            <button class="btn-sm" id="btnExportCSV">Exportar CSV</button>
-            <button class="btn-sm" id="btnExportJSON">⬇ JSON</button>
-          </div>
-        </div>
-        <div class="table-wrap" id="tableWrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Tipo</th>
-                <th>Categoría</th>
-                <th class="hide-mobile">Subcategoría</th>
-                <th class="hide-mobile">Descripción</th>
-                <th>Quién</th>
-                <th>Cuenta</th>
-                <th>Monto</th>
-                <th style="width:70px"></th>
-              </tr>
-            </thead>
-            <tbody id="txBody"></tbody>
-          </table>
-        </div>
-        <div id="emptyState" class="empty-msg" style="display:none">
-          <span class="icon">📭</span>No hay transacciones este mes
         </div>
       </div>
     </div>
