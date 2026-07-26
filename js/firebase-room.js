@@ -116,8 +116,10 @@ export function setupRoomModal() {
       state.roomPassword = password || null;
     }
 
+    if (newCode !== state.roomCode) {
+      resetRoomState();
+    }
     state.roomCode = newCode;
-    resetRoomState();
     localStorage.setItem(ROOM_KEY, state.roomCode);
     if (state.roomPassword) sessionStorage.setItem(ROOM_KEY + '_pwd', state.roomPassword);
     else sessionStorage.removeItem(ROOM_KEY + '_pwd');

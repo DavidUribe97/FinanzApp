@@ -17,7 +17,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 | CSS | `css/styles.css` (~1142 líneas, variables, tema oscuro/claro, sin selectores duplicados) |
 | JS | 22 módulos ES (`js/*.js`), sin frameworks ni build tools |
 | Charts | Chart.js v4.4.7 local (`chart.min.js`, 202KB) |
-| Persistencia local | localStorage (`finanzas_data`, `finanzas_budgets`, `finanzas_categories`, etc.) |
+| Persistencia local | localStorage (`finanzas_data`, `finanzas_budgets`, `finanzas_categories`, etc.) + `sessionStorage` (password de sala) |
 | Sincronización | Firebase Firestore (Anonymous Auth + `onSnapshot` en tiempo real) |
 | Hosting | Firebase Hosting |
 | PWA | `manifest.json` + `sw.js` (cache-first de assets estáticos + network-first de Firebase CDN) |
@@ -38,7 +38,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 .
 ├── index.html              # HTML puro (~453 líneas) + chart.min.js + app.js module
 ├── css/
-│   └── styles.css          # Todo el CSS (~1002 líneas)
+│   └── styles.css          # Todo el CSS (~1142 líneas)
 ├── js/
 │   ├── app.js              # Orchestador: imports, init(), wiring de callbacks
 │   ├── state.js            # Objeto state centralizado (único dueño de variables mutables)
@@ -97,7 +97,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 - **`state.js`** → objeto centralizado con toda la data mutable. Único dueño de las variables.
 - **`firebase-sync.js`** → patrón de callbacks: `setRemoteUpdateCallback(fn)` para evitar dependencias circulares.
 - **Data sync** → inyección de dependencias: `setSyncToFirestore(fn)` en `data.js`, `members.js` y `categories.js`.
-- **UI refresh** → inyección de dependencias: `setNotifyRefresh(fn)` en `ui-categories.js` y `ui-members.js`.
+- **UI refresh** → inyección de dependencias: `setNotifyRefresh(fn)` en `ui-categories.js` y `ui-members.js`, `setRefreshAnalysis(fn)` en `ui-analysis.js`.
 
 ### Carga de datos (init)
 
@@ -107,12 +107,13 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 3. loadAccounts()        → carga cuentas desde localStorage
 4. loadCategories()      → carga categorías desde localStorage
 5. loadData()            → carga transacciones/presupuestos desde localStorage
-6. setSyncData/Members/Categories → inyecta syncToFirestore en los 3 módulos
-7. initFirebase()        → Firebase Auth + Firestore (async, background)
-8. setMode(savedMode)    → restaura modo diario/análisis
-9. renderDaily...()      → render inicial con datos locales
-10. setup*()             → registra event listeners
-11. registerServiceWorker() → registra SW (limpieza de cache delegada al SW activate handler)
+  6. setSyncData/Members/Categories → inyecta syncToFirestore en los 3 módulos
+  7. setRefreshAnalysis(refreshAnalysis) → inyecta callback en ui-analysis.js
+  8. initFirebase()        → Firebase Auth + Firestore (async, background)
+  9. setMode(savedMode)    → restaura modo diario/análisis
+  10. renderDaily...()     → render inicial con datos locales
+  11. setup*()             → registra event listeners
+  12. registerServiceWorker() → registra SW (limpieza de cache delegada al SW activate handler)
 ```
 
 Los datos locales cargan **antes** de Firebase, así que el primer render es instantáneo (sin flash de "vacío → con datos").
@@ -129,9 +130,11 @@ Estas reglas mantienen el grafo de dependencias acíclico. Romperlas crea ciclos
 
 3. **state.js es el único dueño de variables mutables:** Todo lo demás lee/escribe `state.x`, nunca reasigna un import. `state` se exporta como `const` y sus propiedades se mutan directamente (`state.transactions = [...]`).
 
-4. **UI refresh sin dependencias circulares:** `ui-categories.js` y `ui-members.js` usan `setNotifyRefresh(fn)` para notificar a `app.js` que debe refrescar la vista. No importan `ui-navigation.js` directo (eso crearía un ciclo).
+4. **UI refresh sin dependencias circulares:** `ui-categories.js` y `ui-members.js` usan `setNotifyRefresh(fn)` para notificar a `app.js` que debe refrescar la vista. `ui-analysis.js` usa `setRefreshAnalysis(fn)` para no importar `ui-navigation.js` directo (eso crearía un ciclo).
 
-5. **`getWhoLabel()` en utils.js:** La función `getWhoLabel(who)` vive en `utils.js` (no en `members.js`) para romper la dependencia circular `data.js ↔ members.js`. `members.js` la re-exporta para mantener backward compatibility con `ui-daily.js`, `ui-charts.js` y `ui-analysis.js`.
+5. **Balance cache:** `invalidateBalanceCache()` se exporta de `data.js` y se llama en `app.js` dentro de `setRemoteUpdateCallback()` para que datos remotos recalculen balances correctamente.
+
+6. **`getWhoLabel()` en utils.js:** La función `getWhoLabel(who)` vive en `utils.js` (no en `members.js`) para romper la dependencia circular `data.js ↔ members.js`. `members.js` la re-exporta para mantener backward compatibility con `ui-daily.js`, `ui-charts.js` y `ui-analysis.js`.
 
 ---
 
@@ -197,6 +200,7 @@ git push origin master --tags
 | `isValidTx(tx)` | Valida estructura de transacción (para import) |
 | `isValidCategories(cats)` | Valida estructura de categorías (para import) |
 | `isValidBudgets(budgets)` | Valida estructura de presupuestos (para import) |
+| `invalidateBalanceCache()` | Marca cache de balances como sucio para recálculo |
 | `setSyncToFirestore(fn)` | Inyecta la función de sync (llamada desde `app.js`) |
 
 ### Firebase (`js/firebase-sync.js`, `js/firebase-room.js`)
@@ -204,6 +208,7 @@ git push origin master --tags
 |---------|----------|
 | `initFirebase()` | Firebase Auth + Firestore init; si no hay sala, abre modal y espera |
 | `subscribeFirestore()` | `onSnapshot` en tiempo real; verifica passwordHash si existe |
+| `promptRoomPassword(roomCode, isCreate)` | Modal para ingresar contraseña de sala; retorna Promise con hash o null |
 | `syncToFirestore()` | Sube transactions, budgets, categories, members y accounts a Firestore |
 | `setRemoteUpdateCallback(fn)` | Callback para notificar cuando llegan datos remotos |
 | `sha256(str)` | Hash SHA-256 via Web Crypto API (para passwords de sala) |
@@ -235,6 +240,7 @@ git push origin master --tags
 | `renderLineChart()` | Evolución del saldo 12 meses |
 | `renderBudgets()` | Barras de progreso con porcentaje y botón eliminar |
 | `renderStats()` | Estadísticas: gasto diario, top categoría, vs mes anterior, por miembro |
+| `setRefreshAnalysis(fn)` | Inyecta callback de refresh para evitar ciclo con `ui-navigation.js` |
 
 ### UI - Paneles (`js/ui-members.js`, `js/ui-accounts.js`, `js/ui-categories.js`)
 | Función | Qué hace |
@@ -293,7 +299,8 @@ Cada miembro tiene un color único de una paleta de 10 (azul, dorado, verde, pú
 Al crear una sala se puede establecer una contraseña (hash SHA-256). Al unirse a una sala protegida, se pide la clave. Salas legacy (sin `passwordHash` en Firestore) siguen funcionando sin contraseña.
 
 - **Por qué:** El usuario quería privacidad adicional: que no cualquiera con el código pueda ver los datos.
-- La clave se almacena en `localStorage` (`finanzas_room_pwd`). Si se borra localStorage, se pierde la clave.
+- La clave se almacena en `sessionStorage` (`finanzas_room_pwd`). Se mantiene durante la sesión (resiste refresh de página) pero se borra al cerrar el navegador.
+- Si `sessionStorage` está vacío pero Firestore tiene `passwordHash`, la app abre un modal para reingresar la contraseña (fail-closed).
 - La validación es **client-side**: el hash se compara en `subscribeFirestore()`, no en Firestore Security Rules. Ver "Seguridad" más abajo.
 
 ### Who-toggle con scroll y miembros extra
@@ -317,7 +324,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
     match /rooms/{room} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
+      allow create: if request.auth != null
         && request.resource.data.keys().hasAll([
           'transactions', 'budgets', 'categories', 'members', 'accounts'
         ])
@@ -327,6 +334,12 @@ service cloud.firestore {
         && request.resource.data.members is map
         && request.resource.data.accounts is map
         && request.resource.data.transactions.size() <= 10000;
+      allow update: if request.auth != null
+        && request.resource.data.transactions.size() <= 10000;
+    }
+    match /config/{doc} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
     }
   }
 }
@@ -353,6 +366,8 @@ service cloud.firestore {
 ### Seguridad de salas — decisión consciente
 La validación de contraseña de sala ocurre **solo en el cliente** (`firebase-sync.js:subscribeFirestore`). Firestore Security Rules permiten leer/escribir a cualquier usuario autenticado anónimamente si conoce el código de sala. La contraseña es un filtro de UX, no un control de acceso server-side.
 
+**Límite de salas:** Se usa un documento `config/meta` con un contador `roomCount` (máx. 50). Esto evita exponer todos los documentos `rooms/*` al verificar el límite (lo que hacía `collection().get()` antes). El contador se incrementa al crear y decrementa al salir, con guard anti-underflow.
+
 **Por qué se acepta:** La app es para uso familiar privado (2-4 usuarios). El código de sala funciona como "secreto compartido" tipo URL. No existe listado público de salas. Para cerrar esto de verdad se necesitaría una Cloud Function que valide el hash antes de permitir escritura, pero la complejidad no justifica el beneficio para este caso de uso.
 
 Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore rules".
@@ -376,6 +391,25 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 ### Por qué `setNotifyRefresh(fn)` en ui-categories/ui-members
 - Estos módulos necesitan notificar a la app que refresque la vista después de CRUD, pero no pueden importar `ui-navigation.js` (crearía ciclo).
 - `app.js` inyecta `refreshAll` como callback.
+
+### Por qué `setRefreshAnalysis(fn)` en ui-analysis
+- `ui-analysis.js` necesitaba llamar `refreshAll()` de `ui-navigation.js`, pero eso crearía un ciclo: `ui-analysis.js → ui-navigation.js → ui-analysis.js`.
+- `app.js` inyecta `refreshAnalysis` como callback via `setRefreshAnalysis(fn)`.
+
+### Por qué `sessionStorage` para password (no `localStorage`)
+- `localStorage` persiste el password indefinidamente — incluso después de cerrar el navegador. Si el dispositivo es compartido, otro usuario podría heredar la sesión.
+- `sessionStorage` se limpia automáticamente al cerrar el navegador. Resiste refresh de página (mantiene la sesión durante la visita), pero no persiste entre sesiones.
+- Si `sessionStorage` está vacío pero Firestore tiene `passwordHash`, la app abre un modal para reingresar la contraseña (fail-closed).
+
+### Por qué `config/meta` para límite de salas
+- **Antes:** `collection(ROOMS_COLLECTION).get()` traía TODOS los documentos de sala para contar. Esto exponía datos (transactions, budgets, etc.) a cualquier usuario autenticado — violación de privacidad.
+- **Ahora:** Un solo documento `config/meta` con `roomCount` (máx. 50). Lectura mínima, sin exposición de datos.
+- El contador se incrementa al crear sala y decrementa al salir, con guard anti-underflow (`Math.max(0, count - 1)`).
+
+### Por qué `invalidateBalanceCache()` en remote update
+- `getBalanceMap()` usa cache por mes/tipo para evitar recálculos.
+- Cuando llegan datos remotos vía Firestore, los caches pueden estar obsoletos.
+- `setRemoteUpdateCallback()` en `app.js` llama `invalidateBalanceCache()` para forzar recálculo en la próxima consulta.
 
 ### Por qué `getWhoLabel()` vive en utils.js (no en members.js)
 - `data.js` necesitaba `getWhoLabel()` para `exportCSV()`, pero `members.js` ya importaba `getAccountBalance()` de `data.js` — crearía un ciclo `data.js ↔ members.js`.
@@ -437,6 +471,19 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | Regla `table th, table td` redundante en `@media 480px` | Dos reglas consecutivas en mismo media query; la primera era inmediatamente sobrescrita | Eliminada la regla redundante | `v2.1` |
 | Auto-creación de salas en modo "Unirse" | `subscribeFirestore()` creaba la sala automáticamente si `!snap.exists`, sin importar si el usuario quería crear o unirse | Rechaza con toast "Sala no encontrada" si `isCreatingRoom === false` y el doc no existe | `v2.2` |
 | Sin límite de creación de salas | Cualquiera podía crear salas indefinidas sin verificación pre-existencia ni tope | Pre-existence check + conteo de salas (máx 50) antes de crear | `v2.2` |
+| `collection().get()` exponía datos de todas las salas | Al verificar límite de 50 salas, se traían todos los documentos con transactions, budgets, etc. | Documento `config/meta` con `roomCount` — lectura mínima sin exposición | `v2.3` |
+| Password en `localStorage` persistía entre sesiones | Cerrar el navegador no borraba la sesión — otro usuario del dispositivo podía heredar la clave | Movido a `sessionStorage` (se borra al cerrar navegador) | `v2.3` |
+| Sin re-prompt de contraseña al reconectar | Si `sessionStorage` se vaciaba (cerrar/abrir navegador), la app seguía sin contraseña | `promptRoomPassword()` abre modal si `passwordHash` existe pero `state.roomPassword` es null | `v2.3` |
+| `promptRoomPassword()` con recursión infinita | `resolver()` helper se llamaba a sí mismo indefinidamente | Eliminado `resolver`; `roomCodeResolver` se nullifica en la primera llamada | `v2.3` |
+| Timeout stale tras rounds múltiples de re-prompt | Timeout de una llamada anterior se disparaba después de la siguiente | `clearTimeout(timeoutId)` previene timeouts stale | `v2.3` |
+| `style-src` sin `unsafe-inline` | CSS inline (`element.style.xxx`, `style="..."` en innerHTML) bloqueado por CSP | Agregado `'unsafe-inline'` a `style-src` (sin build tool no hay forma de evitarlo) | `v2.3` |
+| SW retornaba `undefined` en offline total | `caches.match()` fallaba + fetch fallaba → SW devolvía `undefined` | Retornar `Response('Offline', { status: 503 })` como fallback | `v2.3` |
+| `isValidCategories()` aceptaba strings como subcategorías | Import corrupto pasaba validación con `["cat"]` en vez de `[{name, emoji}]` | Ahora rechaza strings: valida `typeof sub !== 'string'` | `v2.3` |
+| Dead code en `members.js` | Funciones exportadas pero sin consumidores (`getMemberIds`, `getMemberList`, `getAllAccounts`, etc.) | Eliminadas junto con imports no usados en `ui-daily.js` | `v2.3` |
+| Dependencia circular `ui-analysis.js → ui-navigation.js` | `ui-analysis` importaba `refreshAll` de `ui-navigation`, que a su vez importa `ui-analysis` | `setRefreshAnalysis(fn)` callback pattern (como `setNotifyRefresh`) | `v2.3` |
+| Balance cache desactualizado en remote update | Datos remotos actualizaban `state` pero caches de `getBalanceMap()` se quedaban viejos | `invalidateBalanceCache()` exportado y llamado en `setRemoteUpdateCallback()` | `v2.3` |
+| `resetRoomState()` incondicional en la misma sala | Reingresar contraseña de sala en la que ya estabas vaciaba categorías/miembros/cuentas en memoria | Guard `if (newCode !== state.roomCode)` — solo resetea al cambiar de sala, no al re-confirmar la misma | `v2.3` |
+| Tabla de transacciones al final del grid en análisis | Usuario no veía la tabla sin hacer scroll | Movida a primera posición en `content-grid`; max-height 400px con scroll | `v2.3` |
 
 ### Hotfix #2 revertido (2026-07-25)
 
@@ -465,6 +512,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `bd38724` | 2026-07-25 | Hotfix #1 (data leak) + #3 (password bypass), revert #2, deploy limpio | ✅ En master + deployado |
 | `v2.1` | 2026-07-25 | 14 fixes: resetRoomState defaults, SW v4, subscribeFirestore refactor, CSS limpieza, circular dependency fix | ✅ En master + deployado |
 | `v2.2` | 2026-07-25 | Anti-spam salas: rechazo en join, pre-existence check, límite 50 salas | ✅ En master + deployado |
+| `v2.3` | 2026-07-26 | Seguridad: config/meta, sessionStorage, prompt contraseña, balance cache, circular dependency, dead code, CSP | ✅ En develop |
 
 ---
 
@@ -477,7 +525,7 @@ R: `crypto.randomUUID()` requiere un contexto seguro. Usar `python3 -m http.serv
 R: Verificar CSP. O IDs mixtos string/number sin `String(t.id) === String(id)`.
 
 **P: ¿Cómo cambio el código de sala?**
-R: Consola → `localStorage.removeItem('finanzas_room'); location.reload();`
+R: Consola → `sessionStorage.removeItem('finanzas_room'); location.reload();`
 
 **P: ¿Los datos de Firebase se borran si nadie usa la app por un mes?**
 R: No. La data en Firestore persiste. Solo la cuenta anónima se limpia.
