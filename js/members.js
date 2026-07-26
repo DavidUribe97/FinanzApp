@@ -31,16 +31,6 @@ export function saveMembers() {
   syncToFirestoreFn();
 }
 
-/** Devuelve los ids de todos los miembros registrados. */
-export function getMemberIds() {
-  return Object.keys(state.members);
-}
-
-/** Devuelve la lista de miembros como array de { id, name }. */
-export function getMemberList() {
-  return Object.entries(state.members).map(([id, name]) => ({ id, name }));
-}
-
 /** Carga las cuentas de cada miembro desde localStorage o aplica los valores por defecto. */
 export function loadAccounts() {
   try {
@@ -74,29 +64,9 @@ export function getAllAccountsForMember() {
   return result;
 }
 
-/** Devuelve todas las cuentas de todos los miembros incluyendo compartido. */
-export function getAllAccounts() {
-  const result = [];
-  for (const [memberId, accts] of Object.entries(state.accounts)) {
-    const label = state.members[memberId] || memberId;
-    accts.forEach(a => result.push({ memberId, label, account: a }));
-  }
-  return result;
-}
-
 /** Indica si un nombre de cuenta corresponde a una cuenta de efectivo. */
 export function isCashAccount(accountName) {
   return CASH_ACCOUNTS.some(c => accountName.toLowerCase().includes(c));
-}
-
-/** Devuelve 'efectivo' o 'digital' según el nombre de la cuenta. */
-export function getPaymentMethod(accountName) {
-  return isCashAccount(accountName) ? 'efectivo' : 'digital';
-}
-
-/** Convierte el valor interno del método de pago a su etiqueta legible. */
-export function getPaymentLabel(method) {
-  return method === 'efectivo' ? 'Efectivo' : 'Digital';
 }
 
 /** Puebla un select del DOM con las cuentas disponibles para un miembro y tipo de transacción. */

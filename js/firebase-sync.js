@@ -2,7 +2,7 @@
 // Usa setRemoteUpdateCallback(fn) para notificar datos remotos (nunca importa módulos de dominio — regla 2 de dependencias).
 // Incluye verificación de passwordHash de sala.
 import { state } from './state.js';
-import { FIREBASE_CONFIG, FIRESTORE_COLLECTION } from './config.js';
+import { FIREBASE_CONFIG, FIRESTORE_COLLECTION, ROOM_KEY } from './config.js';
 import { $, safeRoomCode } from './utils.js';
 import { showToast } from './ui-modals.js';
 
@@ -148,7 +148,7 @@ export function subscribeFirestore() {
         console.warn('Firestore snapshot error:', err.message);
         updateSyncStatusUI(false);
         if (err.code === 'permission-denied') {
-          showToast('Límite de salas alcanzado');
+          showToast('Error de permisos — verifica la sala');
         }
         resolve();
       });
@@ -159,17 +159,14 @@ export function subscribeFirestore() {
     ref.get().catch(() => null).then(snap => {
       if (snap && snap.exists && snap.data().passwordHash) {
         if (!state.roomPassword) {
-          updateSyncStatusUI(false);
-          showToast('Esta sala requiere contraseña');
-          if (state.roomCodeResolver) { state.roomCodeResolver(); state.roomCodeResolver = null; }
-          resolve();
+          promptRoomPassword(ref, snap.data().passwordHash, startSnapshot, resolve);
           return;
         }
         sha256(state.roomPassword).then(hash => {
           if (hash !== snap.data().passwordHash) {
             updateSyncStatusUI(false);
-            if (state.roomCodeResolver) { state.roomCodeResolver(); state.roomCodeResolver = null; }
-            resolve();
+            showToast('Contraseña incorrecta');
+            promptRoomPassword(ref, snap.data().passwordHash, startSnapshot, resolve);
             return;
           }
           startSnapshot();
@@ -178,6 +175,46 @@ export function subscribeFirestore() {
       }
       startSnapshot();
     });
+  });
+}
+
+/**
+ * Abre el modal de sala en modo "Unirse" para pedir la contraseña.
+ * Espera a que el usuario la ingrese, valida contra passwordHash, y continúa.
+ */
+function promptRoomPassword(ref, passwordHash, onVerified, resolve) {
+  updateSyncStatusUI(false);
+  import('./firebase-room.js').then(({ openRoomModal }) => {
+    openRoomModal();
+    showToast('Ingresa la contraseña de la sala');
+    const PASSWORD_TIMEOUT_MS = 120000;
+    let timeoutId;
+    state.roomCodeResolver = () => {
+      state.roomCodeResolver = null;
+      clearTimeout(timeoutId);
+      if (!state.roomPassword) {
+        updateSyncStatusUI(false);
+        resolve();
+        return;
+      }
+      sha256(state.roomPassword).then(hash => {
+        if (hash !== passwordHash) {
+          updateSyncStatusUI(false);
+          showToast('Contraseña incorrecta');
+          promptRoomPassword(ref, passwordHash, onVerified, resolve);
+          return;
+        }
+        onVerified();
+      });
+    };
+    timeoutId = setTimeout(() => {
+      if (state.roomCodeResolver) {
+        state.roomCodeResolver();
+        state.roomCodeResolver = null;
+        updateSyncStatusUI(false);
+        resolve();
+      }
+    }, PASSWORD_TIMEOUT_MS);
   });
 }
 
@@ -203,8 +240,8 @@ export async function initFirebase() {
       state.roomCode = localStorage.getItem('finanzas_room');
       if (!state.roomCode) { state.firebaseInitialized = true; updateSyncStatusUI(false); return; }
     }
-    state.roomPassword = localStorage.getItem('finanzas_room_pwd');
     state.isCreatingRoom = false;
+    state.roomPassword = sessionStorage.getItem(ROOM_KEY + '_pwd');
     updateSyncStatusUI(true);
     await subscribeFirestore();
     state.firebaseInitialized = true;

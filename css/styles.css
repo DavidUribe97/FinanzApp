@@ -722,6 +722,8 @@ body.mode-analysis #analysisView { display: block; }
 .btn-sm.danger:hover { border-color: var(--accent-red); color: var(--accent-red); }
 .btn-sm.success:hover { border-color: var(--accent-green); color: var(--accent-green); }
 .table-wrap { overflow-x: auto; margin-top: 10px; }
+.table-panel .table-wrap { max-height: 400px; overflow-y: auto; }
+.table-panel .table-wrap thead th { position: sticky; top: 0; background: var(--bg-secondary); z-index: 1; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 table th {
   text-align: left;

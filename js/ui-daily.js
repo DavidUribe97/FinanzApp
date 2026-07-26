@@ -9,7 +9,7 @@ import { $, esc, formatCOP, formatCOPShort, getToday, parseLocalDate, toLocalDat
 import { MEMBER_COLORS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, LAST_CAT_KEY } from './config.js';
 import { getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji } from './categories.js';
 import { getFilteredTransactions } from './data.js';
-import { getPaymentMethod, getMemberBadgeStyle, updateAccountSelector, getWhoLabel, getAccountsForMember, parseAccountValue, getAllAccounts, isCashAccount } from './members.js';
+import { getMemberBadgeStyle, updateAccountSelector, getWhoLabel, getAccountsForMember, parseAccountValue, isCashAccount } from './members.js';
 import { openEditModal } from './ui-modals.js';
 
 function loadLastCategory() {

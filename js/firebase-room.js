@@ -59,7 +59,7 @@ export function leaveRoom() {
   state.roomCode = null;
   state.roomPassword = null;
   localStorage.removeItem(ROOM_KEY);
-  localStorage.removeItem(ROOM_KEY + '_pwd');
+  sessionStorage.removeItem(ROOM_KEY + '_pwd');
   updateSyncStatus(false);
   updateRoomLabel();
   closeRoomModal();
@@ -116,11 +116,13 @@ export function setupRoomModal() {
       state.roomPassword = password || null;
     }
 
+    if (newCode !== state.roomCode) {
+      resetRoomState();
+    }
     state.roomCode = newCode;
-    resetRoomState();
     localStorage.setItem(ROOM_KEY, state.roomCode);
-    if (state.roomPassword) localStorage.setItem(ROOM_KEY + '_pwd', state.roomPassword);
-    else localStorage.removeItem(ROOM_KEY + '_pwd');
+    if (state.roomPassword) sessionStorage.setItem(ROOM_KEY + '_pwd', state.roomPassword);
+    else sessionStorage.removeItem(ROOM_KEY + '_pwd');
 
     closeRoomModal();
     if (state.firestoreUnsub) { state.firestoreUnsub(); state.firestoreUnsub = null; }

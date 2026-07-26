@@ -18,8 +18,8 @@ export function setSyncToFirestore(fn) { syncToFirestoreFn = fn; }
 /** Cache de saldos por cuenta — se invalida al modificar transacciones. */
 let accountBalanceCache = null;
 
-/** Invalida la caché de saldos (llamar después de cada saveData). */
-function invalidateBalanceCache() { accountBalanceCache = null; }
+/** Invalida la caché de saldos (llamar después de cada saveData o sync remoto). */
+export function invalidateBalanceCache() { accountBalanceCache = null; }
 
 /** Construye el mapa de saldos por cuenta desde todas las transacciones. */
 function getBalanceMap() {
@@ -95,11 +95,6 @@ export function getDisplayTransactions() {
 export function getAccountBalance(accountKey) {
   const map = getBalanceMap();
   return map[accountKey] || 0;
-}
-
-/** Devuelve el mapa completo de saldos por cuenta (para uso externo). */
-export function getAllBalances() {
-  return getBalanceMap();
 }
 
 /** Calcula el saldo acumulado de todas las cuentas hasta el inicio del mes dado. */
@@ -217,8 +212,7 @@ export function isValidCategories(cats) {
       if (c.subcats) {
         if (!Array.isArray(c.subcats)) return false;
         for (const s of c.subcats) {
-          if (typeof s === 'string') continue;
-          if (!s || typeof s.name !== 'string' || typeof s.emoji !== 'string') return false;
+          if (!s || typeof s.name !== 'string' || !s.name || typeof s.emoji !== 'string') return false;
         }
       }
     }
