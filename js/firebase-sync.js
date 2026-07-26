@@ -94,14 +94,12 @@ async function firstTimeSetup(ref, resolve) {
   }
   try {
     await ref.set(data, { merge: true });
+    const counterRef = state.db.collection('config').doc('meta');
+    await counterRef.set({ roomCount: firebase.firestore.FieldValue.increment(1) }, { merge: true });
   } catch (e) {
     console.warn('Error creando sala:', e.message);
     updateSyncStatusUI(false);
-    if (e.code === 'permission-denied') {
-      showToast('Límite de salas alcanzado');
-    } else {
-      showToast('Error al crear sala');
-    }
+    showToast('Error al crear sala');
     resolve();
     return;
   }
