@@ -148,7 +148,7 @@ export function subscribeFirestore() {
         console.warn('Firestore snapshot error:', err.message);
         updateSyncStatusUI(false);
         if (err.code === 'permission-denied') {
-          showToast('Límite de salas alcanzado');
+          showToast('Error de permisos — verifica la sala');
         }
         resolve();
       });

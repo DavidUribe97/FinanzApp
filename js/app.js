@@ -7,7 +7,7 @@ import { MODE_KEY, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY, ACCOUNTS_KEY 
 import { validateAmount } from './utils.js';
 import { loadCategories, saveCategories, setSyncToFirestore as setSyncCategories } from './categories.js';
 import { loadMembers, loadAccounts, saveMembers, saveAccounts, setSyncToFirestore as setSyncMembers } from './members.js';
-import { loadData, saveData, saveBudgets, isValidTx, isValidBudgets, isValidCategories, setSyncToFirestore as setSyncData } from './data.js';
+import { loadData, saveData, saveBudgets, isValidTx, isValidBudgets, isValidCategories, invalidateBalanceCache, setSyncToFirestore as setSyncData } from './data.js';
 import { initFirebase, syncToFirestore, setRemoteUpdateCallback } from './firebase-sync.js';
 import { setupRoomModal } from './firebase-room.js';
 import { showToast, dismissAllToasts, showConfirmModal, setUpdateWhoSelects } from './ui-modals.js';
@@ -111,6 +111,7 @@ setRemoteUpdateCallback(() => {
   localStorage.setItem(CATS_KEY, JSON.stringify(state.categoriesData));
   localStorage.setItem(MEMBERS_KEY, JSON.stringify(state.members));
   localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
+  invalidateBalanceCache();
   refreshAll();
 });
 

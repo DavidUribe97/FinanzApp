@@ -18,8 +18,8 @@ export function setSyncToFirestore(fn) { syncToFirestoreFn = fn; }
 /** Cache de saldos por cuenta — se invalida al modificar transacciones. */
 let accountBalanceCache = null;
 
-/** Invalida la caché de saldos (llamar después de cada saveData). */
-function invalidateBalanceCache() { accountBalanceCache = null; }
+/** Invalida la caché de saldos (llamar después de cada saveData o sync remoto). */
+export function invalidateBalanceCache() { accountBalanceCache = null; }
 
 /** Construye el mapa de saldos por cuenta desde todas las transacciones. */
 function getBalanceMap() {
