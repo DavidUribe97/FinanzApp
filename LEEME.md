@@ -518,12 +518,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 
 ---
 
-## Reglas para agentes trabajando en este repo
-
-- Antes de reportar un import/función como "no usado" o "dead code", confirma con grep en el archivo completo (no solo por nombre en el import), incluyendo cómo se usa en template strings / atributos HTML generados.
-- Antes de documentar la firma de una función en este README, cópiala literalmente del código (`grep -n "function nombreFn"`), no la reconstruyas de memoria o por el nombre.
-- Todo texto visible al usuario (labels, toasts, mensajes de error) va con tildes y ñ correctos — verifica encoding UTF-8 al escribir archivos.
-- Antes de agregar lógica nueva a un flujo compartido (ej. el formulario de sala usado tanto para crear como para reconectar), verifica en qué otros casos se dispara ese mismo código y si el comportamiento aplica a todos ellos por igual (ver bug de `resetRoomState()` en salas ya conocidas, corregido en v2.3).
+Ver AGENTS.md para reglas de flujo de trabajo, autorización y ramas.
 
 ---
 
