@@ -53,7 +53,7 @@ export function renderStats() {
       <div class="stat-label">Gasto promedio diario</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value">${topCat.name}</div>
+      <div class="stat-value">${esc(topCat.name)}</div>
       <div class="stat-label">Categoría con más gasto</div>
       <div class="stat-sub">${formatCOP(topCat.amount)}</div>
     </div>
