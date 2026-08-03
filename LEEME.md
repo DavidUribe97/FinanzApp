@@ -71,6 +71,8 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 ├── firestore.rules         # Security rules para Firestore
 ├── .firebaserc             # Proyecto Firebase (presupuesto-cddeb)
 ├── .gitignore              # Ignora node_modules, .firebase/, logs
+├── scripts/
+│   └── check-imports.mjs   # Valida imports de módulos (ver Post-mortem v2.3.4)
 ├── docs/
 │   └── archivo/
 │       └── CHANGELOG_v1.3.0.md  # Changelog histórico (features v1.3.0, ya en master)
@@ -149,6 +151,13 @@ python3 -m http.server 8080
 ```
 
 **IMPORTANTE:** NO usar `file://` directo. `crypto.randomUUID()` requiere un contexto seguro (HTTPS o localhost).
+
+### Validación antes de release
+```bash
+node scripts/check-imports.mjs        # identificadores usados sin importar → exit 1
+for f in js/*.js; do node --check --input-type=module < "$f" || echo "FAIL $f"; done
+```
+`check-imports.mjs` (ver Post-mortem v2.3.4) detecta el tipo de bug que `node --check` no ve: un identificador usado pero no importado (sintácticamente válido, falla en runtime).
 
 ### Despliegue a Firebase
 ```bash
@@ -442,6 +451,7 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 ### Por qué NO hay pruebas automatizadas
 - App personal para 2-4 personas. El riesgo es mínimo.
 - Test manual: probar en `http://localhost:8080` antes de deploy.
+- **Excepción:** desde v2.3.4 hay una validación estática `scripts/check-imports.mjs` que se ejecuta antes de cada release (detecta identificadores usados sin importar — el bug del post-mortem v2.3.4).
 
 ---
 
@@ -511,6 +521,24 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | Cosméticos v2.3.2 | Doble emoji 👥 en Compartido, emoji de categoría según tipo, select de presupuestos sin refrescar al borrar | Limpieza en `ui-daily.js`, `getCatEmoji(type, name)`, `updateBudgetCategorySelect()` | `v2.3.2` |
 | Cuentas fantasma al eliminar cuenta con saldo | Borrar solo hacía `splice` en `state.accounts`; las txs conservaban `"miembro:Cuenta"` y seguían sumando al total sin verse en el detalle por persona | Modal `showPickModal`: migrar movimientos a otra cuenta (o bloquear si no hay destino) | `v2.3.3` |
 | Datos huérfanos al eliminar un miembro | `state.accounts[id]` nunca se limpiaba y las txs quedaban con `who`/`account` del eliminado | Migración guiada al destino: `who` + cuentas (ingreso → `'yo'` si el destino es `'compartido'`), limpieza de `state.accounts[id]` | `v2.3.3` |
+| `ReferenceError: saveAccounts is not defined` al eliminar miembro | El modal de migración se abría pero al confirmar no se eliminaba el miembro ni se persistía | Importar `saveAccounts` en `ui-members.js` (línea 7) + herramienta `scripts/check-imports.mjs` para prevención | `0969ba0` |
+
+### Post-mortem v2.3.4 (2026-08-03): ReferenceError al eliminar miembro
+
+**Síntoma reportado por el usuario:** "al eliminar la cuenta sí migra la trx y desaparece la cuenta pero al hacerlo con un miembro con saldo aparece el modal correctamente pero no se elimina el usuario" (el usuario usa "cuenta"/"usuario" de forma intercambiable).
+
+**Causa raíz:** `js/ui-members.js:78` llamaba `saveAccounts()` (añadida en el commit `d419eb1` para limpiar las cuentas del miembro eliminado) pero la línea 7 solo importaba `saveMembers` de `members.js`. `saveAccounts` no estaba en el ámbito del módulo → `ReferenceError` → el handler se cortaba en la línea 78 y `renderMembers()`, `saveData()` y `notifyRefreshFn()` nunca se ejecutaban. El miembro quedaba visible en pantalla y el borrado no persistía. Afectaba tanto a miembros con movimientos (modal de migración) como sin movimientos (confirm simple), porque la línea 78 corre en ambos caminos.
+
+**Por qué `node --check` no lo detectó:** `node --check` (incluido `--input-type=module`) solo valida sintaxis; no resuelve identificadores. Un nombre usado sin importar es sintácticamente válido y el error solo aparece en runtime.
+
+**Por qué no se detectó en la verificación del release anterior:** la verificación del flujo de migración cubría la eliminación de cuentas (que sí funciona) pero no la de miembros. El flujo de miembro no se reprodujo antes del reporte del usuario.
+
+**Acciones tomadas:**
+1. **Fix:** `import { saveMembers, saveAccounts } from './members.js';` (commit `0969ba0`).
+2. **Herramienta nueva `scripts/check-imports.mjs`:** para cada módulo, verifica que todo identificador usado esté importado, exportado por el propio módulo o declarado localmente (incluye destructuring de `const { ... }`). `exit 0` = OK, `exit 1` = problemas listados. Antes del fix reportaba exactamente el bug; tras el fix pasa limpio.
+3. **Proceso de release:** ejecutar `node scripts/check-imports.mjs` **y** `node --check` sobre todos los `js/*.js` modificados antes de cada release (ver "Cómo usar").
+
+**Lección:** el checo estático + un escenario simulado del flujo tocado son parte del "listo", no opcionales. Si el cambio toca un handler de módulo, reproduzca al menos el escenario modificado antes de deployar.
 ### Hotfix #2 revertido (2026-07-25)
 
 Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el mismo día. Causó SyntaxError, balances incorrectos y data leak entre cuentas de miembros. Decisión: crear nueva sala y migrar datos manualmente via exportar/importar JSON.
@@ -542,6 +570,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.3.1` | 2026-08-03 | Fix ciclo de vida de salas (onboarding + password check en reload), limpieza join fallido, roomCount, escape, imports muertos, SW cache v6, docs | ✅ En master + deployado |
 | `v2.3.2` | 2026-08-03 | Fixes: ingresos perdidos al borrar miembro, refresh de vista diaria, validación de saldo al editar, confirmación al unirse a sala, migración de cuentas al renombrar, cosméticos, SW cache v7 | ✅ En master + deployado |
 | `v2.3.3` | 2026-08-03 | Feature: migración guiada de saldos al eliminar cuentas/miembros (`showPickModal`), SW cache v8 | ✅ En master + deployado |
+| `v2.3.4` | 2026-08-03 | Fix: `ReferenceError: saveAccounts is not defined` al eliminar miembro (migración no se completaba) + herramienta `scripts/check-imports.mjs`, SW cache v9 | ✅ En master + deployado |
 
 ---
 
