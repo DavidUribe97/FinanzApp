@@ -1,4 +1,4 @@
-const CACHE = 'finanzapp-v5';
+const CACHE = 'finanzapp-v6';
 const FIREBASE_CACHE = 'finanzapp-firebase';
 const FIREBASE_CDN = 'https://www.gstatic.com/firebasejs/';
 const ASSETS = [
