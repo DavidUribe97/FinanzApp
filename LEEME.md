@@ -495,6 +495,13 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | Balance cache desactualizado en remote update | Datos remotos actualizaban `state` pero caches de `getBalanceMap()` se quedaban viejos | `invalidateBalanceCache()` exportado y llamado en `setRemoteUpdateCallback()` | `v2.3` |
 | `resetRoomState()` incondicional en la misma sala | Reingresar contraseña de sala en la que ya estabas vaciaba categorías/miembros/cuentas en memoria | Guard `if (newCode !== state.roomCode)` — solo resetea al cambiar de sala, no al re-confirmar la misma | `v2.3` |
 | Tabla de transacciones al final del grid en análisis | Usuario no veía la tabla sin hacer scroll | Movida a primera posición en `content-grid`; max-height 400px con scroll | `v2.3` |
+| Creación de sala rota en el primer arranque | `initFirebase()` forzaba `state.isCreatingRoom = false` antes de `subscribeFirestore()`, pisando el `true` que el modal ponía al elegir "Crear" → toast "Sala no encontrada" y `passwordHash` nunca se escribía | Default `isCreatingRoom: false` en `state.js` + eliminar el force en `initFirebase()` (el modal ya lo gestiona en los 4 casos) | `v2.3.1` |
+| `isCreatingRoom: true` por defecto exponía salas protegidas | En reload con sala guardada, el flag default `true` tomaba el camino de creación, saltándose la verificación de `passwordHash` | Default `false` en `state.js`; el flag solo se setea explícito por el modal | `v2.3.1` |
+| Join a sala inexistente dejaba storage corrupto | `roomCode` se persistía en localStorage antes de validar; el reload posterior entraba en bucle "Sala no encontrada" | Limpieza de `ROOM_KEY`, `sessionStorage` y `state.roomCode` en la rama de fallo de `subscribeFirestore()` | `v2.3.1` |
+| `roomCount` decrementaba al salir de cualquier sala | Las salas nunca se borran (`delete: false`); el contador derivaba a la baja y el límite de 50 dejaba de ser fiable | `leaveRoom()` ya no decrementa; el contador solo se incrementa al crear | `v2.3.1` |
+| Nombres de categoría sin escapar en budgets/stats | `data-cat` y texto con comillas rompían el marcado; inconsistente con el resto de la app (que sí usa `esc()`) | `esc()` en `ui-budgets.js` (x2) y `ui-stats.js` (`topCat.name`) | `v2.3.1` |
+| Imports muertos | `validateAmount`/`renderMembers` (app.js), `formatCOP` (data.js), `loadMembers`/`updateAccountSelector` (ui-members.js) | Eliminados | `v2.3.1` |
+| SW cache v5 servía el JS viejo tras el deploy | Cache-first + SW sin cambios de contenido = los usuarios con la app instalada seguían ejecutando el código v2.3 | Bump a `finanzapp-v6` (se reinstala el SW y refetch de assets) | `v2.3.1` |
 
 ### Hotfix #2 revertido (2026-07-25)
 
@@ -524,6 +531,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.1` | 2026-07-25 | 14 fixes: resetRoomState defaults, SW v4, subscribeFirestore refactor, CSS limpieza, circular dependency fix | ✅ En master + deployado |
 | `v2.2` | 2026-07-25 | Anti-spam salas: rechazo en join, pre-existence check, límite 50 salas | ✅ En master + deployado |
 | `v2.3` | 2026-07-26 | Seguridad: config/meta, sessionStorage, prompt contraseña, balance cache, circular dependency, dead code, CSP | ✅ En master |
+| `v2.3.1` | 2026-08-03 | Fix ciclo de vida de salas (onboarding + password check en reload), limpieza join fallido, roomCount, escape, imports muertos, SW cache v6, docs | ✅ En master + deployado |
 
 ---
 
