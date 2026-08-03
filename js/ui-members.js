@@ -1,12 +1,12 @@
 /**
  * Panel de administración de miembros — lista, agregar, editar, eliminar (defaults no se eliminan).
- * Al eliminar, reasigna transacciones a "Compartido".
+ * Al eliminar, pregunta a qué miembro migrar sus movimientos y cuentas.
  * Usa setNotifyRefresh(fn) para notificar refresco (regla 4 de dependencias).
  */
 import { state } from './state.js';
 import { $, esc, sanitizeStr } from './utils.js';
 import { saveMembers } from './members.js';
-import { showConfirmModal, showToast } from './ui-modals.js';
+import { showConfirmModal, showToast, showPickModal } from './ui-modals.js';
 import { saveData } from './data.js';
 import { updateWhoToggle } from './ui-daily.js';
 
@@ -43,13 +43,39 @@ export function renderMembers() {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.member;
       const name = state.members[id];
-      const yoLabel = state.members.yo || 'Él';
-      const ok = await showConfirmModal(`¿Eliminar a "${name}"? Sus gastos pasarán a "Compartido" y sus ingresos a "${yoLabel}".`);
-      if (!ok) return;
-      state.transactions.forEach(tx => {
-        if ((tx.who || 'yo') === id) tx.who = tx.type === 'ingreso' ? 'yo' : 'compartido';
-      });
+      const moves = state.transactions.filter(tx => (tx.who || 'yo') === id);
+      if (moves.length > 0) {
+        const targets = Object.entries(state.members)
+          .filter(([mid]) => mid !== id)
+          .map(([mid, mname]) => ({ value: mid, label: mname }));
+        if (targets.length === 0) {
+          showToast('No puedes eliminar el último miembro con movimientos');
+          return;
+        }
+        const target = await showPickModal({
+          title: 'Migrar miembro',
+          message: `"${name}" tiene ${moves.length} movimientos. ¿A quién se los asigno?`,
+          options: targets
+        });
+        if (target === null) return;
+        const targetAccounts = state.accounts[target] || [];
+        state.transactions.forEach(tx => {
+          if ((tx.who || 'yo') === id) {
+            tx.who = (target === 'compartido' && tx.type === 'ingreso') ? 'yo' : target;
+            if (tx.account) {
+              const acct = tx.account.includes(':') ? tx.account.split(':').slice(1).join(':') : tx.account;
+              const destAcct = targetAccounts.includes(acct) ? acct : 'Efectivo';
+              tx.account = `${target}:${destAcct}`;
+            }
+          }
+        });
+      } else {
+        const ok = await showConfirmModal(`¿Eliminar a "${name}"?`);
+        if (!ok) return;
+      }
+      delete state.accounts[id];
       delete state.members[id];
+      saveAccounts();
       saveMembers();
       saveData();
       renderMembers();
