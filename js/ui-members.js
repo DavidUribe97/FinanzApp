@@ -5,7 +5,7 @@
  */
 import { state } from './state.js';
 import { $, esc, sanitizeStr } from './utils.js';
-import { saveMembers } from './members.js';
+import { saveMembers, saveAccounts } from './members.js';
 import { showConfirmModal, showToast, showPickModal } from './ui-modals.js';
 import { saveData } from './data.js';
 import { updateWhoToggle } from './ui-daily.js';
