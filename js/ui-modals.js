@@ -58,6 +58,23 @@ export function showConfirmModal(msg) {
   });
 }
 
+/** Muestra un modal con un select de opciones y devuelve el valor elegido (null si cancela). */
+export function showPickModal({ title, message, options, okLabel }) {
+  return new Promise(resolve => {
+    $('pickTitle').textContent = title;
+    $('pickMsg').textContent = message;
+    const sel = $('pickSelect');
+    sel.innerHTML = options.map(o => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join('');
+    $('pickOk').textContent = okLabel || 'Migrar y eliminar';
+    $('pickModal').classList.add('active');
+    sel.focus();
+    const cleanup = () => { $('pickModal').classList.remove('active'); };
+    $('pickOk').onclick = () => { cleanup(); resolve(sel.value); };
+    $('pickCancel').onclick = () => { cleanup(); resolve(null); };
+    $('pickModal').onclick = e => { if (e.target === $('pickModal')) { cleanup(); resolve(null); } };
+  });
+}
+
 /** Abre el modal de edición precargando los datos de la transacción indicada. */
 export function openEditModal(id) {
   const tx = state.transactions.find(t => String(t.id) === String(id));
