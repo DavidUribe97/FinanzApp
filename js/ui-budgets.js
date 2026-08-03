@@ -49,6 +49,7 @@ export function renderBudgets() {
       delete state.budgets[btn.dataset.cat];
       saveBudgets();
       renderBudgets();
+      updateBudgetCategorySelect();
     });
   });
 }
