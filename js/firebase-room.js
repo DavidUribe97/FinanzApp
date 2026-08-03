@@ -5,7 +5,7 @@ import { state, resetRoomState } from './state.js';
 import { ROOM_KEY, FIRESTORE_COLLECTION } from './config.js';
 import { $, safeRoomCode } from './utils.js';
 import { updateSyncStatus, updateRoomLabel, subscribeFirestore } from './firebase-sync.js';
-import { showToast } from './ui-modals.js';
+import { showToast, showConfirmModal } from './ui-modals.js';
 
 /** Abre el modal de sala, configurando tabs y campos según si hay sala activa. */
 export function openRoomModal() {
@@ -108,6 +108,10 @@ export function setupRoomModal() {
     }
 
     if (newCode !== state.roomCode) {
+      if (!state.roomCode && state.transactions.length > 0) {
+        const ok = await showConfirmModal('Tienes datos locales sin sincronizar. Al unirte a esta sala se reemplazarán. ¿Continuar?');
+        if (!ok) return;
+      }
       resetRoomState();
     }
     state.roomCode = newCode;

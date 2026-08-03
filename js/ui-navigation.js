@@ -50,7 +50,9 @@ export function setMode(daily) {
   $('modeToggle').textContent = daily ? '📊' : '◀';
   $('modeToggle').classList.toggle('active', !daily);
   localStorage.setItem(MODE_KEY, daily ? 'daily' : 'analysis');
-  if (!daily) {
+  if (daily) {
+    refreshDaily();
+  } else {
     $('searchInput').value = '';
     $('filterType').value = 'todos';
     $('filterWho').value = 'todos';

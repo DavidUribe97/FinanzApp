@@ -5,6 +5,7 @@
 import { state } from './state.js';
 import { $, esc, sanitizeStr } from './utils.js';
 import { saveAccounts, isCashAccount, updateAccountSelector } from './members.js';
+import { saveData } from './data.js';
 import { showToast } from './ui-modals.js';
 
 /** Renderiza las cuentas de cada miembro con íconos de efectivo/digital y acciones. */
@@ -81,7 +82,16 @@ export function setupAccountsPanel() {
     if (!state.accounts[memberId]) state.accounts[memberId] = [];
     const editIdx = parseInt($('accountEditIdx').value);
     if (editIdx >= 0) {
+      const oldName = state.accounts[memberId][editIdx];
       state.accounts[memberId][editIdx] = name;
+      if (oldName !== name) {
+        const oldKey = `${memberId}:${oldName}`;
+        const newKey = `${memberId}:${name}`;
+        state.transactions.forEach(tx => {
+          if (tx.account === oldKey) tx.account = newKey;
+        });
+        saveData();
+      }
     } else {
       if (state.accounts[memberId].includes(name)) return showToast('Esa cuenta ya existe');
       state.accounts[memberId].push(name);

@@ -180,7 +180,7 @@ export function setupAnalysisForm(onImportJSON) {
       const prevTx = state.transactions.find(t => String(t.id) === String(state.editingId));
       let balance = getAccountBalance(fullAccountKey);
       if (prevTx && prevTx.account === fullAccountKey) {
-        balance += prevTx.amount;
+        balance += prevTx.type === 'ingreso' ? -prevTx.amount : prevTx.amount;
       }
       if (balance < amount) {
         return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);

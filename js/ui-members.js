@@ -43,10 +43,11 @@ export function renderMembers() {
     btn.addEventListener('click', async () => {
       const id = btn.dataset.member;
       const name = state.members[id];
-      const ok = await showConfirmModal(`¿Eliminar a "${name}"? Sus transacciones pasarán a "Compartido".`);
+      const yoLabel = state.members.yo || 'Él';
+      const ok = await showConfirmModal(`¿Eliminar a "${name}"? Sus gastos pasarán a "Compartido" y sus ingresos a "${yoLabel}".`);
       if (!ok) return;
       state.transactions.forEach(tx => {
-        if ((tx.who || 'yo') === id) tx.who = 'compartido';
+        if ((tx.who || 'yo') === id) tx.who = tx.type === 'ingreso' ? 'yo' : 'compartido';
       });
       delete state.members[id];
       saveMembers();

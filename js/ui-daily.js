@@ -42,7 +42,7 @@ export function renderDailyCategories(restore = true) {
   }
   grid.innerHTML = cats.map(c => `
     <button class="cat-btn ${state.selectedCategory === c ? 'selected' : ''}" data-cat="${esc(c)}">
-      <span class="emoji">${esc(getCatEmoji(c))}</span>
+      <span class="emoji">${esc(getCatEmoji(state.selectedType, c))}</span>
       <span class="name">${esc(c)}</span>
     </button>
   `).join('');
@@ -140,7 +140,7 @@ export function updateWhoToggle() {
   const comp = $('dailyWhoCompartido');
   yo.textContent = state.members.yo || 'Él';
   pareja.textContent = state.members.pareja || 'Ella';
-  comp.textContent = (state.members.compartido || 'Compartido') + ' 👥';
+  comp.textContent = state.members.compartido || 'Compartido';
   yo.className = state.selectedWho === 'yo' ? 'active-who-yo' : '';
   pareja.className = state.selectedWho === 'pareja' ? 'active-who-pareja' : '';
   comp.className = state.selectedWho === 'compartido' ? 'active-who-compartido' : '';
@@ -303,7 +303,7 @@ export function renderDailyFeed() {
     const daySign = dayNet >= 0 ? '+' : '';
     html += `<div class="feed-day-header"><span>${label}</span><span class="feed-day-total" style="color:${dayColor}">${daySign}${formatCOPShort(dayNet)}</span></div>`;
     txs.forEach(tx => {
-      const emoji = tx.subcategory ? getSubCatEmoji(tx.type, tx.category, tx.subcategory) : getCatEmoji(tx.category);
+      const emoji = tx.subcategory ? getSubCatEmoji(tx.type, tx.category, tx.subcategory) : getCatEmoji(tx.type, tx.category);
       const whoLabel = getWhoLabel(tx.who || 'yo');
       const subLabel = tx.subcategory ? ' · ' + esc(tx.subcategory) : '';
       const parsed = parseAccountValue(tx.account || 'yo:Efectivo');

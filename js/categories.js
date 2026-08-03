@@ -49,11 +49,14 @@ export function getCatNames(type) {
   return (state.categoriesData[type] || []).map(c => c.name);
 }
 
-/** Busca y devuelve el emoji de una categoría por su nombre. */
-export function getCatEmoji(name) {
-  for (const arr of Object.values(state.categoriesData)) {
-    const found = arr.find(c => c.name === name);
-    if (found) return found.emoji;
+/** Busca y devuelve el emoji de una categoría por tipo y nombre (fallback a otros tipos). */
+export function getCatEmoji(type, name) {
+  const arr = state.categoriesData[type] || [];
+  const found = arr.find(c => c.name === name);
+  if (found) return found.emoji;
+  for (const arr2 of Object.values(state.categoriesData)) {
+    const f = arr2.find(c => c.name === name);
+    if (f) return f.emoji;
   }
   return '📋';
 }
@@ -68,9 +71,9 @@ export function getSubCatNames(type, catName) {
 /** Devuelve el emoji de una subcategoría, o el de su categoría padre como fallback. */
 export function getSubCatEmoji(type, catName, subName) {
   const cat = (state.categoriesData[type] || []).find(c => c.name === catName);
-  if (!cat || !cat.subcats) return getCatEmoji(catName);
+  if (!cat || !cat.subcats) return getCatEmoji(type, catName);
   const sub = cat.subcats.find(s => (typeof s === 'string' ? s : s.name) === subName);
-  if (!sub) return getCatEmoji(catName);
+  if (!sub) return getCatEmoji(type, catName);
   if (typeof sub === 'string') return '📋';
   return sub.emoji || '📋';
 }
