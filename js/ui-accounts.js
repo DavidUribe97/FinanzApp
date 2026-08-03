@@ -3,10 +3,10 @@
  * Si un miembro queda sin cuentas, se recrea "Efectivo" automáticamente.
  */
 import { state } from './state.js';
-import { $, esc, sanitizeStr } from './utils.js';
-import { saveAccounts, isCashAccount, updateAccountSelector } from './members.js';
-import { saveData } from './data.js';
-import { showToast } from './ui-modals.js';
+import { $, esc, sanitizeStr, formatCOP, formatCOPShort } from './utils.js';
+import { saveAccounts, isCashAccount, updateAccountSelector, getAllAccountsForMember } from './members.js';
+import { saveData, getAccountBalance } from './data.js';
+import { showToast, showPickModal } from './ui-modals.js';
 
 /** Renderiza las cuentas de cada miembro con íconos de efectivo/digital y acciones. */
 export function renderAccountsPanel() {
@@ -47,9 +47,35 @@ export function renderAccountsPanel() {
     });
   });
   list.querySelectorAll('[data-del-account]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const [memberId, idx] = btn.dataset.delAccount.split(':');
       const accts = state.accounts[memberId] || [];
+      const accountName = accts[parseInt(idx)];
+      const fullKey = `${memberId}:${accountName}`;
+      const moves = state.transactions.filter(tx => tx.account === fullKey);
+      if (moves.length > 0) {
+        const balance = getAccountBalance(fullKey);
+        const options = getAllAccountsForMember()
+          .filter(o => `${o.memberId}:${o.account}` !== fullKey)
+          .map(o => {
+            const key = `${o.memberId}:${o.account}`;
+            return { value: key, label: `${o.account} (${o.label}) — ${formatCOPShort(getAccountBalance(key))}` };
+          });
+        if (options.length === 0) {
+          showToast('No puedes eliminar una cuenta con movimientos sin otra cuenta de destino');
+          return;
+        }
+        const target = await showPickModal({
+          title: 'Migrar cuenta',
+          message: `"${accountName}" (${state.members[memberId] || memberId}) tiene ${moves.length} movimientos y saldo ${formatCOP(balance)}. ¿A qué cuenta los muevo?`,
+          options
+        });
+        if (target === null) return;
+        state.transactions.forEach(tx => {
+          if (tx.account === fullKey) tx.account = target;
+        });
+        saveData();
+      }
       accts.splice(parseInt(idx), 1);
       if (accts.length === 0) {
         accts.push('Efectivo');
