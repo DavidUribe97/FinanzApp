@@ -501,8 +501,16 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | `roomCount` decrementaba al salir de cualquier sala | Las salas nunca se borran (`delete: false`); el contador derivaba a la baja y el límite de 50 dejaba de ser fiable | `leaveRoom()` ya no decrementa; el contador solo se incrementa al crear | `v2.3.1` |
 | Nombres de categoría sin escapar en budgets/stats | `data-cat` y texto con comillas rompían el marcado; inconsistente con el resto de la app (que sí usa `esc()`) | `esc()` en `ui-budgets.js` (x2) y `ui-stats.js` (`topCat.name`) | `v2.3.1` |
 | Imports muertos | `validateAmount`/`renderMembers` (app.js), `formatCOP` (data.js), `loadMembers`/`updateAccountSelector` (ui-members.js) | Eliminados | `v2.3.1` |
-| SW cache v5 servía el JS viejo tras el deploy | Cache-first + SW sin cambios de contenido = los usuarios con la app instalada seguían ejecutando el código v2.3 | Bump a `finanzapp-v6` (se reinstala el SW y refetch de assets) | `v2.3.1` |
 
+| SW cache v5 servía el JS viejo tras el deploy | Cache-first + SW sin cambios de contenido = los usuarios con la app instalada seguían ejecutando el código v2.3 | Bump a `finanzapp-v6` (se reinstala el SW y refetch de assets) | `v2.3.1` |
+| Ingresos perdidos al eliminar un miembro | Borrar miembro pasaba TODOS los movimientos a `'compartido'`; los ingresos compartidos se descartan en snapshots remotos (`firebase-sync`) y en la suma diaria no contaban | Al eliminar: ingresos → `'yo'` y gastos → `'compartido'` | `v2.3.2` |
+| Vista diaria sin refrescar al salir de análisis | `setMode(true)` no llamaba `refreshDaily()` | `refreshDaily()` en `setMode(true)` | `v2.3.2` |
+| Validación de saldo errónea al editar ingreso→gasto | El balance inicial sumaba `prevTx.amount` en vez de deshacer el ingreso previo | `prevTx.type === 'ingreso' ? -prevTx.amount : prevTx.amount` | `v2.3.2` |
+| Join/creación de sala pisaba datos locales sin aviso | `resetRoomState()` reemplazaba las transacciones locales sin confirmar | `showConfirmModal` antes del reset si había transacciones | `v2.3.2` |
+| Cuentas huérfanas al renombrar una cuenta | `tx.account` conservaba la clave `'id:Viejo'` | Migración de `tx.account` al renombrar | `v2.3.2` |
+| Cosméticos v2.3.2 | Doble emoji 👥 en Compartido, emoji de categoría según tipo, select de presupuestos sin refrescar al borrar | Limpieza en `ui-daily.js`, `getCatEmoji(type, name)`, `updateBudgetCategorySelect()` | `v2.3.2` |
+| Cuentas fantasma al eliminar cuenta con saldo | Borrar solo hacía `splice` en `state.accounts`; las txs conservaban `"miembro:Cuenta"` y seguían sumando al total sin verse en el detalle por persona | Modal `showPickModal`: migrar movimientos a otra cuenta (o bloquear si no hay destino) | `v2.3.3` |
+| Datos huérfanos al eliminar un miembro | `state.accounts[id]` nunca se limpiaba y las txs quedaban con `who`/`account` del eliminado | Migración guiada al destino: `who` + cuentas (ingreso → `'yo'` si el destino es `'compartido'`), limpieza de `state.accounts[id]` | `v2.3.3` |
 ### Hotfix #2 revertido (2026-07-25)
 
 Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el mismo día. Causó SyntaxError, balances incorrectos y data leak entre cuentas de miembros. Decisión: crear nueva sala y migrar datos manualmente via exportar/importar JSON.
@@ -532,6 +540,8 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.2` | 2026-07-25 | Anti-spam salas: rechazo en join, pre-existence check, límite 50 salas | ✅ En master + deployado |
 | `v2.3` | 2026-07-26 | Seguridad: config/meta, sessionStorage, prompt contraseña, balance cache, circular dependency, dead code, CSP | ✅ En master |
 | `v2.3.1` | 2026-08-03 | Fix ciclo de vida de salas (onboarding + password check en reload), limpieza join fallido, roomCount, escape, imports muertos, SW cache v6, docs | ✅ En master + deployado |
+| `v2.3.2` | 2026-08-03 | Fixes: ingresos perdidos al borrar miembro, refresh de vista diaria, validación de saldo al editar, confirmación al unirse a sala, migración de cuentas al renombrar, cosméticos, SW cache v7 | ✅ En master + deployado |
+| `v2.3.3` | 2026-08-03 | Feature: migración guiada de saldos al eliminar cuentas/miembros (`showPickModal`), SW cache v8 | ✅ En master + deployado |
 
 ---
 

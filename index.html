@@ -447,6 +447,22 @@
   </div>
 </div>
 
+<!-- Pick Modal (elegir destino de migración) -->
+<div class="modal-overlay" id="pickModal">
+  <div class="modal" style="max-width:400px">
+    <h2 id="pickTitle"></h2>
+    <p id="pickMsg" style="font-size:14px;line-height:1.5;margin:0 0 14px;color:var(--text-secondary)"></p>
+    <div class="form-group">
+      <label for="pickSelect">Destino</label>
+      <select id="pickSelect"></select>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" id="pickCancel">Cancelar</button>
+      <button class="btn btn-primary" id="pickOk">Migrar y eliminar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 </body>
