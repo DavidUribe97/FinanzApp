@@ -4,7 +4,6 @@
 
 import { state } from './state.js';
 import { MODE_KEY, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY, ACCOUNTS_KEY } from './config.js';
-import { validateAmount } from './utils.js';
 import { loadCategories, saveCategories, setSyncToFirestore as setSyncCategories } from './categories.js';
 import { loadMembers, loadAccounts, saveMembers, saveAccounts, setSyncToFirestore as setSyncMembers } from './members.js';
 import { loadData, saveData, saveBudgets, isValidTx, isValidBudgets, isValidCategories, invalidateBalanceCache, setSyncToFirestore as setSyncData } from './data.js';
@@ -12,7 +11,7 @@ import { initFirebase, syncToFirestore, setRemoteUpdateCallback } from './fireba
 import { setupRoomModal } from './firebase-room.js';
 import { showToast, dismissAllToasts, showConfirmModal, setUpdateWhoSelects } from './ui-modals.js';
 import { renderDailyCategories, updateTypeToggle, updateWhoToggle } from './ui-daily.js';
-import { renderMembers, setupMembersPanel, updateWhoSelects } from './ui-members.js';
+import { setupMembersPanel, updateWhoSelects } from './ui-members.js';
 import { setupAccountsPanel } from './ui-accounts.js';
 import { setupCategoryManager, setNotifyRefresh as setNotifyRefreshCategories } from './ui-categories.js';
 import { setNotifyRefresh as setNotifyRefreshMembers } from './ui-members.js';

@@ -121,6 +121,11 @@ export function subscribeFirestore() {
           } else {
             updateSyncStatusUI(false);
             showToast('Sala no encontrada');
+            localStorage.removeItem(ROOM_KEY);
+            sessionStorage.removeItem(ROOM_KEY + '_pwd');
+            state.roomCode = null;
+            state.roomPassword = null;
+            updateRoomLabel();
             resolve();
           }
           return;
@@ -240,7 +245,6 @@ export async function initFirebase() {
       state.roomCode = localStorage.getItem('finanzas_room');
       if (!state.roomCode) { state.firebaseInitialized = true; updateSyncStatusUI(false); return; }
     }
-    state.isCreatingRoom = false;
     state.roomPassword = sessionStorage.getItem(ROOM_KEY + '_pwd');
     updateSyncStatusUI(true);
     await subscribeFirestore();

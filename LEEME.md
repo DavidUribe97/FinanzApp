@@ -337,9 +337,18 @@ service cloud.firestore {
         && request.resource.data.accounts is map
         && request.resource.data.transactions.size() <= 10000;
       allow update: if request.auth != null
+        && request.resource.data.keys().hasAll([
+          'transactions', 'budgets', 'categories', 'members', 'accounts'
+        ])
+        && request.resource.data.transactions is list
+        && request.resource.data.budgets is map
+        && request.resource.data.categories is map
+        && request.resource.data.members is map
+        && request.resource.data.accounts is map
         && request.resource.data.transactions.size() <= 10000;
+      allow delete: if false;
     }
-    match /config/{doc} {
+    match /config/meta {
       allow read: if request.auth != null;
       allow write: if request.auth != null;
     }
@@ -368,7 +377,7 @@ service cloud.firestore {
 ### Seguridad de salas — decisión consciente
 La validación de contraseña de sala ocurre **solo en el cliente** (`firebase-sync.js:subscribeFirestore`). Firestore Security Rules permiten leer/escribir a cualquier usuario autenticado anónimamente si conoce el código de sala. La contraseña es un filtro de UX, no un control de acceso server-side.
 
-**Límite de salas:** Se usa un documento `config/meta` con un contador `roomCount` (máx. 50). Esto evita exponer todos los documentos `rooms/*` al verificar el límite (lo que hacía `collection().get()` antes). El contador se incrementa al crear y decrementa al salir, con guard anti-underflow.
+**Límite de salas:** Se usa un documento `config/meta` con un contador `roomCount` (máx. 50). Esto evita exponer todos los documentos `rooms/*` al verificar el límite (lo que hacía `collection().get()` antes). El contador solo se incrementa al crear una sala (las salas nunca se borran, `delete: false`), por lo que `leaveRoom()` no lo decrementa.
 
 **Por qué se acepta:** La app es para uso familiar privado (2-4 usuarios). El código de sala funciona como "secreto compartido" tipo URL. No existe listado público de salas. Para cerrar esto de verdad se necesitaría una Cloud Function que valide el hash antes de permitir escritura, pero la complejidad no justifica el beneficio para este caso de uso.
 
@@ -406,7 +415,7 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 ### Por qué `config/meta` para límite de salas
 - **Antes:** `collection(ROOMS_COLLECTION).get()` traía TODOS los documentos de sala para contar. Esto exponía datos (transactions, budgets, etc.) a cualquier usuario autenticado — violación de privacidad.
 - **Ahora:** Un solo documento `config/meta` con `roomCount` (máx. 50). Lectura mínima, sin exposición de datos.
-- El contador se incrementa al crear sala y decrementa al salir, con guard anti-underflow (`Math.max(0, count - 1)`).
+- El contador solo se incrementa al crear sala (`delete: false` — las salas nunca se borran, así que `leaveRoom()` no decrementa).
 
 ### Por qué `invalidateBalanceCache()` en remote update
 - `getBalanceMap()` usa cache por mes/tipo para evitar recálculos.

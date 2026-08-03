@@ -47,15 +47,6 @@ export function closeRoomModal() {
 /** Desuscribe Firestore, limpia roomCode/password del state y localStorage, y cierra el modal. */
 export function leaveRoom() {
   if (state.firestoreUnsub) { state.firestoreUnsub(); state.firestoreUnsub = null; }
-  if (state.db && state.roomCode) {
-    const counterRef = state.db.collection('config').doc('meta');
-    counterRef.get().then(snap => {
-      const count = snap.exists ? (snap.data().roomCount || 0) : 0;
-      if (count > 0) {
-        counterRef.set({ roomCount: firebase.firestore.FieldValue.increment(-1) }, { merge: true }).catch(() => {});
-      }
-    }).catch(() => {});
-  }
   state.roomCode = null;
   state.roomPassword = null;
   localStorage.removeItem(ROOM_KEY);

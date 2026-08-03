@@ -102,5 +102,5 @@ export function renderEmojiPicker(selected, onSelect, pickerId) {
 
 /** Convierte el id de un miembro en su nombre legible para la UI. */
 export function getWhoLabel(who) {
-  return state.members[who] || state.members['compartido'] || 'Compartido 👥';
+  return state.members[who] || state.members['compartido'] || 'Compartido';
 }

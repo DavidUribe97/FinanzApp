@@ -29,7 +29,7 @@ export const state = {
   firestoreUnsub: null,
   db: null,
   pendingSyncs: 0,
-  isCreatingRoom: true,
+  isCreatingRoom: false,
   roomCodeResolver: null,
 };
 
