@@ -9,8 +9,6 @@ import { MEMBERS_KEY, ACCOUNTS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, CASH_ACCO
 import { $, esc, formatCOPShort, getWhoLabel } from './utils.js';
 export { getWhoLabel };
 
-/** true si el miembro puede recibir ingresos/transferencias (todos excepto compartido). */
-export function canReceiveIncome(memberId) { return memberId !== COMPARTIDO_ID; }
 /** true si el miembro es el usuario compartido (gastos conjuntos, sin ingresos propios). */
 export function isSharedMember(memberId) { return memberId === COMPARTIDO_ID; }
 /** true si el miembro es uno de los 3 por defecto (no se puede eliminar). */

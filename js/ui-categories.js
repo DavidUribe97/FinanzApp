@@ -81,8 +81,8 @@ export function renderSubcatList(type, idx) {
     return;
   }
   list.innerHTML = cat.subcats.map((s, si) => {
-    const subName = typeof s === 'string' ? s : s.name;
-    const subEmoji = typeof s === 'string' ? '📋' : (s.emoji || '📋');
+    const subName = s.name;
+    const subEmoji = s.emoji || '📋';
     return `
     <span class="subcat-tag">
       <span class="subcat-emoji">${subEmoji}</span>
@@ -112,8 +112,8 @@ export function renderSubcatList(type, idx) {
       const c = state.categoriesData[t] && state.categoriesData[t][i];
       if (!c || !c.subcats || !c.subcats[si]) return;
       const s = c.subcats[si];
-      const subName = typeof s === 'string' ? s : s.name;
-      const subEmoji = typeof s === 'string' ? '📋' : (s.emoji || '📋');
+      const subName = s.name;
+      const subEmoji = s.emoji || '📋';
       $('subcatInput').value = subName;
       $('subcatEmojiDisplay').textContent = subEmoji;
       $('subcatEmojiDisplay').dataset.subcatEmoji = subEmoji;
@@ -187,8 +187,8 @@ export function setupCategoryManager() {
       const ei = parseInt($('addSubcatBtn').dataset.editIdx);
       const esi = parseInt($('addSubcatBtn').dataset.editSubIdx);
       if (ei === idx && cat.subcats[esi]) {
-        const oldName = typeof cat.subcats[esi] === 'string' ? cat.subcats[esi] : cat.subcats[esi].name;
-        if (oldName !== name && cat.subcats.some((s, si) => si !== esi && (typeof s === 'string' ? s : s.name) === name)) {
+        const oldName = cat.subcats[esi].name;
+        if (oldName !== name && cat.subcats.some((s, si) => si !== esi && s.name === name)) {
           return showToast('Ya existe esa subcategoría');
         }
         cat.subcats[esi] = { name, emoji };
@@ -197,7 +197,7 @@ export function setupCategoryManager() {
         clearSubcatEdit();
       }
     } else {
-      if (cat.subcats.some(s => (typeof s === 'string' ? s : s.name) === name)) return showToast('Ya existe esa subcategoría');
+      if (cat.subcats.some(s => s.name === name)) return showToast('Ya existe esa subcategoría');
       cat.subcats.push({ name, emoji });
       saveCategories();
       renderSubcatList(type, idx);

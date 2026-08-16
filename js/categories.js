@@ -1,7 +1,6 @@
 /**
  * CRUD de categorías y subcategorías. Persiste en localStorage
- * + sync a Firestore vía callback. Incluye migración de formato legacy
- * (strings a objetos {name, emoji}).
+ * + sync a Firestore vía callback.
  * Nunca importa firebase-sync.js directo.
  */
 import { state } from './state.js';
@@ -11,31 +10,18 @@ let syncToFirestoreFn = () => {};
 /** Registra el callback de sync a Firestore para disparar después de cada escritura. */
 export function setSyncToFirestore(fn) { syncToFirestoreFn = fn; }
 
-/** Carga categorías desde localStorage o usa los valores por defecto, y ejecuta migración. */
+/** Carga categorías desde localStorage o usa los valores por defecto. */
 export function loadCategories() {
   const raw = localStorage.getItem(CATS_KEY);
   if (raw) {
     try {
       state.categoriesData = JSON.parse(raw);
-      migrateSubcats();
       return;
     } catch {
       console.warn('Categorías corruptas en localStorage, usando defaults');
     }
   }
   state.categoriesData = JSON.parse(JSON.stringify(DEFAULT_CATEGORIES));
-}
-
-/** Convierte subcategorías legacy (string) al formato actual {name, emoji}. */
-export function migrateSubcats() {
-  for (const type of ['ingreso', 'gasto']) {
-    const arr = state.categoriesData[type];
-    if (!Array.isArray(arr)) continue;
-    arr.forEach(cat => {
-      if (!cat.subcats || !Array.isArray(cat.subcats)) return;
-      cat.subcats = cat.subcats.map(s => typeof s === 'string' ? { name: s, emoji: '📋' } : s);
-    });
-  }
 }
 
 /** Persiste categorías en localStorage y dispara sync a Firestore. */
@@ -65,16 +51,15 @@ export function getCatEmoji(type, name) {
 export function getSubCatNames(type, catName) {
   const cat = (state.categoriesData[type] || []).find(c => c.name === catName);
   if (!cat || !cat.subcats) return [];
-  return cat.subcats.map(s => typeof s === 'string' ? s : s.name);
+  return cat.subcats.map(s => s.name);
 }
 
 /** Devuelve el emoji de una subcategoría, o el de su categoría padre como fallback. */
 export function getSubCatEmoji(type, catName, subName) {
   const cat = (state.categoriesData[type] || []).find(c => c.name === catName);
   if (!cat || !cat.subcats) return getCatEmoji(type, catName);
-  const sub = cat.subcats.find(s => (typeof s === 'string' ? s : s.name) === subName);
+  const sub = cat.subcats.find(s => s.name === subName);
   if (!sub) return getCatEmoji(type, catName);
-  if (typeof sub === 'string') return '📋';
   return sub.emoji || '📋';
 }
 

@@ -219,7 +219,6 @@ git push origin master --tags
 ### Miembros y cuentas (`js/members.js`)
 | Función | Qué hace |
 |---------|----------|
-| `canReceiveIncome(memberId)` | true si el miembro puede recibir ingresos/transferencias (todos excepto compartido) |
 | `isSharedMember(memberId)` | true si el miembro es el usuario compartido |
 | `isDefaultMember(memberId)` | true si el miembro es uno de los 3 por defecto (no se puede eliminar) |
 | `getAccountsForMember(memberId)` | Cuentas de un miembro, fallback a cuentas de compartido |
@@ -354,7 +353,7 @@ Centralización del manejo del miembro compartido en 12 archivos. La regla "comp
 **Cambios:**
 - **`addTransaction()`** y **`editTransaction()`** retornan `{ok, reason?}` en vez de `return;`/`true/false` — callers en `setup-daily.js` y `setup-analysis.js` ahora muestran toast si falla
 - **`config.js`:** `COMPARTIDO_ID`, `DEFAULT_MEMBER_IDS`
-- **`members.js`:** `canReceiveIncome()`, `isSharedMember()`, `isDefaultMember()`
+- **`members.js`:** `isSharedMember()`, `isDefaultMember()`
 - **`firebase-sync.js`:** usa `COMPARTIDO_ID` directo (regla de dependencias #2 impide importar de `members.js`)
 
 **Nota:** `ui-charts.js` incluye compartido en tooltip de dona; `ui-stats.js` lo excluye — decisión de producto pendiente.
@@ -367,6 +366,17 @@ Centralización del manejo del miembro compartido en 12 archivos. La regla "comp
 - **`addTransfer`** invalida cache de balances después de crear el par de transacciones
 
 **Archivos tocados:** `utils.js`, `members.js`, `ui-accounts.js`, `data.js`
+
+### Limpieza código muerto (v2.4.3)
+Eliminación de código legacy que ya no se ejecuta:
+- **`canReceiveIncome()`** en `members.js` — función exportada sin importadores ni callers (0 referencias)
+- **`migrateSubcats()`** en `categories.js` — migración one-time de formato legacy `string → {name, emoji}`, ya no necesario
+- **Guards `typeof s === 'string'`** en `categories.js` y `ui-categories.js` — 8 eliminados, subcategorías siempre son objetos `{name, emoji}`
+- **Warning "Sin contraseña"** en `index.html` — texto informativo sin referencia JS
+
+**No se tocó:** código de contraseñas/rutas de acceso (pendiente para análisis de seguridad futuro).
+
+**Archivos tocados:** `members.js`, `categories.js`, `ui-categories.js`, `index.html`, `LEEME.md`
 
 ---
 
@@ -617,8 +627,9 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.3.3` | 2026-08-03 | Feature: migración guiada de saldos al eliminar cuentas/miembros (`showPickModal`), SW cache v8 | ✅ En master + deployado |
 | `v2.3.4` | 2026-08-03 | Fix: `ReferenceError: saveAccounts is not defined` al eliminar miembro (migración no se completaba) + herramienta `scripts/check-imports.mjs`, SW cache v9 | ✅ En master + deployado |
 | `v2.4.0` | 2026-08-16 | Feature: transferencias entre cuentas (par gasto/ingreso vinculado, excluida de reportes) | ✅ En master + deployado |
-| `v2.4.1` | 2026-08-16 | Refactor: centralizar 'compartido' — `COMPARTIDO_ID`, `isSharedMember()`, `canReceiveIncome()`, `isDefaultMember()`, fixes de UX en `addTransaction`/`editTransaction` | ✅ En master + deployado |
+| `v2.4.1` | 2026-08-16 | Refactor: centralizar 'compartido' — `COMPARTIDO_ID`, `isSharedMember()`, `isDefaultMember()`, fixes de UX en `addTransaction`/`editTransaction` | ✅ En master + deployado |
 | `v2.4.2` | 2026-08-16 | Fixes UX: `formatCOPShort` sin abreviar (montos completos), cuentas con saldo > 0 en selectores de gasto/transferencia, fix cache en `addTransfer` | ✅ En master + deployado |
+| `v2.4.3` | 2026-08-16 | Limpieza código muerto: elimina `canReceiveIncome()`, `migrateSubcats()`, guards `typeof s === 'string'` (formato legacy subcats), warning "Sin contraseña" | ✅ En develop |
 
 ---
 
