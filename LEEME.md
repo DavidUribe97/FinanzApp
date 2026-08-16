@@ -648,7 +648,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.4.0` | 2026-08-16 | Feature: transferencias entre cuentas (par gasto/ingreso vinculado, excluida de reportes) | ✅ En master + deployado |
 | `v2.4.1` | 2026-08-16 | Refactor: centralizar 'compartido' — `COMPARTIDO_ID`, `isSharedMember()`, `isDefaultMember()`, fixes de UX en `addTransaction`/`editTransaction` | ✅ En master + deployado |
 | `v2.4.2` | 2026-08-16 | Fixes UX: `formatCOPShort` sin abreviar (montos completos), fix cache en `addTransfer` | ✅ En master + deployado |
-| `v2.4.3` | 2026-08-16 | Limpieza código muerto: elimina `canReceiveIncome()`, `migrateSubcats()`, guards `typeof s === 'string'`, warning "Sin contraseña"; fix selectores gasto/transferencia (solo saldo > 0) | ✅ En develop |
+| `v2.4.3` | 2026-08-16 | Limpieza código muerto: elimina `canReceiveIncome()`, `migrateSubcats()`, guards `typeof s === 'string'`, warning "Sin contraseña"; fix selectores gasto/transferencia (solo saldo > 0) | ✅ En master + deployado |
 
 ---
 
