@@ -13,6 +13,10 @@ export const ROOM_KEY = 'finanzas_room';
 export const MEMBERS_KEY = 'finanzas_members';
 export const ACCOUNTS_KEY = 'finanzas_accounts';
 
+/** IDs de miembros por defecto (no se pueden eliminar). */
+export const COMPARTIDO_ID = 'compartido';
+export const DEFAULT_MEMBER_IDS = ['yo', 'pareja', COMPARTIDO_ID];
+
 /** Nombres por defecto de los miembros del hogar (key → label). */
 export const DEFAULT_MEMBERS = { yo: 'Él', pareja: 'Ella', compartido: 'Compartido 👥' };
 /** Cuentas bancarias/wallet por defecto para cada miembro. */

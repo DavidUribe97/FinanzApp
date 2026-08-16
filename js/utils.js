@@ -1,4 +1,4 @@
-import { MAX_DESC_LENGTH, MAX_AMOUNT, EMOJIS } from './config.js';
+import { MAX_DESC_LENGTH, MAX_AMOUNT, EMOJIS, COMPARTIDO_ID } from './config.js';
 import { state } from './state.js';
 
 /**
@@ -102,5 +102,5 @@ export function renderEmojiPicker(selected, onSelect, pickerId) {
 
 /** Convierte el id de un miembro en su nombre legible para la UI. */
 export function getWhoLabel(who) {
-  return state.members[who] || state.members['compartido'] || 'Compartido';
+  return state.members[who] || state.members[COMPARTIDO_ID] || 'Compartido';
 }

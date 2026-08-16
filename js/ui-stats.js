@@ -6,6 +6,7 @@
 import { state } from './state.js';
 import { $, esc, formatCOP, getToday } from './utils.js';
 import { getFilteredTransactionsExcludingTransfers, getMonthRange } from './data.js';
+import { isSharedMember } from './members.js';
 
 /** Renderiza las tarjetas de estadísticas: promedio diario, top categoría, totales y comparativa. */
 export function renderStats() {
@@ -38,7 +39,7 @@ export function renderStats() {
     vsPrev = { diff: Math.abs(diff), pct: Math.abs(pct), up: diff > 0 };
   }
 
-  const memberStatsHtml = Object.entries(state.members).filter(([id]) => id !== 'compartido').map(([id, name]) => {
+  const memberStatsHtml = Object.entries(state.members).filter(([id]) => !isSharedMember(id)).map(([id, name]) => {
     const total = gastos.filter(tx => (tx.who || 'yo') === id).reduce((s, t) => s + t.amount, 0);
     return `
     <div class="stat-card">

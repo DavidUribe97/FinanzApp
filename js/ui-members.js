@@ -5,7 +5,8 @@
  */
 import { state } from './state.js';
 import { $, esc, sanitizeStr } from './utils.js';
-import { saveMembers, saveAccounts } from './members.js';
+import { saveMembers, saveAccounts, isSharedMember, isDefaultMember } from './members.js';
+import { COMPARTIDO_ID, DEFAULT_MEMBER_IDS } from './config.js';
 import { showConfirmModal, showToast, showPickModal } from './ui-modals.js';
 import { saveData } from './data.js';
 import { updateWhoToggle } from './ui-daily.js';
@@ -18,7 +19,7 @@ export function setNotifyRefresh(fn) { notifyRefreshFn = fn; }
 export function renderMembers() {
   const list = $('membersList');
   list.innerHTML = Object.entries(state.members).map(([id, name]) => {
-    const isDefault = ['yo','pareja','compartido'].includes(id);
+    const isDefault = isDefaultMember(id);
     return `
     <div class="cat-manager-item">
       <span class="cm-name">${esc(name)}</span>
@@ -61,7 +62,7 @@ export function renderMembers() {
         const targetAccounts = state.accounts[target] || [];
         state.transactions.forEach(tx => {
           if ((tx.who || 'yo') === id) {
-            tx.who = (target === 'compartido' && tx.type === 'ingreso') ? 'yo' : target;
+            tx.who = (isSharedMember(target) && tx.type === 'ingreso') ? 'yo' : target;
             if (tx.account) {
               const acct = tx.account.includes(':') ? tx.account.split(':').slice(1).join(':') : tx.account;
               const destAcct = targetAccounts.includes(acct) ? acct : 'Efectivo';
@@ -128,12 +129,12 @@ export function updateWhoSelects() {
 
 /** Oculta/muestra "Compartido" en un select de quién según el tipo (ingreso lo excluye). */
 export function filterWhoForType(selectEl, type) {
-  const opt = selectEl.querySelector('option[value="compartido"]');
+  const opt = selectEl.querySelector(`option[value="${COMPARTIDO_ID}"]`);
   if (!opt) return;
   if (type === 'ingreso') {
     opt.disabled = true;
     opt.style.display = 'none';
-    if (selectEl.value === 'compartido') selectEl.value = 'yo';
+    if (selectEl.value === COMPARTIDO_ID) selectEl.value = 'yo';
   } else {
     opt.disabled = false;
     opt.style.display = '';
