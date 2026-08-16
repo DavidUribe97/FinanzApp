@@ -212,6 +212,8 @@ git push origin master --tags
 | `isValidCategories(cats)` | Valida estructura de categorías (para import) |
 | `isValidBudgets(budgets)` | Valida estructura de presupuestos (para import) |
 | `invalidateBalanceCache()` | Marca cache de balances como sucio para recálculo |
+| `getFilteredTransactionsExcludingTransfers(month, year)` | Filtra transacciones excluyendo transferencias internas (para reportes/resumen) |
+| `addTransfer(fromAccountKey, toAccountKey, amount, description)` | Registra transferencia como par gasto/ingreso vinculado; retorna `{ok, reason?}` |
 | `setSyncToFirestore(fn)` | Inyecta la función de sync (llamada desde `app.js`) |
 
 ### Firebase (`js/firebase-sync.js`, `js/firebase-room.js`)
@@ -322,6 +324,18 @@ El código de la sala se muestra en el header. El botón "Salir de esta sala" en
 
 ### Sin datos de ejemplo
 `loadData()` inicializa `transactions = []` cuando no hay datos. No se generan transacciones ficticias.
+
+### Transferencias entre cuentas (v2.4.0)
+Botón **⇄ Transferir** en el panel de cuentas abre un modal para mover dinero entre cuentas. La transferencia se registra como un **par de transacciones vinculadas** (gasto en origen + ingreso en destino) con `category: '_transfer'` y un `transferId` compartido.
+
+**Reglas:**
+- **No aparece** en resumen, estadísticas, gráficas ni presupuestos (excluida por `getFilteredTransactionsExcludingTransfers()`)
+- **Sí aparece** en feed diario, saldos por cuenta y balance acumulado
+- **`compartido` solo gasta**, nunca recibe transferencias ni ingresos
+- **Misma cuenta** rechazada (toastr de error)
+- **Saldo insuficiente** validado antes de crear el par
+
+**Archivos tocados:** `data.js`, `members.js`, `ui-analysis.js`, `ui-stats.js`, `ui-charts.js`, `ui-accounts.js`, `index.html`
 
 ---
 
@@ -571,6 +585,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.3.2` | 2026-08-03 | Fixes: ingresos perdidos al borrar miembro, refresh de vista diaria, validación de saldo al editar, confirmación al unirse a sala, migración de cuentas al renombrar, cosméticos, SW cache v7 | ✅ En master + deployado |
 | `v2.3.3` | 2026-08-03 | Feature: migración guiada de saldos al eliminar cuentas/miembros (`showPickModal`), SW cache v8 | ✅ En master + deployado |
 | `v2.3.4` | 2026-08-03 | Fix: `ReferenceError: saveAccounts is not defined` al eliminar miembro (migración no se completaba) + herramienta `scripts/check-imports.mjs`, SW cache v9 | ✅ En master + deployado |
+| `v2.4.0` | 2026-08-16 | Feature: transferencias entre cuentas (par gasto/ingreso vinculado, excluida de reportes) | ✅ En master + deployado |
 
 ---
 
