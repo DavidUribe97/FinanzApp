@@ -5,10 +5,13 @@
  */
 import { state } from './state.js';
 import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT, MONTHS } from './config.js';
-import { $, downloadBlob, parseLocalDate, getWhoLabel } from './utils.js';
+import { $, downloadBlob, parseLocalDate, getWhoLabel, generateId, getToday, toLocalDateStr } from './utils.js';
 
 /** Soft limit warning threshold for Firestore's 10K hard limit. */
 const TX_SOFT_LIMIT = 9000;
+
+/** Categoría reservada para transferencias internas entre cuentas — no aparece en UI ni en reportes. */
+export const TRANSFER_CATEGORY = '_transfer';
 
 let syncToFirestoreFn = () => {};
 /** Registra el callback de sync a Firestore para disparar después de cada escritura. */
@@ -69,6 +72,11 @@ export function getFilteredTransactions(month, year) {
     const d = parseLocalDate(tx.date);
     return d.getMonth() === month && d.getFullYear() === year;
   });
+}
+
+/** Filtra transacciones del mes excluyendo transferencias internas — para vistas de reporte/resumen. */
+export function getFilteredTransactionsExcludingTransfers(month, year) {
+  return getFilteredTransactions(month, year).filter(tx => tx.category !== TRANSFER_CATEGORY);
 }
 
 /** Aplica filtros de UI (búsqueda, tipo, quién) sobre las transacciones del mes actual. */
@@ -157,6 +165,25 @@ export function restoreTransaction() {
     return true;
   }
   return false;
+}
+
+/** Registra una transferencia entre cuentas como un par gasto/ingreso vinculado (no afecta categorías ni presupuestos). */
+export function addTransfer(fromAccountKey, toAccountKey, amount, description) {
+  if (fromAccountKey === toAccountKey) {
+    return { ok: false, reason: 'misma-cuenta' };
+  }
+  const toWho = toAccountKey.split(':')[0];
+  if (toWho === 'compartido') {
+    return { ok: false, reason: 'compartido-no-recibe' };
+  }
+  const fromWho = fromAccountKey.split(':')[0];
+  const transferId = generateId();
+  const dateStr = toLocalDateStr(getToday());
+  const base = { category: TRANSFER_CATEGORY, amount, date: dateStr, description: description || 'Transferencia', transferId };
+  state.transactions.push({ ...base, id: generateId(), type: 'gasto', who: fromWho, account: fromAccountKey });
+  state.transactions.push({ ...base, id: generateId(), type: 'ingreso', who: toWho, account: toAccountKey });
+  saveData();
+  return { ok: true };
 }
 
 /** Genera y descarga un archivo CSV con las transacciones visibles en la tabla. */
