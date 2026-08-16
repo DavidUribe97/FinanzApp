@@ -6,10 +6,10 @@
 
 import { state } from './state.js';
 import { $, esc, formatCOP, formatCOPShort, getToday, parseLocalDate, toLocalDateStr } from './utils.js';
-import { MEMBER_COLORS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, LAST_CAT_KEY } from './config.js';
+import { MEMBER_COLORS, ANIMATION_STEPS, ANIMATION_INTERVAL_MS, LAST_CAT_KEY, DEFAULT_MEMBER_IDS, COMPARTIDO_ID } from './config.js';
 import { getCatNames, getCatEmoji, getSubCatNames, getSubCatEmoji } from './categories.js';
 import { getFilteredTransactions } from './data.js';
-import { updateAccountSelector, getWhoLabel, parseAccountValue, isCashAccount } from './members.js';
+import { updateAccountSelector, getWhoLabel, parseAccountValue, isCashAccount, isSharedMember } from './members.js';
 import { openEditModal } from './ui-modals.js';
 
 function loadLastCategory() {
@@ -140,20 +140,20 @@ export function updateWhoToggle() {
   const comp = $('dailyWhoCompartido');
   yo.textContent = state.members.yo || 'Él';
   pareja.textContent = state.members.pareja || 'Ella';
-  comp.textContent = state.members.compartido || 'Compartido';
+  comp.textContent = state.members[COMPARTIDO_ID] || 'Compartido';
   yo.className = state.selectedWho === 'yo' ? 'active-who-yo' : '';
   pareja.className = state.selectedWho === 'pareja' ? 'active-who-pareja' : '';
-  comp.className = state.selectedWho === 'compartido' ? 'active-who-compartido' : '';
+  comp.className = isSharedMember(state.selectedWho) ? 'active-who-compartido' : '';
   if (state.selectedType === 'ingreso') {
     comp.style.display = 'none';
-    if (state.selectedWho === 'compartido') {
+    if (isSharedMember(state.selectedWho)) {
       state.selectedWho = 'yo';
       yo.className = 'active-who-yo';
     }
   } else {
     comp.style.display = '';
   }
-  const extraMembers = Object.entries(state.members).filter(([id]) => !['yo','pareja','compartido'].includes(id));
+  const extraMembers = Object.entries(state.members).filter(([id]) => !DEFAULT_MEMBER_IDS.includes(id));
   const used = new Set();
   extraMembers.forEach(([id, name]) => {
     let btn = toggle.querySelector(`.who-extra-btn[data-who="${id}"]`);

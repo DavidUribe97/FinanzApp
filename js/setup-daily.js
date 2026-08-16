@@ -3,6 +3,7 @@
 
 import { state } from './state.js';
 import { $, sanitizeStr, validateAmount, generateId, getToday, formatCOP, toLocalDateStr } from './utils.js';
+import { COMPARTIDO_ID } from './config.js';
 import { updateTypeToggle, updateWhoToggle, renderDailyCategories, saveLastCategory, refreshDaily } from './ui-daily.js';
 import { updateAccountSelector, parseAccountValue } from './members.js';
 import { addTransaction, getAccountBalance } from './data.js';
@@ -33,7 +34,7 @@ export function setupDailyMode() {
   $('dailyWhoYo').addEventListener('click', () => { state.selectedWho = 'yo'; updateWhoToggle(); updateAccountSelector('yo', 'dailyAccount', state.selectedType); });
   $('dailyWhoPareja').addEventListener('click', () => { state.selectedWho = 'pareja'; updateWhoToggle(); updateAccountSelector('pareja', 'dailyAccount', state.selectedType); });
   $('dailyWhoCompartido').addEventListener('click', () => {
-    state.selectedWho = 'compartido';
+    state.selectedWho = COMPARTIDO_ID;
     if (state.selectedType === 'ingreso') {
       state.selectedType = 'gasto';
       updateTypeToggle();
@@ -41,7 +42,7 @@ export function setupDailyMode() {
       $('subcatGrid').style.display = 'none';
     }
     updateWhoToggle();
-    updateAccountSelector('compartido', 'dailyAccount', 'gasto');
+    updateAccountSelector(COMPARTIDO_ID, 'dailyAccount', 'gasto');
   });
 
   const dailyAmount = $('dailyAmount');
@@ -62,7 +63,8 @@ export function setupDailyMode() {
         return showToast(`Saldo insuficiente en ${account}. Disponible: ${formatCOP(balance)}`);
       }
     }
-    addTransaction({ id: generateId(), type: state.selectedType, amount, category: state.selectedCategory, subcategory: state.selectedSubcategory || '', description: desc, date, who: state.selectedWho, account: fullAccountKey });
+    const result = addTransaction({ id: generateId(), type: state.selectedType, amount, category: state.selectedCategory, subcategory: state.selectedSubcategory || '', description: desc, date, who: state.selectedWho, account: fullAccountKey });
+    if (!result.ok) return showToast('Compartido no puede recibir ingresos');
     const flashClass = state.selectedType === 'gasto' ? 'flash-error' : 'flash-success';
     const balanceEl = $('dailyBalance');
     balanceEl.classList.remove('flash-success', 'flash-error');

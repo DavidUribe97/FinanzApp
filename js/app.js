@@ -5,7 +5,7 @@
 import { state } from './state.js';
 import { MODE_KEY, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY, ACCOUNTS_KEY } from './config.js';
 import { loadCategories, saveCategories, setSyncToFirestore as setSyncCategories } from './categories.js';
-import { loadMembers, loadAccounts, saveMembers, saveAccounts, setSyncToFirestore as setSyncMembers } from './members.js';
+import { loadMembers, loadAccounts, saveMembers, saveAccounts, isSharedMember, setSyncToFirestore as setSyncMembers } from './members.js';
 import { loadData, saveData, saveBudgets, isValidTx, isValidBudgets, isValidCategories, invalidateBalanceCache, setSyncToFirestore as setSyncData } from './data.js';
 import { initFirebase, syncToFirestore, setRemoteUpdateCallback } from './firebase-sync.js';
 import { setupRoomModal } from './firebase-room.js';
@@ -42,7 +42,7 @@ function importJSON(file) {
       dismissAllToasts();
       const ok = await showConfirmModal(`Importar ${data.transactions.length} transacciones? Se reemplazarán los datos actuales.`);
       if (!ok) return;
-      state.transactions = data.transactions.filter(tx => !(tx.who === 'compartido' && tx.type === 'ingreso'));
+      state.transactions = data.transactions.filter(tx => !(isSharedMember(tx.who) && tx.type === 'ingreso'));
       if (data.budgets) state.budgets = data.budgets;
       if (data.categories) { state.categoriesData = data.categories; saveCategories(); }
       if (data.members) { state.members = data.members; saveMembers(); }
