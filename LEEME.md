@@ -219,12 +219,31 @@ git push origin master --tags
 ### Miembros y cuentas (`js/members.js`)
 | Función | Qué hace |
 |---------|----------|
+| `loadMembers()` | Carga miembros desde localStorage o usa defaults |
+| `saveMembers()` | Persiste miembros en localStorage y dispara sync |
+| `loadAccounts()` | Carga cuentas desde localStorage o usa defaults |
+| `saveAccounts()` | Persiste cuentas en localStorage y dispara sync |
 | `isSharedMember(memberId)` | true si el miembro es el usuario compartido |
 | `isDefaultMember(memberId)` | true si el miembro es uno de los 3 por defecto (no se puede eliminar) |
 | `getAccountsForMember(memberId)` | Cuentas de un miembro, fallback a cuentas de compartido |
 | `getAllAccountsForMember()` | Todas las cuentas de miembros individuales (excluye compartido) |
 | `getAllAccountKeysIncludingShared()` | Todas las cuentas incluyendo compartido (para transferencias) |
-| `updateAccountSelector(memberId, selectId, type)` | Puebla select del DOM con cuentas disponibles |
+| `isCashAccount(accountName)` | true si el nombre contiene efectivo/bolsillo |
+| `updateAccountSelector(memberId, selectId, type)` | Puebla select del DOM con cuentas disponibles (solo saldo > 0 para tipo gasto) |
+| `parseAccountValue(val)` | Parsea valor de cuenta desde input del formulario |
+| `getMemberBadgeStyle(who)` | Devuelve estilo CSS del badge de miembro |
+
+### Categorías (`js/categories.js`)
+| Función | Qué hace |
+|---------|----------|
+| `loadCategories()` | Carga categorías desde localStorage o usa defaults |
+| `saveCategories()` | Persiste categorías en localStorage y dispara sync |
+| `getCatNames(type)` | Nombres de categorías de un tipo (ingreso/gasto) |
+| `getCatEmoji(type, name)` | Emoji de una categoría por tipo y nombre (fallback a otros tipos) |
+| `getSubCatNames(type, catName)` | Nombres de subcategorías de una categoría específica |
+| `getSubCatEmoji(type, catName, subName)` | Emoji de subcategoría, o el de su categoría padre como fallback |
+| `getAllGastoNames()` | Nombres de todas las categorías de tipo gasto |
+| `setSyncToFirestore(fn)` | Inyecta callback de sync a Firestore |
 
 ### Firebase (`js/firebase-sync.js`, `js/firebase-room.js`)
 | Función | Qué hace |
@@ -348,7 +367,7 @@ Botón **⇄ Transferir** en el panel de cuentas abre un modal para mover dinero
 **Archivos tocados:** `data.js`, `members.js`, `ui-analysis.js`, `ui-stats.js`, `ui-charts.js`, `ui-accounts.js`, `index.html`
 
 ### Refactor: manejo de "compartido" (v2.4.1)
-Centralización del manejo del miembro compartido en 12 archivos. La regla "compartido solo gasta" ahora está documentada en una constante (`COMPARTIDO_ID`) y helpers (`isSharedMember()`, `canReceiveIncome()`, `isDefaultMember()`) en vez de 21 literales `'compartido'` dispersos.
+Centralización del manejo del miembro compartido en 12 archivos. La regla "compartido solo gasta" ahora está documentada en una constante (`COMPARTIDO_ID`) y helpers (`isSharedMember()`, `isDefaultMember()`) en vez de 21 literales `'compartido'` dispersos. (Nota: `canReceiveIncome()` se introdujo aquí pero fue eliminada en v2.4.3 como código muerto.)
 
 **Cambios:**
 - **`addTransaction()`** y **`editTransaction()`** retornan `{ok, reason?}` en vez de `return;`/`true/false` — callers en `setup-daily.js` y `setup-analysis.js` ahora muestran toast si falla
@@ -362,10 +381,9 @@ Centralización del manejo del miembro compartido en 12 archivos. La regla "comp
 
 ### Fixes UX (v2.4.2)
 - **`formatCOPShort`** sin abreviar — montos completos siempre (`$3.800` en vez de `4K`)
-- **Selectores de gasto/transferencia** filtran cuentas con saldo > 0 (fallback si todas en 0)
 - **`addTransfer`** invalida cache de balances después de crear el par de transacciones
 
-**Archivos tocados:** `utils.js`, `members.js`, `ui-accounts.js`, `data.js`
+**Archivos tocados:** `utils.js`, `data.js`
 
 ### Limpieza código muerto (v2.4.3)
 Eliminación de código legacy que ya no se ejecuta:
@@ -373,6 +391,7 @@ Eliminación de código legacy que ya no se ejecuta:
 - **`migrateSubcats()`** en `categories.js` — migración one-time de formato legacy `string → {name, emoji}`, ya no necesario
 - **Guards `typeof s === 'string'`** en `categories.js` y `ui-categories.js` — 8 eliminados, subcategorías siempre son objetos `{name, emoji}`
 - **Warning "Sin contraseña"** en `index.html` — texto informativo sin referencia JS
+- **Selectores gasto/transferencia** — quitado fallback que mostraba cuentas con saldo 0; ahora siempre filtra por saldo > 0
 
 **No se tocó:** código de contraseñas/rutas de acceso (pendiente para análisis de seguridad futuro).
 
@@ -628,8 +647,8 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.3.4` | 2026-08-03 | Fix: `ReferenceError: saveAccounts is not defined` al eliminar miembro (migración no se completaba) + herramienta `scripts/check-imports.mjs`, SW cache v9 | ✅ En master + deployado |
 | `v2.4.0` | 2026-08-16 | Feature: transferencias entre cuentas (par gasto/ingreso vinculado, excluida de reportes) | ✅ En master + deployado |
 | `v2.4.1` | 2026-08-16 | Refactor: centralizar 'compartido' — `COMPARTIDO_ID`, `isSharedMember()`, `isDefaultMember()`, fixes de UX en `addTransaction`/`editTransaction` | ✅ En master + deployado |
-| `v2.4.2` | 2026-08-16 | Fixes UX: `formatCOPShort` sin abreviar (montos completos), cuentas con saldo > 0 en selectores de gasto/transferencia, fix cache en `addTransfer` | ✅ En master + deployado |
-| `v2.4.3` | 2026-08-16 | Limpieza código muerto: elimina `canReceiveIncome()`, `migrateSubcats()`, guards `typeof s === 'string'` (formato legacy subcats), warning "Sin contraseña" | ✅ En develop |
+| `v2.4.2` | 2026-08-16 | Fixes UX: `formatCOPShort` sin abreviar (montos completos), fix cache en `addTransfer` | ✅ En master + deployado |
+| `v2.4.3` | 2026-08-16 | Limpieza código muerto: elimina `canReceiveIncome()`, `migrateSubcats()`, guards `typeof s === 'string'`, warning "Sin contraseña"; fix selectores gasto/transferencia (solo saldo > 0) | ✅ En develop |
 
 ---
 

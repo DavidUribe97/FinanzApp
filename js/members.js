@@ -101,8 +101,11 @@ export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
 
   if (type === 'gasto') {
     const allMembers = getAllAccountsForMember();
-    const withBalance = allMembers.filter(({ memberId: mid, account }) => getAccountBalance(`${mid}:${account}`) > 0);
-    const selAccounts = withBalance.length > 0 ? withBalance : allMembers;
+    const selAccounts = allMembers.filter(({ memberId: mid, account }) => getAccountBalance(`${mid}:${account}`) > 0);
+    if (selAccounts.length === 0) {
+      sel.innerHTML = '<option value="">Sin cuentas con saldo</option>';
+      return;
+    }
     sel.innerHTML = selAccounts.map(({ memberId: mid, label, account }) => {
       const fullKey = `${mid}:${account}`;
       const bal = getAccountBalance(fullKey);
