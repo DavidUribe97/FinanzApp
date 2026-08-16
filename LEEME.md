@@ -198,8 +198,8 @@ git push origin master --tags
 | `loadData()` | Carga transactions/budgets desde localStorage; si está vacío, inicializa `[]`/`{}` |
 | `saveData()` | Guarda transactions en localStorage + dispara sync a Firestore |
 | `saveBudgets()` | Guarda budgets en localStorage + dispara sync a Firestore |
-| `addTransaction(data)` | Agrega transacción al array, guarda y refresca |
-| `editTransaction(id, data)` | Edita transacción por ID (match por `String()` para retrocompatibilidad) |
+| `addTransaction(data)` | Agrega transacción al array, guarda y refresca. Retorna `{ok, reason?}` |
+| `editTransaction(id, data)` | Edita transacción por ID (match por `String()` para retrocompatibilidad). Retorna `{ok, reason?}` |
 | `deleteTransaction(id)` | Elimina con deshacer vía toast; retorna la transacción eliminada |
 | `restoreTransaction()` | Restaura la última transacción eliminada (undo) |
 | `getFilteredTransactions(month, year)` | Filtra transacciones por mes/año |
@@ -215,6 +215,17 @@ git push origin master --tags
 | `getFilteredTransactionsExcludingTransfers(month, year)` | Filtra transacciones excluyendo transferencias internas (para reportes/resumen) |
 | `addTransfer(fromAccountKey, toAccountKey, amount, description)` | Registra transferencia como par gasto/ingreso vinculado; retorna `{ok, reason?}` |
 | `setSyncToFirestore(fn)` | Inyecta la función de sync (llamada desde `app.js`) |
+
+### Miembros y cuentas (`js/members.js`)
+| Función | Qué hace |
+|---------|----------|
+| `canReceiveIncome(memberId)` | true si el miembro puede recibir ingresos/transferencias (todos excepto compartido) |
+| `isSharedMember(memberId)` | true si el miembro es el usuario compartido |
+| `isDefaultMember(memberId)` | true si el miembro es uno de los 3 por defecto (no se puede eliminar) |
+| `getAccountsForMember(memberId)` | Cuentas de un miembro, fallback a cuentas de compartido |
+| `getAllAccountsForMember()` | Todas las cuentas de miembros individuales (excluye compartido) |
+| `getAllAccountKeysIncludingShared()` | Todas las cuentas incluyendo compartido (para transferencias) |
+| `updateAccountSelector(memberId, selectId, type)` | Puebla select del DOM con cuentas disponibles |
 
 ### Firebase (`js/firebase-sync.js`, `js/firebase-room.js`)
 | Función | Qué hace |
@@ -336,6 +347,19 @@ Botón **⇄ Transferir** en el panel de cuentas abre un modal para mover dinero
 - **Saldo insuficiente** validado antes de crear el par
 
 **Archivos tocados:** `data.js`, `members.js`, `ui-analysis.js`, `ui-stats.js`, `ui-charts.js`, `ui-accounts.js`, `index.html`
+
+### Refactor: manejo de "compartido" (v2.4.1)
+Centralización del manejo del miembro compartido en 12 archivos. La regla "compartido solo gasta" ahora está documentada en una constante (`COMPARTIDO_ID`) y helpers (`isSharedMember()`, `canReceiveIncome()`, `isDefaultMember()`) en vez de 21 literales `'compartido'` dispersos.
+
+**Cambios:**
+- **`addTransaction()`** y **`editTransaction()`** retornan `{ok, reason?}` en vez de `return;`/`true/false` — callers en `setup-daily.js` y `setup-analysis.js` ahora muestran toast si falla
+- **`config.js`:** `COMPARTIDO_ID`, `DEFAULT_MEMBER_IDS`
+- **`members.js`:** `canReceiveIncome()`, `isSharedMember()`, `isDefaultMember()`
+- **`firebase-sync.js`:** usa `COMPARTIDO_ID` directo (regla de dependencias #2 impide importar de `members.js`)
+
+**Nota:** `ui-charts.js` incluye compartido en tooltip de dona; `ui-stats.js` lo excluye — decisión de producto pendiente.
+
+**Archivos tocados:** `config.js`, `members.js`, `data.js`, `app.js`, `firebase-sync.js`, `setup-daily.js`, `setup-analysis.js`, `ui-accounts.js`, `ui-daily.js`, `ui-members.js`, `ui-stats.js`, `utils.js`
 
 ---
 
@@ -586,6 +610,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.3.3` | 2026-08-03 | Feature: migración guiada de saldos al eliminar cuentas/miembros (`showPickModal`), SW cache v8 | ✅ En master + deployado |
 | `v2.3.4` | 2026-08-03 | Fix: `ReferenceError: saveAccounts is not defined` al eliminar miembro (migración no se completaba) + herramienta `scripts/check-imports.mjs`, SW cache v9 | ✅ En master + deployado |
 | `v2.4.0` | 2026-08-16 | Feature: transferencias entre cuentas (par gasto/ingreso vinculado, excluida de reportes) | ✅ En master + deployado |
+| `v2.4.1` | 2026-08-16 | Refactor: centralizar 'compartido' — `COMPARTIDO_ID`, `isSharedMember()`, `canReceiveIncome()`, `isDefaultMember()`, fixes de UX en `addTransaction`/`editTransaction` | ✅ En master + deployado |
 
 ---
 
