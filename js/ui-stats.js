@@ -5,11 +5,11 @@
 
 import { state } from './state.js';
 import { $, esc, formatCOP, getToday } from './utils.js';
-import { getFilteredTransactions, getMonthRange } from './data.js';
+import { getFilteredTransactionsExcludingTransfers, getMonthRange } from './data.js';
 
 /** Renderiza las tarjetas de estadísticas: promedio diario, top categoría, totales y comparativa. */
 export function renderStats() {
-  const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
+  const filtered = getFilteredTransactionsExcludingTransfers(state.currentMonth, state.currentYear);
   const { days } = getMonthRange(state.currentMonth, state.currentYear);
   const t = getToday();
   const todayDay = t.getMonth() === state.currentMonth && t.getFullYear() === state.currentYear ? t.getDate() : days;
@@ -30,7 +30,7 @@ export function renderStats() {
   let vsPrev = null;
   const prevMonth = state.currentMonth === 0 ? 11 : state.currentMonth - 1;
   const prevYear = state.currentMonth === 0 ? state.currentYear - 1 : state.currentYear;
-  const prevFiltered = getFilteredTransactions(prevMonth, prevYear);
+  const prevFiltered = getFilteredTransactionsExcludingTransfers(prevMonth, prevYear);
   const prevGastos = prevFiltered.filter(tx => tx.type === 'gasto').reduce((s, t) => s + t.amount, 0);
   if (prevGastos > 0 || totalGastos > 0) {
     const pct = prevGastos > 0 ? ((totalGastos - prevGastos) / prevGastos * 100) : 100;

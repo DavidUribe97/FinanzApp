@@ -4,8 +4,8 @@
  */
 import { state } from './state.js';
 import { $, esc, sanitizeStr, formatCOP, formatCOPShort } from './utils.js';
-import { saveAccounts, isCashAccount, updateAccountSelector, getAllAccountsForMember } from './members.js';
-import { saveData, getAccountBalance } from './data.js';
+import { saveAccounts, isCashAccount, updateAccountSelector, getAllAccountsForMember, getAllAccountKeysIncludingShared } from './members.js';
+import { saveData, addTransfer, getAccountBalance } from './data.js';
 import { showToast, showPickModal } from './ui-modals.js';
 
 /** Renderiza las cuentas de cada miembro con íconos de efectivo/digital y acciones. */
@@ -87,8 +87,57 @@ export function renderAccountsPanel() {
   });
 }
 
+/** Abre el modal de transferencia con los selects de origen/destino poblados. */
+function openTransferModal() {
+  const allAccounts = getAllAccountKeysIncludingShared();
+  const destAccounts = getAllAccountsForMember();
+  const makeOption = ({ memberId, label, account }) => {
+    const key = `${memberId}:${account}`;
+    const bal = getAccountBalance(key);
+    return `<option value="${esc(key)}">${esc(account)} (${esc(label)}) — ${formatCOPShort(bal)}</option>`;
+  };
+  $('transferFrom').innerHTML = allAccounts.map(makeOption).join('');
+  $('transferTo').innerHTML = destAccounts.map(makeOption).join('');
+  $('transferAmount').value = '';
+  $('transferDesc').value = '';
+  $('transferModal').classList.add('active');
+  $('transferAmount').focus();
+}
+
+/** Cierra el modal de transferencia. */
+function closeTransferModal() {
+  $('transferModal').classList.remove('active');
+}
+
 /** Vincula eventos del formulario de agregar/editar cuenta. */
 export function setupAccountsPanel() {
+  $('transferBtn').addEventListener('click', openTransferModal);
+  $('transferCancel').addEventListener('click', closeTransferModal);
+  $('transferModal').addEventListener('click', e => { if (e.target === $('transferModal')) closeTransferModal(); });
+  $('transferForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const fromKey = $('transferFrom').value;
+    const toKey = $('transferTo').value;
+    const amount = parseFloat($('transferAmount').value);
+    if (!fromKey || !toKey) return showToast('Selecciona ambas cuentas');
+    if (!amount || amount <= 0) return showToast('Ingresa un monto válido');
+    const balance = getAccountBalance(fromKey);
+    if (balance < amount) {
+      const acctName = fromKey.includes(':') ? fromKey.split(':').slice(1).join(':') : fromKey;
+      return showToast(`Saldo insuficiente en ${acctName}. Disponible: ${formatCOP(balance)}`);
+    }
+    const result = addTransfer(fromKey, toKey, amount, $('transferDesc').value);
+    if (!result.ok) {
+      if (result.reason === 'misma-cuenta') return showToast('La cuenta de origen y destino no pueden ser la misma');
+      if (result.reason === 'compartido-no-recibe') return showToast('Compartido no puede recibir transferencias — solo gasta');
+      return showToast('Error al transferir');
+    }
+    closeTransferModal();
+    renderAccountsPanel();
+    updateAccountSelector(state.selectedWho, 'dailyAccount', state.selectedType);
+    showToast('Transferencia realizada');
+  });
+
   $('addAccountBtn').addEventListener('click', () => {
     const sel = $('accountMemberSelect');
     sel.innerHTML = Object.entries(state.members).filter(([id]) => id !== 'compartido').map(([id, name]) => `<option value="${id}">${esc(name)}</option>`).join('');

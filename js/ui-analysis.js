@@ -6,7 +6,7 @@
 
 import { state } from './state.js';
 import { $, esc, formatCOP } from './utils.js';
-import { getFilteredTransactions, getCumulativeBalance, getDisplayTransactions, deleteTransaction as deleteTransactionData, restoreTransaction } from './data.js';
+import { getFilteredTransactionsExcludingTransfers, getCumulativeBalance, getDisplayTransactions, deleteTransaction as deleteTransactionData, restoreTransaction } from './data.js';
 import { getSubCatEmoji } from './categories.js';
 import { isCashAccount, getMemberBadgeStyle, getWhoLabel, updateAccountSelector, parseAccountValue } from './members.js';
 import { openEditModal, showToast } from './ui-modals.js';
@@ -17,7 +17,7 @@ export function setRefreshAnalysis(fn) { onRefreshAnalysis = fn; }
 
 /** Renderiza las tarjetas de resumen con ingresos, gastos, saldo y número de transacciones. */
 export function renderSummary() {
-  const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
+  const filtered = getFilteredTransactionsExcludingTransfers(state.currentMonth, state.currentYear);
   const totalIngresos = filtered.filter(tx => tx.type === 'ingreso').reduce((s, t) => s + t.amount, 0);
   const totalGastos = filtered.filter(tx => tx.type === 'gasto').reduce((s, t) => s + t.amount, 0);
   const carryBalance = getCumulativeBalance(state.currentMonth, state.currentYear);

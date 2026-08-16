@@ -271,7 +271,10 @@
       <div class="panel" id="accountsPanel">
         <div class="panel-header">
           <h3>Cuentas por miembro</h3>
-          <button class="btn-sm" id="addAccountBtn">+ Añadir</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn-sm" id="transferBtn" title="Transferir entre cuentas">⇄ Transferir</button>
+            <button class="btn-sm" id="addAccountBtn">+ Añadir</button>
+          </div>
         </div>
         <div id="accountsList"></div>
         <div id="accountForm" style="display:none;margin-top:10px">
@@ -460,6 +463,35 @@
       <button class="btn btn-secondary" id="pickCancel">Cancelar</button>
       <button class="btn btn-primary" id="pickOk">Migrar y eliminar</button>
     </div>
+  </div>
+</div>
+
+<!-- Transfer Modal -->
+<div class="modal-overlay" id="transferModal">
+  <div class="modal" style="max-width:400px">
+    <h2>Transferir entre cuentas</h2>
+    <form id="transferForm" autocomplete="off" novalidate>
+      <div class="form-group">
+        <label for="transferFrom">De (origen)</label>
+        <select id="transferFrom"></select>
+      </div>
+      <div class="form-group">
+        <label for="transferTo">A (destino)</label>
+        <select id="transferTo"></select>
+      </div>
+      <div class="form-group">
+        <label for="transferAmount">Monto *</label>
+        <input type="number" id="transferAmount" placeholder="$ monto" step="1" min="1" inputmode="numeric" required>
+      </div>
+      <div class="form-group">
+        <label for="transferDesc">Descripción</label>
+        <input type="text" id="transferDesc" placeholder="Ej: Ahorro mensual" maxlength="100">
+      </div>
+      <div class="btn-row">
+        <button type="button" class="btn btn-secondary" id="transferCancel">Cancelar</button>
+        <button type="submit" class="btn btn-primary" id="transferSubmit">Transferir</button>
+      </div>
+    </form>
   </div>
 </div>
 
