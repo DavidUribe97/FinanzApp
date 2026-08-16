@@ -183,6 +183,7 @@ export function addTransfer(fromAccountKey, toAccountKey, amount, description) {
   const base = { category: TRANSFER_CATEGORY, amount, date: dateStr, description: description || 'Transferencia', transferId };
   state.transactions.push({ ...base, id: generateId(), type: 'gasto', who: fromWho, account: fromAccountKey });
   state.transactions.push({ ...base, id: generateId(), type: 'ingreso', who: toWho, account: toAccountKey });
+  invalidateBalanceCache();
   saveData();
   return { ok: true };
 }

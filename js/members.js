@@ -102,8 +102,10 @@ export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
   const prev = sel.dataset.prevValue || '';
 
   if (type === 'gasto') {
-    const all = getAllAccountsForMember();
-    sel.innerHTML = all.map(({ memberId: mid, label, account }) => {
+    const allMembers = getAllAccountsForMember();
+    const withBalance = allMembers.filter(({ memberId: mid, account }) => getAccountBalance(`${mid}:${account}`) > 0);
+    const selAccounts = withBalance.length > 0 ? withBalance : allMembers;
+    sel.innerHTML = selAccounts.map(({ memberId: mid, label, account }) => {
       const fullKey = `${mid}:${account}`;
       const bal = getAccountBalance(fullKey);
       const balText = formatCOPShort(bal);
