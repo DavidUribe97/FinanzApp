@@ -64,6 +64,16 @@ export function getAllAccountsForMember() {
   return result;
 }
 
+/** Todas las cuentas de todos los miembros, incluyendo compartido — para selector de origen de transferencia. */
+export function getAllAccountKeysIncludingShared() {
+  const result = [];
+  for (const [memberId, accts] of Object.entries(state.accounts)) {
+    const label = state.members[memberId] || memberId;
+    accts.forEach(a => result.push({ memberId, label, account: a }));
+  }
+  return result;
+}
+
 /** Indica si un nombre de cuenta corresponde a una cuenta de efectivo. */
 export function isCashAccount(accountName) {
   return CASH_ACCOUNTS.some(c => accountName.toLowerCase().includes(c));

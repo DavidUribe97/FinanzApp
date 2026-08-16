@@ -6,12 +6,12 @@
 import { state } from './state.js';
 import { $, formatCOPShort, parseLocalDate } from './utils.js';
 import { CHART_COLORS, MONTHS } from './config.js';
-import { getFilteredTransactions } from './data.js';
+import { getFilteredTransactionsExcludingTransfers, TRANSFER_CATEGORY } from './data.js';
 import { getWhoLabel } from './members.js';
 
 /** Renderiza la dona de gastos por categoría y las barras semanales de ingresos/gastos. */
 export function renderCharts() {
-  const filtered = getFilteredTransactions(state.currentMonth, state.currentYear);
+  const filtered = getFilteredTransactionsExcludingTransfers(state.currentMonth, state.currentYear);
 
   const gastos = filtered.filter(tx => tx.type === 'gasto');
   const catMap = {};
@@ -105,7 +105,7 @@ export function renderLineChart() {
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     monthlyData[key] = { label: MONTHS[d.getMonth()].slice(0,3) + ' ' + d.getFullYear(), ingresos: 0, gastos: 0 };
   }
-  state.transactions.forEach(tx => {
+  state.transactions.filter(tx => tx.category !== TRANSFER_CATEGORY).forEach(tx => {
     const d = parseLocalDate(tx.date);
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     if (monthlyData[key]) {
