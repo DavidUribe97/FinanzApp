@@ -4,7 +4,7 @@
 import { state } from './state.js';
 import { $, esc, formatCOP, sanitizeStr, validateAmount, generateId } from './utils.js';
 import { updateWhoSelects, filterWhoForType } from './ui-members.js';
-import { updateAccountSelector, parseAccountValue } from './members.js';
+import { updateAccountSelector, parseAccountValue, isSharedMember } from './members.js';
 import { updateCategories, updateSubcategories, updateEditCategories, closeEditModal, showToast, dismissAllToasts, showConfirmModal } from './ui-modals.js';
 import { addTransaction, editTransaction, getAccountBalance } from './data.js';
 import { saveBudgets } from './data.js';
@@ -27,7 +27,7 @@ export function setupAnalysisForm(onImportJSON) {
   });
   $('txCategory').addEventListener('change', () => updateSubcategories('txType', 'txCategory', 'txSubcategory'));
   $('txWho').addEventListener('change', () => {
-    if ($('txWho').value === 'compartido' && $('txType').value === 'ingreso') {
+    if (isSharedMember($('txWho').value) && $('txType').value === 'ingreso') {
       $('txType').value = 'gasto';
       updateCategories();
     }
@@ -57,7 +57,8 @@ export function setupAnalysisForm(onImportJSON) {
       }
     }
     const sanitizedDesc = sanitizeStr(description);
-    addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who, account: fullAccountKey });
+    const result = addTransaction({ id: generateId(), type, amount, category, subcategory, description: sanitizedDesc, date, who, account: fullAccountKey });
+    if (!result.ok) return showToast('Compartido no puede recibir ingresos');
     const flashCard = type === 'gasto' ? document.querySelector('.card.gastos') : document.querySelector('.card.ingresos');
     if (flashCard) {
       flashCard.classList.remove('flash-success', 'flash-error');
@@ -153,7 +154,7 @@ export function setupAnalysisForm(onImportJSON) {
   });
   $('editCategory').addEventListener('change', () => updateSubcategories('editType', 'editCategory', 'editSubcategory'));
   $('editWho').addEventListener('change', () => {
-    if ($('editWho').value === 'compartido' && $('editType').value === 'ingreso') {
+    if (isSharedMember($('editWho').value) && $('editType').value === 'ingreso') {
       $('editType').value = 'gasto';
       updateEditCategories();
     }
@@ -187,7 +188,8 @@ export function setupAnalysisForm(onImportJSON) {
       }
     }
     const sanitizedDesc = sanitizeStr(description);
-    editTransaction(state.editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who, account: fullAccountKey });
+    const result = editTransaction(state.editingId, { type, amount, category, subcategory, description: sanitizedDesc, date, who, account: fullAccountKey });
+    if (!result.ok) return showToast('Compartido no puede recibir ingresos');
     closeEditModal();
     showToast('Transacción actualizada');
     updateAccountSelector($('editWho').value, 'editAccount', $('editType').value);

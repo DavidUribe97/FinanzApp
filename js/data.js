@@ -4,7 +4,7 @@
  * Nunca importa firebase-sync.js directo (regla 1 de dependencias).
  */
 import { state } from './state.js';
-import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT, MONTHS } from './config.js';
+import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT, MONTHS, COMPARTIDO_ID } from './config.js';
 import { $, downloadBlob, parseLocalDate, getWhoLabel, generateId, getToday, toLocalDateStr } from './utils.js';
 
 /** Soft limit warning threshold for Firestore's 10K hard limit. */
@@ -125,25 +125,26 @@ export function getMonthRange(month, year) {
 
 /** Agrega una transacción al state y persiste cambios. Bloquea compartido+ingreso. */
 export function addTransaction(data) {
-  if (data.who === 'compartido' && data.type === 'ingreso') return;
+  if (data.who === COMPARTIDO_ID && data.type === 'ingreso') return { ok: false, reason: 'compartido-no-recibe' };
   state.transactions.push(data);
   saveData();
   if (state.transactions.length >= TX_SOFT_LIMIT && state.transactions.length % 500 === 0) {
     import('./ui-modals.js').then(m => m.showToast(`Atención: ${state.transactions.length.toLocaleString()} transacciones. Límite Firestore: 10,000`));
   }
+  return { ok: true };
 }
 
 /** Actualiza una transacción existente por id, fusionando con los nuevos datos. Bloquea compartido+ingreso. */
 export function editTransaction(id, data) {
   const idx = state.transactions.findIndex(tx => String(tx.id) === String(id));
-  if (idx === -1) return false;
+  if (idx === -1) return { ok: false, reason: 'no-encontrada' };
   const existing = state.transactions[idx];
   const who = data.who ?? existing.who;
   const type = data.type ?? existing.type;
-  if (who === 'compartido' && type === 'ingreso') return false;
+  if (who === COMPARTIDO_ID && type === 'ingreso') return { ok: false, reason: 'compartido-no-recibe' };
   state.transactions[idx] = { ...existing, ...data };
   saveData();
-  return true;
+  return { ok: true };
 }
 
 /** Elimina una transacción por id y la almacena en undoData para posible restauración. */
@@ -173,7 +174,7 @@ export function addTransfer(fromAccountKey, toAccountKey, amount, description) {
     return { ok: false, reason: 'misma-cuenta' };
   }
   const toWho = toAccountKey.split(':')[0];
-  if (toWho === 'compartido') {
+  if (toWho === COMPARTIDO_ID) {
     return { ok: false, reason: 'compartido-no-recibe' };
   }
   const fromWho = fromAccountKey.split(':')[0];

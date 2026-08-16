@@ -2,7 +2,7 @@
 // Usa setRemoteUpdateCallback(fn) para notificar datos remotos (nunca importa módulos de dominio — regla 2 de dependencias).
 // Incluye verificación de passwordHash de sala.
 import { state } from './state.js';
-import { FIREBASE_CONFIG, FIRESTORE_COLLECTION, ROOM_KEY } from './config.js';
+import { FIREBASE_CONFIG, FIRESTORE_COLLECTION, ROOM_KEY, COMPARTIDO_ID } from './config.js';
 import { $, safeRoomCode } from './utils.js';
 import { showToast } from './ui-modals.js';
 
@@ -133,7 +133,7 @@ export function subscribeFirestore() {
         if (state.pendingSyncs > 0) { resolve(); return; }
         const data = snap.data();
         if (data.transactions) {
-          state.transactions = JSON.parse(JSON.stringify(data.transactions)).filter(tx => !(tx.who === 'compartido' && tx.type === 'ingreso'));
+          state.transactions = JSON.parse(JSON.stringify(data.transactions)).filter(tx => !(tx.who === COMPARTIDO_ID && tx.type === 'ingreso'));
         }
         if (data.budgets) {
           state.budgets = JSON.parse(JSON.stringify(data.budgets));

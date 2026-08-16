@@ -5,9 +5,16 @@
  * Nunca importa firebase-sync.js directo.
  */
 import { state } from './state.js';
-import { MEMBERS_KEY, ACCOUNTS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, CASH_ACCOUNTS, MEMBER_COLORS } from './config.js';
+import { MEMBERS_KEY, ACCOUNTS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, CASH_ACCOUNTS, MEMBER_COLORS, COMPARTIDO_ID, DEFAULT_MEMBER_IDS } from './config.js';
 import { $, esc, formatCOPShort, getWhoLabel } from './utils.js';
 export { getWhoLabel };
+
+/** true si el miembro puede recibir ingresos/transferencias (todos excepto compartido). */
+export function canReceiveIncome(memberId) { return memberId !== COMPARTIDO_ID; }
+/** true si el miembro es el usuario compartido (gastos conjuntos, sin ingresos propios). */
+export function isSharedMember(memberId) { return memberId === COMPARTIDO_ID; }
+/** true si el miembro es uno de los 3 por defecto (no se puede eliminar). */
+export function isDefaultMember(memberId) { return DEFAULT_MEMBER_IDS.includes(memberId); }
 import { getAccountBalance } from './data.js';
 
 let syncToFirestoreFn = () => {};
@@ -50,14 +57,14 @@ export function saveAccounts() {
 
 /** Devuelve las cuentas de un miembro específico, o las compartidas como fallback. */
 export function getAccountsForMember(memberId) {
-  return state.accounts[memberId] || state.accounts['compartido'] || ['Efectivo'];
+  return state.accounts[memberId] || state.accounts[COMPARTIDO_ID] || ['Efectivo'];
 }
 
 /** Devuelve todas las cuentas de miembros individuales (excluye compartido). */
 export function getAllAccountsForMember() {
   const result = [];
   for (const [memberId, accts] of Object.entries(state.accounts)) {
-    if (memberId === 'compartido') continue;
+    if (isSharedMember(memberId)) continue;
     const label = state.members[memberId] || memberId;
     accts.forEach(a => result.push({ memberId, label, account: a }));
   }
@@ -85,7 +92,7 @@ export function updateAccountSelector(memberId, selectId, type = 'ingreso') {
   if (!sel) return;
   const container = sel.closest('.account-select-row, .form-group');
 
-  if (memberId === 'compartido' && type === 'ingreso') {
+  if (isSharedMember(memberId) && type === 'ingreso') {
     if (container) container.style.display = 'none';
     sel.innerHTML = '';
     return;
