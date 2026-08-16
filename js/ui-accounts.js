@@ -90,16 +90,15 @@ export function renderAccountsPanel() {
 /** Abre el modal de transferencia con los selects de origen/destino poblados. */
 function openTransferModal() {
   const allNonShared = getAllAccountKeysIncludingShared().filter(a => !isSharedMember(a.memberId));
-  const originAccounts = allNonShared.filter(a => getAccountBalance(`${a.memberId}:${a.account}`) > 0);
+  const withBalance = allNonShared.filter(a => getAccountBalance(`${a.memberId}:${a.account}`) > 0);
+  const originAccounts = withBalance.length > 0 ? withBalance : allNonShared;
   const destAccounts = getAllAccountsForMember();
   const makeOption = ({ memberId, label, account }) => {
     const key = `${memberId}:${account}`;
     const bal = getAccountBalance(key);
     return `<option value="${esc(key)}">${esc(account)} (${esc(label)}) — ${formatCOPShort(bal)}</option>`;
   };
-  $('transferFrom').innerHTML = originAccounts.length > 0
-    ? originAccounts.map(makeOption).join('')
-    : '<option value="">Sin cuentas con saldo</option>';
+  $('transferFrom').innerHTML = originAccounts.map(makeOption).join('');
   $('transferTo').innerHTML = destAccounts.map(makeOption).join('');
   $('transferAmount').value = '';
   $('transferDesc').value = '';

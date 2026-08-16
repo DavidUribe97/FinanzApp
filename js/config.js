@@ -22,8 +22,7 @@ export const DEFAULT_MEMBERS = { yo: 'Él', pareja: 'Ella', compartido: 'Compart
 /** Cuentas bancarias/wallet por defecto para cada miembro. */
 export const DEFAULT_ACCOUNTS = {
   yo: ['Bancolombia', 'Nequi', 'Efectivo'],
-  pareja: ['Bancolombia', 'Daviplata', 'Efectivo'],
-  compartido: ['Bancolombia', 'Efectivo']
+  pareja: ['Bancolombia', 'Daviplata', 'Efectivo']
 };
 /** Variantes de texto que se consideran cuentas de efectivo. */
 export const CASH_ACCOUNTS = ['efectivo', 'cash', 'efec', 'billete', 'plata'];
