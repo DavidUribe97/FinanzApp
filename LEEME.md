@@ -361,6 +361,13 @@ Centralización del manejo del miembro compartido en 12 archivos. La regla "comp
 
 **Archivos tocados:** `config.js`, `members.js`, `data.js`, `app.js`, `firebase-sync.js`, `setup-daily.js`, `setup-analysis.js`, `ui-accounts.js`, `ui-daily.js`, `ui-members.js`, `ui-stats.js`, `utils.js`
 
+### Fixes UX (v2.4.2)
+- **`formatCOPShort`** sin abreviar — montos completos siempre (`$3.800` en vez de `4K`)
+- **Selectores de gasto/transferencia** filtran cuentas con saldo > 0 (fallback si todas en 0)
+- **`addTransfer`** invalida cache de balances después de crear el par de transacciones
+
+**Archivos tocados:** `utils.js`, `members.js`, `ui-accounts.js`, `data.js`
+
 ---
 
 ## Seguridad
@@ -611,6 +618,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.3.4` | 2026-08-03 | Fix: `ReferenceError: saveAccounts is not defined` al eliminar miembro (migración no se completaba) + herramienta `scripts/check-imports.mjs`, SW cache v9 | ✅ En master + deployado |
 | `v2.4.0` | 2026-08-16 | Feature: transferencias entre cuentas (par gasto/ingreso vinculado, excluida de reportes) | ✅ En master + deployado |
 | `v2.4.1` | 2026-08-16 | Refactor: centralizar 'compartido' — `COMPARTIDO_ID`, `isSharedMember()`, `canReceiveIncome()`, `isDefaultMember()`, fixes de UX en `addTransaction`/`editTransaction` | ✅ En master + deployado |
+| `v2.4.2` | 2026-08-16 | Fixes UX: `formatCOPShort` sin abreviar (montos completos), cuentas con saldo > 0 en selectores de gasto/transferencia, fix cache en `addTransfer` | ✅ En master + deployado |
 
 ---
 
