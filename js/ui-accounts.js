@@ -89,7 +89,7 @@ export function renderAccountsPanel() {
 
 /** Abre el modal de transferencia con los selects de origen/destino poblados. */
 function openTransferModal() {
-  const allAccounts = getAllAccountKeysIncludingShared();
+  const allAccounts = getAllAccountKeysIncludingShared().filter(a => !isSharedMember(a.memberId));
   const destAccounts = getAllAccountsForMember();
   const makeOption = ({ memberId, label, account }) => {
     const key = `${memberId}:${account}`;

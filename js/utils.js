@@ -15,12 +15,8 @@ export const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 /** Formatea número como COP sin decimales. */
 export const formatCOP = n => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 
-/** Formatea COP abreviado (1.5M, 50K). */
-export const formatCOPShort = n => {
-  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-  if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
-  return formatCOP(n);
-};
+/** Formatea COP sin abreviar — montos completos siempre. */
+export const formatCOPShort = n => formatCOP(n);
 
 /** Elimina tags HTML y trunca a maxLen. */
 export function sanitizeStr(str, maxLen = MAX_DESC_LENGTH) {
