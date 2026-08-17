@@ -600,6 +600,10 @@ Detalle completo: ver REFACTOR.md sección "Decisión de seguridad: Firestore ru
 | `roomCount` decrementaba al salir de cualquier sala | Las salas nunca se borran (`delete: false`); el contador derivaba a la baja y el límite de 50 dejaba de ser fiable | `leaveRoom()` ya no decrementa; el contador solo se incrementa al crear | `v2.3.1` |
 | Nombres de categoría sin escapar en budgets/stats | `data-cat` y texto con comillas rompían el marcado; inconsistente con el resto de la app (que sí usa `esc()`) | `esc()` en `ui-budgets.js` (x2) y `ui-stats.js` (`topCat.name`) | `v2.3.1` |
 | Imports muertos | `validateAmount`/`renderMembers` (app.js), `formatCOP` (data.js), `loadMembers`/`updateAccountSelector` (ui-members.js) | Eliminados | `v2.3.1` |
+| Budget % mostraba 0% o valor erróneo | `pctReal` y `pctBar` usaban la misma variable; valores >100% se veían mal o no se actualizaban | Separar `pctReal` (sin tope, para texto/color) y `pctBar` (cap 100, para ancho de barra) | `v2.4.7` |
+| Touch drag en subcategorías no funcionaba | En móviles, arrastrar horizontalmente en `.subcat-grid` no desplazaba — el browser hacía scroll vertical | `touchstart/touchmove/touchend` con `preventDefault` condicional (`|dx| > |dy|`), `touch-action: pan-x` en CSS | `v2.4.7` |
+| Touch delta `dy` calculaba posición absoluta en vez de delta | El scroll vertical no funcionaba — `dy` usaba `touch.clientY` en vez del delta real | Corregido a `pageY - touchStartY` (delta real desde touchstart) | `v2.4.7` |
+| Snapshot Firestore aceptaba categorías corruptas | Import con `["cat"]` en vez de `[{name, emoji}]` pasaba validación y rompía la UI silenciosamente | `isValidCategories` guard en snapshot listener — dato inválido se ignora sin toast | `v2.4.7` |
 
 | SW cache v5 servía el JS viejo tras el deploy | Cache-first + SW sin cambios de contenido = los usuarios con la app instalada seguían ejecutando el código v2.3 | Bump a `finanzapp-v6` (se reinstala el SW y refetch de assets) | `v2.3.1` |
 | Ingresos perdidos al eliminar un miembro | Borrar miembro pasaba TODOS los movimientos a `'compartido'`; los ingresos compartidos se descartan en snapshots remotos (`firebase-sync`) y en la suma diaria no contaban | Al eliminar: ingresos → `'yo'` y gastos → `'compartido'` | `v2.3.2` |
@@ -667,6 +671,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.4.4` | 2026-08-17 | Seguridad y UX: validación Firestore bidireccional, `getWhoLabel` fix, debounce búsqueda, offline fallback, ROOM_KEY, emojis dedup, warning frecuencia, fix pendingSyncs race condition | ✅ En develop |
 | `v2.4.5` | 2026-08-17 | Fix eliminación: Firestore `set()` sin merge (campos se borran real), nuevo miembro crea cuenta Efectivo, Compartido excluido de eliminación, migración de saldo con selección de cuenta destino, `deletedMembers` para preservar nombres en historial, prevención de colisión de IDs, SW auto-reload, export/import preserva deletedMembers | ✅ En develop |
 | `v2.4.6` | 2026-08-17 | Fix cuentas: `DEFAULT_ACCOUNTS` solo Efectivo para todos, `isCashAccount` solo match exacto (fix Daviplata contado como cash), warning al crear cuenta con nombre tipo efectivo | ✅ En develop |
+| `v2.4.7` | 2026-08-17 | Fase 3: Budget % real (pctReal sin tope), touch drag-to-scroll en subcategorías, `isValidCategories` guard silencioso en snapshots, fix touch delta `dy` | 🔄 En develop (sin commit) |
 
 ---
 

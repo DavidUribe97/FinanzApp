@@ -122,16 +122,17 @@ export function setupCategoryDragScroll(container) {
     const walk = (x - startX) * 1.5;
     container.scrollLeft = scrollLeft - walk;
   });
-  let touchStartX, touchScrollLeft;
+  let touchStartX, touchStartY, touchScrollLeft;
   container.addEventListener('touchstart', e => {
     touchStartX = e.touches[0].pageX - container.offsetLeft;
+    touchStartY = e.touches[0].pageY;
     touchScrollLeft = container.scrollLeft;
   }, { passive: true });
   container.addEventListener('touchmove', e => {
     if (touchStartX === undefined) return;
     const x = e.touches[0].pageX - container.offsetLeft;
     const dx = x - touchStartX;
-    const dy = e.touches[0].pageY - (e.touches[0].pageY - (e.touches[0].clientY - container.getBoundingClientRect().top));
+    const dy = e.touches[0].pageY - touchStartY;
     if (Math.abs(dx) > Math.abs(dy)) {
       e.preventDefault();
       container.scrollLeft = touchScrollLeft - dx * 1.5;
@@ -139,6 +140,7 @@ export function setupCategoryDragScroll(container) {
   }, { passive: false });
   container.addEventListener('touchend', () => {
     touchStartX = undefined;
+    touchStartY = undefined;
   }, { passive: true });
 }
 
