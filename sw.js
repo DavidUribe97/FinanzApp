@@ -1,4 +1,4 @@
-const CACHE = 'finanzapp-v10';
+const CACHE = 'finanzapp-v11';
 const FIREBASE_CACHE = 'finanzapp-firebase';
 const FIREBASE_CDN = 'https://www.gstatic.com/firebasejs/';
 const ASSETS = [
@@ -43,6 +43,8 @@ self.addEventListener('activate', e => {
     caches.keys().then(keys => Promise.all(
       keys.filter(k => k !== CACHE && k !== FIREBASE_CACHE).map(k => caches.delete(k))
     )).then(() => self.clients.claim())
+    .then(() => self.clients.matchAll())
+    .then(clients => clients.forEach(c => c.reload()))
   );
 });
 
