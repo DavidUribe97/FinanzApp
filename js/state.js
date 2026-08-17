@@ -31,6 +31,7 @@ export const state = {
   pendingSyncs: 0,
   isCreatingRoom: false,
   roomCodeResolver: null,
+  deletedMembers: {},
 };
 
 /** Limpia datos de sala del state — restablece a defaults para que la sala nueva arranque con datos válidos. */

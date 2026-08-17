@@ -12,6 +12,7 @@ export const LAST_CAT_KEY = 'finanzas_last_cat';
 export const ROOM_KEY = 'finanzas_room';
 export const MEMBERS_KEY = 'finanzas_members';
 export const ACCOUNTS_KEY = 'finanzas_accounts';
+export const DELETED_MEMBERS_KEY = 'finanzas_deleted_members';
 
 /** IDs de miembros por defecto (no se pueden eliminar). */
 export const COMPARTIDO_ID = 'compartido';

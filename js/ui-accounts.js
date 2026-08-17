@@ -62,12 +62,12 @@ export function renderAccountsPanel() {
             return { value: key, label: `${o.account} (${o.label}) — ${formatCOPShort(getAccountBalance(key))}` };
           });
         if (options.length === 0) {
-          showToast('No puedes eliminar una cuenta con movimientos sin otra cuenta de destino');
+          showToast('No puedes eliminar una cuenta con saldo sin otra cuenta de destino');
           return;
         }
         const target = await showPickModal({
           title: 'Migrar cuenta',
-          message: `"${accountName}" (${state.members[memberId] || memberId}) tiene ${moves.length} movimientos y saldo ${formatCOP(balance)}. ¿A qué cuenta los muevo?`,
+          message: `"${accountName}" tiene saldo ${formatCOPShort(balance)}. ¿A qué cuenta migro el saldo?`,
           options
         });
         if (target === null) return;

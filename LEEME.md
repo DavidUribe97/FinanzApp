@@ -20,7 +20,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 | Persistencia local | localStorage (`finanzas_data`, `finanzas_budgets`, `finanzas_categories`, etc.) + `sessionStorage` (password de sala) |
 | Sincronización | Firebase Firestore (Anonymous Auth + `onSnapshot` en tiempo real) |
 | Hosting | Firebase Hosting |
-| PWA | `manifest.json` + `sw.js` (cache-first de assets estáticos + network-first de Firebase CDN) |
+| PWA | `manifest.json` + `sw.js` (cache-first de assets estáticos + network-first de Firebase CDN + auto-reload en actualizaciones) |
 | Fuentes | System font stack (sin Google Fonts, para offline) |
 | Moneda | COP (pesos colombianos) con `Intl.NumberFormat('es-CO')` |
 
@@ -107,6 +107,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 1. loadTheme()           → aplica tema desde localStorage
 2. loadMembers()         → carga miembros desde localStorage
 3. loadAccounts()        → carga cuentas desde localStorage
+3.5. loadDeletedMembers() → carga miembros eliminados (para resolver nombres en historial)
 4. loadCategories()      → carga categorías desde localStorage
 5. loadData()            → carga transacciones/presupuestos desde localStorage
   6. setSyncData/Members/Categories → inyecta syncToFirestore en los 3 módulos
@@ -115,7 +116,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
   9. setMode(savedMode)    → restaura modo diario/análisis
   10. renderDaily...()     → render inicial con datos locales
   11. setup*()             → registra event listeners
-  12. registerServiceWorker() → registra SW (limpieza de cache delegada al SW activate handler)
+  12. registerServiceWorker() → registra SW (auto-reload + limpieza de cache)
 ```
 
 Los datos locales cargan **antes** de Firebase, así que el primer render es instantáneo (sin flash de "vacío → con datos").
@@ -190,7 +191,7 @@ git push origin master --tags
 | `parseLocalDate(dateStr)` | Convierte 'YYYY-MM-DD' a Date en hora local |
 | `toLocalDateStr(date)` | Convierte Date a string 'YYYY-MM-DD' en hora local |
 | `renderEmojiPicker(selected, onSelect, pickerId)` | Renderiza grilla de emojis con callback de selección |
-| `getWhoLabel(who)` | Convierte id de miembro en nombre legible (requiere `state.members`) |
+| `getWhoLabel(who)` | Convierte id de miembro en nombre legible; busca en `state.members` y luego en `state.deletedMembers` como fallback |
 
 ### Datos (`js/data.js`)
 | Función | Qué hace |
@@ -223,6 +224,8 @@ git push origin master --tags
 | `saveMembers()` | Persiste miembros en localStorage y dispara sync |
 | `loadAccounts()` | Carga cuentas desde localStorage o usa defaults |
 | `saveAccounts()` | Persiste cuentas en localStorage y dispara sync |
+| `loadDeletedMembers()` | Carga miembros eliminados desde localStorage para resolver nombres en historial |
+| `saveDeletedMembers()` | Persiste miembros eliminados en localStorage y dispara sync |
 | `isSharedMember(memberId)` | true si el miembro es el usuario compartido |
 | `isDefaultMember(memberId)` | true si el miembro es uno de los 3 por defecto (no se puede eliminar) |
 | `getAccountsForMember(memberId)` | Cuentas de un miembro, fallback a cuentas de compartido |
@@ -251,7 +254,7 @@ git push origin master --tags
 | `initFirebase()` | Firebase Auth + Firestore init; si no hay sala, abre modal y espera |
 | `subscribeFirestore()` | `onSnapshot` en tiempo real; verifica passwordHash si existe |
 | `promptRoomPassword(ref, passwordHash, onVerified, resolve)` | Abre modal en modo "Unirse" cuando falta la contraseña; valida SHA-256 contra el hash; reintenta si es incorrecta |
-| `syncToFirestore()` | Sube transactions, budgets, categories, members y accounts a Firestore |
+| `syncToFirestore()` | Sube transactions, budgets, categories, members, accounts y deletedMembers a Firestore (sin `merge: true` — reemplaza documento completo para permitir borrado real) |
 | `setRemoteUpdateCallback(fn)` | Callback para notificar cuando llegan datos remotos |
 | `sha256(str)` | Hash SHA-256 via Web Crypto API (para passwords de sala) |
 | `updateSyncStatus(connected)` | Actualiza indicador visual de conexión |
@@ -318,18 +321,18 @@ git push origin master --tags
 | Función | Qué hace |
 |---------|----------|
 | `init()` | Punto de entrada: carga datos, inyecta callbacks, Firebase, render, listeners |
-| `registerServiceWorker()` | Registra SW (limpieza de cache delegada al SW activate handler) |
+| `registerServiceWorker()` | Registra SW con auto-reload y limpieza de cache |
 
 ---
 
 ## Features principales
 
 ### Miembros editables
-Los miembros vienen con valores por defecto (`Él`, `Ella`, `Compartido 👥`) pero se pueden renombrar, agregar nuevos y eliminar desde un panel en la vista análisis. Al eliminar un miembro, sus transacciones se reasignan a "Compartido".
+Los miembros vienen con valores por defecto (`Él`, `Ella`, `Compartido 👥`) pero se pueden renombrar, agregar nuevos y eliminar desde un panel en la vista análisis. Al eliminar un miembro, se muestra un modal con las cuentas disponibles del destino para migrar el saldo. El nombre original se conserva en el historial de transacciones via `deletedMembers`.
 
-- **Por qué:** La app es para uso personal, no solo para David y Laura. El usuario pidió poder cambiar los nombres sin editar código y agregar más personas (hijos, roomies, etc.).
+- **Por qué:** La app es para uso personal, no solo para David y Laura. El usuario pudió cambiar los nombres sin editar código y agregar más personas (hijos, roomies, etc.).
 - IDs simbólicos para defaults (`yo`, `pareja`, `compartido`) en lugar de `m1`, `m2`, `m3` — legibles y retrocompatibles.
-- IDs auto-incrementales para nuevos miembros (`m4`, `m5`...).
+- IDs auto-incrementales para nuevos miembros (`m4`, `m5`...). Se excluyen IDs de miembros eliminados (`deletedMembers`) para evitar colisiones en el historial.
 
 ### Colores por miembro
 Cada miembro tiene un color único de una paleta de 10 (azul, dorado, verde, púrpura, naranja, cian, rojo, lima, magenta, teal). Se aplica en badges de la tabla y en el botón activo del who-toggle.
@@ -402,7 +405,7 @@ Eliminación de código legacy que ya no se ejecuta:
 - **`getWhoLabel` fallback corregido:** miembros eliminados muestran ID raw en vez de "Compartido" (comportamiento anterior era engañoso)
 - **Debounce en búsqueda** (`setup-analysis.js`): 300ms de delay evita reconstruir tabla en cada tecla
 - **`loadData` simplificado:** eliminada re-escritura redundante de localStorage tras carga
-- **Offline fallback mejorado** (`sw.js`): sirve `index.html` cacheada en vez de texto "Offline"; cache v10
+- **Offline fallback mejorado** (`sw.js`): sirve `index.html` cacheada en vez de texto "Offline"; cache v13 con auto-reload al detectar nueva versión
 - **`ROOM_KEY` constante** en `firebase-sync.js`: reemplaza string hardcodeado `'finanzas_room'`
 - **Emojis deduplicados** (`config.js`): 10 duplicados eliminados, 317 únicos
 - **Warning límite Firestore** (`data.js`): frecuencia cambiada de cada 500 a cada 100 transacciones después de 9000
@@ -661,7 +664,8 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.4.1` | 2026-08-16 | Refactor: centralizar 'compartido' — `COMPARTIDO_ID`, `isSharedMember()`, `isDefaultMember()`, fixes de UX en `addTransaction`/`editTransaction` | ✅ En master + deployado |
 | `v2.4.2` | 2026-08-16 | Fixes UX: `formatCOPShort` sin abreviar (montos completos), fix cache en `addTransfer` | ✅ En master + deployado |
 | `v2.4.3` | 2026-08-16 | Limpieza código muerto: elimina `canReceiveIncome()`, `migrateSubcats()`, guards `typeof s === 'string'`, warning "Sin contraseña"; fix selectores gasto/transferencia (solo saldo > 0) | ✅ En master + deployado |
-| `v2.4.4` | 2026-08-17 | Seguridad y UX: validación Firestore bidireccional, `getWhoLabel` fix, debounce búsqueda, offline fallback, ROOM_KEY, emojis dedup, warning frecuencia | ✅ En develop |
+| `v2.4.4` | 2026-08-17 | Seguridad y UX: validación Firestore bidireccional, `getWhoLabel` fix, debounce búsqueda, offline fallback, ROOM_KEY, emojis dedup, warning frecuencia, fix pendingSyncs race condition | ✅ En develop |
+| `v2.4.5` | 2026-08-17 | Fix eliminación: Firestore `set()` sin merge (campos se borran real), nuevo miembro crea cuenta Efectivo, Compartido excluido de eliminación, migración de saldo con selección de cuenta destino, `deletedMembers` para preservar nombres en historial, prevención de colisión de IDs, SW auto-reload | ✅ En develop |
 
 ---
 

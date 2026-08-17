@@ -5,7 +5,7 @@
  * Nunca importa firebase-sync.js directo.
  */
 import { state } from './state.js';
-import { MEMBERS_KEY, ACCOUNTS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, CASH_ACCOUNTS, MEMBER_COLORS, COMPARTIDO_ID, DEFAULT_MEMBER_IDS } from './config.js';
+import { MEMBERS_KEY, ACCOUNTS_KEY, DELETED_MEMBERS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, CASH_ACCOUNTS, MEMBER_COLORS, COMPARTIDO_ID, DEFAULT_MEMBER_IDS } from './config.js';
 import { $, esc, formatCOPShort, getWhoLabel } from './utils.js';
 export { getWhoLabel };
 
@@ -50,6 +50,22 @@ export function loadAccounts() {
 /** Persiste cuentas en localStorage y dispara sync a Firestore. */
 export function saveAccounts() {
   localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
+  syncToFirestoreFn();
+}
+
+/** Carga miembros eliminados desde localStorage para que getWhoLabel resuelva nombres en historial. */
+export function loadDeletedMembers() {
+  try {
+    const raw = localStorage.getItem(DELETED_MEMBERS_KEY);
+    state.deletedMembers = raw ? JSON.parse(raw) : {};
+  } catch {
+    state.deletedMembers = {};
+  }
+}
+
+/** Persiste miembros eliminados en localStorage y dispara sync a Firestore. */
+export function saveDeletedMembers() {
+  localStorage.setItem(DELETED_MEMBERS_KEY, JSON.stringify(state.deletedMembers));
   syncToFirestoreFn();
 }
 

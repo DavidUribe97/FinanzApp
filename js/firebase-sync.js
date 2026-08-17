@@ -2,7 +2,7 @@
 // Usa setRemoteUpdateCallback(fn) para notificar datos remotos (nunca importa módulos de dominio — regla 2 de dependencias).
 // Incluye verificación de passwordHash de sala.
 import { state } from './state.js';
-import { FIREBASE_CONFIG, FIRESTORE_COLLECTION, ROOM_KEY, COMPARTIDO_ID } from './config.js';
+import { FIREBASE_CONFIG, FIRESTORE_COLLECTION, ROOM_KEY, DELETED_MEMBERS_KEY, COMPARTIDO_ID } from './config.js';
 import { isValidTx, isValidBudgets, isValidCategories } from './data.js';
 import { $, safeRoomCode } from './utils.js';
 import { showToast } from './ui-modals.js';
@@ -71,6 +71,7 @@ async function _doSyncToFirestore() {
       categories: state.categoriesData,
       members: state.members,
       accounts: state.accounts,
+      deletedMembers: state.deletedMembers || {},
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     if (existingPasswordHash) payload.passwordHash = existingPasswordHash;
@@ -97,6 +98,7 @@ async function firstTimeSetup(ref, resolve) {
     categories: state.categoriesData,
     members: state.members,
     accounts: state.accounts,
+    deletedMembers: {},
     createdAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   if (state.isCreatingRoom && state.roomPassword) {
@@ -156,6 +158,10 @@ export function subscribeFirestore() {
         }
         if (data.accounts) {
           state.accounts = JSON.parse(JSON.stringify(data.accounts));
+        }
+        if (data.deletedMembers) {
+          state.deletedMembers = JSON.parse(JSON.stringify(data.deletedMembers));
+          localStorage.setItem(DELETED_MEMBERS_KEY, JSON.stringify(state.deletedMembers));
         }
         if (onRemoteUpdate) onRemoteUpdate();
         resolve();

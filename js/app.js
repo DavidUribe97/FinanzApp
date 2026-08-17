@@ -3,9 +3,9 @@
 // Punto de entrada vía DOMContentLoaded.
 
 import { state } from './state.js';
-import { MODE_KEY, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY, ACCOUNTS_KEY } from './config.js';
+import { MODE_KEY, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY, ACCOUNTS_KEY, DELETED_MEMBERS_KEY } from './config.js';
 import { loadCategories, saveCategories, setSyncToFirestore as setSyncCategories } from './categories.js';
-import { loadMembers, loadAccounts, saveMembers, saveAccounts, isSharedMember, setSyncToFirestore as setSyncMembers } from './members.js';
+import { loadMembers, loadAccounts, saveMembers, saveAccounts, loadDeletedMembers, isSharedMember, setSyncToFirestore as setSyncMembers } from './members.js';
 import { loadData, saveData, saveBudgets, isValidTx, isValidBudgets, isValidCategories, invalidateBalanceCache, setSyncToFirestore as setSyncData } from './data.js';
 import { initFirebase, syncToFirestore, setRemoteUpdateCallback } from './firebase-sync.js';
 import { setupRoomModal } from './firebase-room.js';
@@ -70,6 +70,7 @@ function init() {
   loadTheme();
   loadMembers();
   loadAccounts();
+  loadDeletedMembers();
   loadCategories();
   loadData();
 
@@ -111,6 +112,7 @@ setRemoteUpdateCallback(() => {
   if (isValidCategories(state.categoriesData)) localStorage.setItem(CATS_KEY, JSON.stringify(state.categoriesData));
   localStorage.setItem(MEMBERS_KEY, JSON.stringify(state.members));
   localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
+  localStorage.setItem(DELETED_MEMBERS_KEY, JSON.stringify(state.deletedMembers || {}));
   invalidateBalanceCache();
   refreshAll();
 });
