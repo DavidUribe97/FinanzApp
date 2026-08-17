@@ -397,6 +397,18 @@ Eliminación de código legacy que ya no se ejecuta:
 
 **Archivos tocados:** `members.js`, `categories.js`, `ui-categories.js`, `index.html`, `LEEME.md`
 
+### Mejoras de seguridad y UX (v2.4.4)
+- **Validación de datos Firestore bidireccional:** `app.js` valida datos entrantes con `isValidTx`/`isValidBudgets`/`isValidCategories` antes de persistir; `firebase-sync.js` filtra transacciones inválidas antes de sincronizar
+- **`getWhoLabel` fallback corregido:** miembros eliminados muestran ID raw en vez de "Compartido" (comportamiento anterior era engañoso)
+- **Debounce en búsqueda** (`setup-analysis.js`): 300ms de delay evita reconstruir tabla en cada tecla
+- **`loadData` simplificado:** eliminada re-escritura redundante de localStorage tras carga
+- **Offline fallback mejorado** (`sw.js`): sirve `index.html` cacheada en vez de texto "Offline"; cache v10
+- **`ROOM_KEY` constante** en `firebase-sync.js`: reemplaza string hardcodeado `'finanzas_room'`
+- **Emojis deduplicados** (`config.js`): 10 duplicados eliminados, 317 únicos
+- **Warning límite Firestore** (`data.js`): frecuencia cambiada de cada 500 a cada 100 transacciones después de 9000
+
+**Archivos tocados:** `data.js`, `firebase-sync.js`, `utils.js`, `app.js`, `setup-analysis.js`, `sw.js`, `config.js`
+
 ---
 
 ## Seguridad
@@ -649,6 +661,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.4.1` | 2026-08-16 | Refactor: centralizar 'compartido' — `COMPARTIDO_ID`, `isSharedMember()`, `isDefaultMember()`, fixes de UX en `addTransaction`/`editTransaction` | ✅ En master + deployado |
 | `v2.4.2` | 2026-08-16 | Fixes UX: `formatCOPShort` sin abreviar (montos completos), fix cache en `addTransfer` | ✅ En master + deployado |
 | `v2.4.3` | 2026-08-16 | Limpieza código muerto: elimina `canReceiveIncome()`, `migrateSubcats()`, guards `typeof s === 'string'`, warning "Sin contraseña"; fix selectores gasto/transferencia (solo saldo > 0) | ✅ En master + deployado |
+| `v2.4.4` | 2026-08-17 | Seguridad y UX: validación Firestore bidireccional, `getWhoLabel` fix, debounce búsqueda, offline fallback, ROOM_KEY, emojis dedup, warning frecuencia | ✅ En develop |
 
 ---
 

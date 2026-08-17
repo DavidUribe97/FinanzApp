@@ -1,4 +1,4 @@
-const CACHE = 'finanzapp-v9';
+const CACHE = 'finanzapp-v10';
 const FIREBASE_CACHE = 'finanzapp-firebase';
 const FIREBASE_CDN = 'https://www.gstatic.com/firebasejs/';
 const ASSETS = [
@@ -62,6 +62,6 @@ self.addEventListener('fetch', e => {
     return;
   }
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => new Response('Offline', { status: 503, statusText: 'Offline' })))
+    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => caches.match('index.html')))
   );
 });

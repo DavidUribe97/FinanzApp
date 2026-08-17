@@ -105,9 +105,10 @@ function init() {
 }
 
 setRemoteUpdateCallback(() => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
-  localStorage.setItem(BUDGET_KEY, JSON.stringify(state.budgets));
-  localStorage.setItem(CATS_KEY, JSON.stringify(state.categoriesData));
+  const validTx = state.transactions.filter(isValidTx);
+  if (validTx.length > 0) localStorage.setItem(STORAGE_KEY, JSON.stringify(validTx));
+  if (isValidBudgets(state.budgets)) localStorage.setItem(BUDGET_KEY, JSON.stringify(state.budgets));
+  if (isValidCategories(state.categoriesData)) localStorage.setItem(CATS_KEY, JSON.stringify(state.categoriesData));
   localStorage.setItem(MEMBERS_KEY, JSON.stringify(state.members));
   localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(state.accounts));
   invalidateBalanceCache();

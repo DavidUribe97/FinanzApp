@@ -47,7 +47,7 @@ export function renderMembers() {
       const moves = state.transactions.filter(tx => (tx.who || 'yo') === id);
       if (moves.length > 0) {
         const targets = Object.entries(state.members)
-          .filter(([mid]) => mid !== id)
+          .filter(([mid]) => mid !== id && !isSharedMember(mid))
           .map(([mid, mname]) => ({ value: mid, label: mname }));
         if (targets.length === 0) {
           showToast('No puedes eliminar el último miembro con movimientos');
@@ -108,6 +108,10 @@ export function setupMembersPanel() {
       let counter = 4;
       while (state.members[newId]) { counter++; newId = 'm' + counter; }
       state.members[newId] = name;
+      if (!state.accounts[newId]) {
+        state.accounts[newId] = ['Efectivo'];
+        saveAccounts();
+      }
     }
     saveMembers();
     $('memberForm').style.display = 'none';

@@ -49,8 +49,6 @@ export function loadData() {
   } catch {
     state.budgets = {};
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
-  localStorage.setItem(BUDGET_KEY, JSON.stringify(state.budgets));
 }
 
 /** Persiste transacciones en localStorage y dispara sync a Firestore. */
@@ -128,7 +126,7 @@ export function addTransaction(data) {
   if (data.who === COMPARTIDO_ID && data.type === 'ingreso') return { ok: false, reason: 'compartido-no-recibe' };
   state.transactions.push(data);
   saveData();
-  if (state.transactions.length >= TX_SOFT_LIMIT && state.transactions.length % 500 === 0) {
+  if (state.transactions.length >= TX_SOFT_LIMIT && state.transactions.length % 100 === 0) {
     import('./ui-modals.js').then(m => m.showToast(`Atención: ${state.transactions.length.toLocaleString()} transacciones. Límite Firestore: 10,000`));
   }
   return { ok: true };

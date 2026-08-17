@@ -81,7 +81,8 @@ export function setupAnalysisForm(onImportJSON) {
     else btn.classList.remove('pulse');
   });
 
-  $('searchInput').addEventListener('input', () => { dismissAllToasts(); state.undoData = null; renderTable(); updateFilterBadges(); });
+  let searchDebounce = null;
+  $('searchInput').addEventListener('input', () => { dismissAllToasts(); state.undoData = null; clearTimeout(searchDebounce); searchDebounce = setTimeout(() => { renderTable(); updateFilterBadges(); }, 300); });
   $('filterType').addEventListener('change', () => { dismissAllToasts(); state.undoData = null; renderTable(); updateFilterBadges(); });
   $('filterWho').addEventListener('change', () => { dismissAllToasts(); state.undoData = null; renderTable(); updateFilterBadges(); });
 

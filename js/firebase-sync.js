@@ -3,6 +3,7 @@
 // Incluye verificación de passwordHash de sala.
 import { state } from './state.js';
 import { FIREBASE_CONFIG, FIRESTORE_COLLECTION, ROOM_KEY, COMPARTIDO_ID } from './config.js';
+import { isValidTx, isValidBudgets, isValidCategories } from './data.js';
 import { $, safeRoomCode } from './utils.js';
 import { showToast } from './ui-modals.js';
 
@@ -59,15 +60,24 @@ export function syncToFirestore() {
 async function _doSyncToFirestore() {
   if (!state.db || !state.roomCode) return;
   try {
-    await state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode)).set({
-      transactions: state.transactions,
-      budgets: state.budgets,
+    state.pendingSyncs++;
+    const ref = state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode));
+    const snap = await ref.get().catch(() => null);
+    const existingPasswordHash = (snap && snap.exists) ? (snap.data().passwordHash || null) : null;
+    const validTx = state.transactions.filter(isValidTx);
+    const payload = {
+      transactions: validTx,
+      budgets: isValidBudgets(state.budgets) ? state.budgets : {},
       categories: state.categoriesData,
       members: state.members,
       accounts: state.accounts,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    };
+    if (existingPasswordHash) payload.passwordHash = existingPasswordHash;
+    await ref.set(payload);
+    state.pendingSyncs = 0;
   } catch (e) {
+    state.pendingSyncs = 0;
     console.warn('Error syncing to Firestore:', e.message);
     updateSyncStatusUI(false);
   }
@@ -93,7 +103,7 @@ async function firstTimeSetup(ref, resolve) {
     data.passwordHash = await sha256(state.roomPassword);
   }
   try {
-    await ref.set(data, { merge: true });
+    await ref.set(data);
     const counterRef = state.db.collection('config').doc('meta');
     await counterRef.set({ roomCount: firebase.firestore.FieldValue.increment(1) }, { merge: true });
   } catch (e) {
@@ -231,7 +241,7 @@ export async function initFirebase() {
     firebase.initializeApp(FIREBASE_CONFIG);
     await firebase.auth().signInAnonymously();
     state.db = firebase.firestore();
-    state.roomCode = localStorage.getItem('finanzas_room');
+    state.roomCode = localStorage.getItem(ROOM_KEY);
     if (!state.roomCode) {
       const { openRoomModal } = await import('./firebase-room.js');
       openRoomModal();
@@ -242,7 +252,7 @@ export async function initFirebase() {
           if (state.roomCodeResolver) { state.roomCodeResolver(); state.roomCodeResolver = null; }
         }, ROOM_TIMEOUT_MS);
       });
-      state.roomCode = localStorage.getItem('finanzas_room');
+      state.roomCode = localStorage.getItem(ROOM_KEY);
       if (!state.roomCode) { state.firebaseInitialized = true; updateSyncStatusUI(false); return; }
     }
     state.roomPassword = sessionStorage.getItem(ROOM_KEY + '_pwd');
