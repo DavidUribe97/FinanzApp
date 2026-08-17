@@ -231,7 +231,7 @@ git push origin master --tags
 | `getAccountsForMember(memberId)` | Cuentas de un miembro, fallback a cuentas de compartido |
 | `getAllAccountsForMember()` | Todas las cuentas de miembros individuales (excluye compartido) |
 | `getAllAccountKeysIncludingShared()` | Todas las cuentas incluyendo compartido (para transferencias) |
-| `isCashAccount(accountName)` | true si el nombre contiene efectivo/bolsillo |
+| `isCashAccount(accountName)` | true solo si el nombre es "Efectivo" exacto (case-insensitive) |
 | `updateAccountSelector(memberId, selectId, type)` | Puebla select del DOM con cuentas disponibles (solo saldo > 0 para tipo gasto) |
 | `parseAccountValue(val)` | Parsea valor de cuenta desde input del formulario |
 | `getMemberBadgeStyle(who)` | Devuelve estilo CSS del badge de miembro |
@@ -665,7 +665,8 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.4.2` | 2026-08-16 | Fixes UX: `formatCOPShort` sin abreviar (montos completos), fix cache en `addTransfer` | ✅ En master + deployado |
 | `v2.4.3` | 2026-08-16 | Limpieza código muerto: elimina `canReceiveIncome()`, `migrateSubcats()`, guards `typeof s === 'string'`, warning "Sin contraseña"; fix selectores gasto/transferencia (solo saldo > 0) | ✅ En master + deployado |
 | `v2.4.4` | 2026-08-17 | Seguridad y UX: validación Firestore bidireccional, `getWhoLabel` fix, debounce búsqueda, offline fallback, ROOM_KEY, emojis dedup, warning frecuencia, fix pendingSyncs race condition | ✅ En develop |
-| `v2.4.5` | 2026-08-17 | Fix eliminación: Firestore `set()` sin merge (campos se borran real), nuevo miembro crea cuenta Efectivo, Compartido excluido de eliminación, migración de saldo con selección de cuenta destino, `deletedMembers` para preservar nombres en historial, prevención de colisión de IDs, SW auto-reload | ✅ En develop |
+| `v2.4.5` | 2026-08-17 | Fix eliminación: Firestore `set()` sin merge (campos se borran real), nuevo miembro crea cuenta Efectivo, Compartido excluido de eliminación, migración de saldo con selección de cuenta destino, `deletedMembers` para preservar nombres en historial, prevención de colisión de IDs, SW auto-reload, export/import preserva deletedMembers | ✅ En develop |
+| `v2.4.6` | 2026-08-17 | Fix cuentas: `DEFAULT_ACCOUNTS` solo Efectivo para todos, `isCashAccount` solo match exacto (fix Daviplata contado como cash), warning al crear cuenta con nombre tipo efectivo | ✅ En develop |
 
 ---
 
