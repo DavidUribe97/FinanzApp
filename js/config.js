@@ -20,10 +20,10 @@ export const DEFAULT_MEMBER_IDS = ['yo', 'pareja', COMPARTIDO_ID];
 
 /** Nombres por defecto de los miembros del hogar (key → label). */
 export const DEFAULT_MEMBERS = { yo: 'Él', pareja: 'Ella', compartido: 'Compartido 👥' };
-/** Cuentas bancarias/wallet por defecto para cada miembro. */
+/** Cuentas por defecto para cada miembro — solo Efectivo. Los usuarios agregan bancos manualmente. */
 export const DEFAULT_ACCOUNTS = {
-  yo: ['Bancolombia', 'Nequi', 'Efectivo'],
-  pareja: ['Bancolombia', 'Daviplata', 'Efectivo']
+  yo: ['Efectivo'],
+  pareja: ['Efectivo']
 };
 /** Variantes de texto que se consideran cuentas de efectivo. */
 export const CASH_ACCOUNTS = ['efectivo', 'cash', 'efec', 'billete', 'plata'];

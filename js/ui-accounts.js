@@ -6,7 +6,7 @@ import { state } from './state.js';
 import { $, esc, sanitizeStr, formatCOP, formatCOPShort } from './utils.js';
 import { saveAccounts, isCashAccount, updateAccountSelector, getAllAccountsForMember, getAllAccountKeysIncludingShared, isSharedMember } from './members.js';
 import { saveData, addTransfer, getAccountBalance } from './data.js';
-import { showToast, showPickModal } from './ui-modals.js';
+import { showToast, showPickModal, showConfirmModal } from './ui-modals.js';
 
 /** Renderiza las cuentas de cada miembro con íconos de efectivo/digital y acciones. */
 export function renderAccountsPanel() {
@@ -151,11 +151,15 @@ export function setupAccountsPanel() {
   $('cancelAccountBtn').addEventListener('click', () => {
     $('accountForm').style.display = 'none';
   });
-  $('saveAccountBtn').addEventListener('click', () => {
+  $('saveAccountBtn').addEventListener('click', async () => {
     const memberId = $('accountMemberSelect').value;
     const name = sanitizeStr($('accountNameInput').value, 30).trim();
     if (!name) return showToast('Escribe un nombre de cuenta');
     if (name.includes(':')) return showToast('El nombre no puede contener ":"');
+    if (isCashAccount(name) && name.toLowerCase() !== 'efectivo') {
+      const ok = await showConfirmModal(`"${name}" parece una cuenta de efectivo. ¿Es una cuenta bancaria?`);
+      if (!ok) return;
+    }
     if (!state.accounts[memberId]) state.accounts[memberId] = [];
     const editIdx = parseInt($('accountEditIdx').value);
     if (editIdx >= 0) {

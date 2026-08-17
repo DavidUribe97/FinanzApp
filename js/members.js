@@ -97,7 +97,7 @@ export function getAllAccountKeysIncludingShared() {
 
 /** Indica si un nombre de cuenta corresponde a una cuenta de efectivo. */
 export function isCashAccount(accountName) {
-  return CASH_ACCOUNTS.some(c => accountName.toLowerCase().includes(c));
+  return accountName.toLowerCase() === 'efectivo';
 }
 
 /** Puebla un select del DOM con las cuentas disponibles para un miembro y tipo de transacción. */
