@@ -209,6 +209,7 @@ export function exportJSON() {
     categories: state.categoriesData,
     members: state.members,
     accounts: state.accounts,
+    deletedMembers: state.deletedMembers || {},
     exportedAt: new Date().toISOString()
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });

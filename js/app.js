@@ -5,7 +5,7 @@
 import { state } from './state.js';
 import { MODE_KEY, STORAGE_KEY, BUDGET_KEY, CATS_KEY, MEMBERS_KEY, ACCOUNTS_KEY, DELETED_MEMBERS_KEY } from './config.js';
 import { loadCategories, saveCategories, setSyncToFirestore as setSyncCategories } from './categories.js';
-import { loadMembers, loadAccounts, saveMembers, saveAccounts, loadDeletedMembers, isSharedMember, setSyncToFirestore as setSyncMembers } from './members.js';
+import { loadMembers, loadAccounts, saveMembers, saveAccounts, saveDeletedMembers, loadDeletedMembers, isSharedMember, setSyncToFirestore as setSyncMembers } from './members.js';
 import { loadData, saveData, saveBudgets, isValidTx, isValidBudgets, isValidCategories, invalidateBalanceCache, setSyncToFirestore as setSyncData } from './data.js';
 import { initFirebase, syncToFirestore, setRemoteUpdateCallback } from './firebase-sync.js';
 import { setupRoomModal } from './firebase-room.js';
@@ -45,8 +45,24 @@ function importJSON(file) {
       state.transactions = data.transactions.filter(tx => !(isSharedMember(tx.who) && tx.type === 'ingreso'));
       if (data.budgets) state.budgets = data.budgets;
       if (data.categories) { state.categoriesData = data.categories; saveCategories(); }
-      if (data.members) { state.members = data.members; saveMembers(); }
-      if (data.accounts) { state.accounts = data.accounts; saveAccounts(); }
+      if (data.deletedMembers) {
+        state.deletedMembers = { ...data.deletedMembers, ...state.deletedMembers };
+        saveDeletedMembers();
+      }
+      if (data.members) {
+        for (const [id, name] of Object.entries(data.members)) {
+          if (state.deletedMembers[id]) continue;
+          if (!state.members[id]) state.members[id] = name;
+        }
+        saveMembers();
+      }
+      if (data.accounts) {
+        for (const [id, accts] of Object.entries(data.accounts)) {
+          if (state.deletedMembers[id]) continue;
+          if (!state.accounts[id]) state.accounts[id] = accts;
+        }
+        saveAccounts();
+      }
       saveData();
       saveBudgets();
       refreshAll(false);
