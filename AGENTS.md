@@ -55,3 +55,12 @@
 ## Dependencias (ver también LEEME.md § Reglas de dependencia)
 - Si una función pura es necesaria en dos módulos que ya se importan
   entre sí, muévela a utils.js — no crees un import cruzado nuevo.
+
+## Modales (showConfirmModal / showPickModal)
+- NUNCA llames `showConfirmModal()`/`showPickModal()` sin `await`, ni
+  vuelvas a llamar cualquiera de los dos mientras la promesa de una
+  llamada anterior siga sin resolverse — el patrón `.onclick` en
+  `ui-modals.js` asume un solo modal pendiente a la vez por diseño.
+- Si una feature futura necesita una cola de confirmaciones, eso
+  requiere un componente nuevo (queue manager), no modificar
+  `showConfirmModal`/`showPickModal`.
