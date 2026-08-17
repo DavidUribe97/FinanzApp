@@ -339,6 +339,7 @@ body {
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
 }
 .subcat-grid::-webkit-scrollbar { display: none; }
 .subcat-btn {

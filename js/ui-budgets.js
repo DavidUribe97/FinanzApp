@@ -26,8 +26,9 @@ export function renderBudgets() {
   empty.style.display = 'none';
   grid.innerHTML = entries.map(([cat, budget]) => {
     const spent = spentMap[cat] || 0;
-    const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
-    const color = pct > 100 ? 'var(--accent-red)' : pct > 75 ? 'var(--accent-gold)' : 'var(--accent-green)';
+    const pctReal = budget > 0 ? (spent / budget) * 100 : 0;
+    const pctBar = Math.min(pctReal, 100);
+    const color = pctReal > 100 ? 'var(--accent-red)' : pctReal > 75 ? 'var(--accent-gold)' : 'var(--accent-green)';
     return `
       <div class="budget-item">
         <div class="b-label">
@@ -35,10 +36,10 @@ export function renderBudgets() {
           <span>${formatCOPShort(spent)} / ${formatCOPShort(budget)}</span>
         </div>
         <div class="budget-bar">
-          <div class="budget-bar-fill" style="width:${pct}%;background:${color}"></div>
+          <div class="budget-bar-fill" style="width:${pctBar}%;background:${color}"></div>
         </div>
         <div style="display:flex;justify-content:space-between;margin-top:3px;font-size:10px;color:var(--text-secondary)">
-          <span>${pct.toFixed(0)}% usado</span>
+          <span>${pctReal.toFixed(0)}% usado</span>
           <button class="btn-sm del-budget" data-cat="${esc(cat)}" style="padding:2px 6px;font-size:10px">✕</button>
         </div>
       </div>

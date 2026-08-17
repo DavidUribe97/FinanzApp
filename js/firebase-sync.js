@@ -150,7 +150,7 @@ export function subscribeFirestore() {
         if (data.budgets) {
           state.budgets = JSON.parse(JSON.stringify(data.budgets));
         }
-        if (data.categories) {
+        if (data.categories && isValidCategories(data.categories)) {
           state.categoriesData = JSON.parse(JSON.stringify(data.categories));
         }
         if (data.members) {

@@ -122,6 +122,24 @@ export function setupCategoryDragScroll(container) {
     const walk = (x - startX) * 1.5;
     container.scrollLeft = scrollLeft - walk;
   });
+  let touchStartX, touchScrollLeft;
+  container.addEventListener('touchstart', e => {
+    touchStartX = e.touches[0].pageX - container.offsetLeft;
+    touchScrollLeft = container.scrollLeft;
+  }, { passive: true });
+  container.addEventListener('touchmove', e => {
+    if (touchStartX === undefined) return;
+    const x = e.touches[0].pageX - container.offsetLeft;
+    const dx = x - touchStartX;
+    const dy = e.touches[0].pageY - (e.touches[0].pageY - (e.touches[0].clientY - container.getBoundingClientRect().top));
+    if (Math.abs(dx) > Math.abs(dy)) {
+      e.preventDefault();
+      container.scrollLeft = touchScrollLeft - dx * 1.5;
+    }
+  }, { passive: false });
+  container.addEventListener('touchend', () => {
+    touchStartX = undefined;
+  }, { passive: true });
 }
 
 /** Actualiza el estado visual del toggle gasto/ingreso según el tipo seleccionado. */
