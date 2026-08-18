@@ -671,7 +671,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.4.4` | 2026-08-17 | Seguridad y UX: validación Firestore bidireccional, `getWhoLabel` fix, debounce búsqueda, offline fallback, ROOM_KEY, emojis dedup, warning frecuencia, fix pendingSyncs race condition | ✅ En develop |
 | `v2.4.5` | 2026-08-17 | Fix eliminación: Firestore `set()` sin merge (campos se borran real), nuevo miembro crea cuenta Efectivo, Compartido excluido de eliminación, migración de saldo con selección de cuenta destino, `deletedMembers` para preservar nombres en historial, prevención de colisión de IDs, SW auto-reload, export/import preserva deletedMembers | ✅ En develop |
 | `v2.4.6` | 2026-08-17 | Fix cuentas: `DEFAULT_ACCOUNTS` solo Efectivo para todos, `isCashAccount` solo match exacto (fix Daviplata contado como cash), warning al crear cuenta con nombre tipo efectivo | ✅ En develop |
-| `v2.4.7` | 2026-08-17 | Fase 3: Budget % real (pctReal sin tope), touch drag-to-scroll en subcategorías, `isValidCategories` guard silencioso en snapshots, fix touch delta `dy` | 🔄 En develop (sin commit) |
+| `v2.4.7` | 2026-08-17 | Fase 3: Budget % real (pctReal sin tope), touch drag-to-scroll en subcategorías, `isValidCategories` guard silencioso en snapshots, fix touch delta `dy` | ✅ En develop |
 
 ---
 
