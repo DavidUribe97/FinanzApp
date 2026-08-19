@@ -12,7 +12,7 @@ import { getWhoLabel } from './members.js';
 const CHART_FONT = "-apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif";
 
 function getThemeColor(varName) {
-  return getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  return getComputedStyle(document.body).getPropertyValue(varName).trim();
 }
 
 function themeColors() {

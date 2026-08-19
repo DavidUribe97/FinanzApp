@@ -63,7 +63,8 @@ async function _doSyncToFirestore() {
     state.pendingSyncs++;
     const ref = state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode));
     const snap = await ref.get().catch(() => null);
-    const existingPasswordHash = (snap && snap.exists) ? (snap.data().passwordHash || null) : null;
+    if (!snap) { state.pendingSyncs = 0; return; }
+    const existingPasswordHash = (snap.exists) ? (snap.data().passwordHash || null) : null;
     const validTx = state.transactions.filter(isValidTx);
     const payload = {
       transactions: validTx,

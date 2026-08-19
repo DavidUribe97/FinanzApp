@@ -15,4 +15,5 @@ export function toggleTheme() {
   const next = current === 'dark' ? 'light' : 'dark';
   document.body.setAttribute('data-theme', next);
   localStorage.setItem(THEME_KEY, next);
+  import('./ui-navigation.js').then(m => m.refreshAnalysis());
 }
