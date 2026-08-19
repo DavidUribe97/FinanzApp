@@ -63,7 +63,8 @@ async function _doSyncToFirestore() {
     state.pendingSyncs++;
     const ref = state.db.collection(FIRESTORE_COLLECTION).doc(safeRoomCode(state.roomCode));
     const snap = await ref.get().catch(() => null);
-    const existingPasswordHash = (snap && snap.exists) ? (snap.data().passwordHash || null) : null;
+    if (!snap) { state.pendingSyncs = 0; return; }
+    const existingPasswordHash = (snap.exists) ? (snap.data().passwordHash || null) : null;
     const validTx = state.transactions.filter(isValidTx);
     const payload = {
       transactions: validTx,
@@ -145,7 +146,7 @@ export function subscribeFirestore() {
         if (state.pendingSyncs > 0) { resolve(); return; }
         const data = snap.data();
         if (data.transactions) {
-          state.transactions = JSON.parse(JSON.stringify(data.transactions)).filter(tx => !(tx.who === COMPARTIDO_ID && tx.type === 'ingreso'));
+          state.transactions = JSON.parse(JSON.stringify(data.transactions)).filter(tx => isValidTx(tx) && !(tx.who === COMPARTIDO_ID && tx.type === 'ingreso'));
         }
         if (data.budgets) {
           state.budgets = JSON.parse(JSON.stringify(data.budgets));
@@ -245,7 +246,9 @@ export async function initFirebase() {
   try {
     updateSyncStatusUI(false);
     firebase.initializeApp(FIREBASE_CONFIG);
-    await firebase.auth().signInAnonymously();
+    if (!firebase.auth().currentUser) {
+      await firebase.auth().signInAnonymously();
+    }
     state.db = firebase.firestore();
     state.roomCode = localStorage.getItem(ROOM_KEY);
     if (!state.roomCode) {

@@ -13,8 +13,8 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 
 | Componente | Detalle |
 |---|---|
-| HTML | `index.html` (~453 líneas, solo estructura + modales) |
-| CSS | `css/styles.css` (~1142 líneas, variables, tema oscuro/claro, sin selectores duplicados) |
+| HTML | `index.html` (~498 líneas, solo estructura + modales) |
+| CSS | `css/styles.css` (~1145 líneas, variables, tema oscuro/claro, sin selectores duplicados) |
 | JS | 22 módulos ES (`js/*.js`), sin frameworks ni build tools |
 | Charts | Chart.js v4.4.7 local (`chart.min.js`, 202KB) |
 | Persistencia local | localStorage (`finanzas_data`, `finanzas_budgets`, `finanzas_categories`, etc.) + `sessionStorage` (password de sala) |
@@ -181,7 +181,7 @@ git push origin master --tags
 | `$(id)` | Atajo para `document.getElementById` |
 | `esc(s)` | Escapa HTML para prevenir XSS en innerHTML |
 | `formatCOP(n)` | Formatea número como COP sin decimales |
-| `formatCOPShort(n)` | Formatea COP abreviado (1.5M, 50K) |
+| `formatCOPShort(n)` | Formatea COP sin abreviar — montos completos siempre |
 | `sanitizeStr(str, maxLen)` | Elimina tags HTML y trunca a maxLen |
 | `validateAmount(amount)` | Retorna mensaje de error si el monto es inválido, null si es válido |
 | `downloadBlob(blob, filename)` | Descarga un Blob como archivo |
@@ -252,7 +252,7 @@ git push origin master --tags
 | Función | Qué hace |
 |---------|----------|
 | `initFirebase()` | Firebase Auth + Firestore init; si no hay sala, abre modal y espera |
-| `subscribeFirestore()` | `onSnapshot` en tiempo real; verifica passwordHash si existe |
+| `subscribeFirestore()` | `onSnapshot` en tiempo real; valida transacciones con `isValidTx` y categorías con `isValidCategories`; verifica passwordHash si existe |
 | `promptRoomPassword(ref, passwordHash, onVerified, resolve)` | Abre modal en modo "Unirse" cuando falta la contraseña; valida SHA-256 contra el hash; reintenta si es incorrecta |
 | `syncToFirestore()` | Sube transactions, budgets, categories, members, accounts y deletedMembers a Firestore (sin `merge: true` — reemplaza documento completo para permitir borrado real) |
 | `setRemoteUpdateCallback(fn)` | Callback para notificar cuando llegan datos remotos |
@@ -422,33 +422,31 @@ Eliminación de código legacy que ya no se ejecuta:
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    function isValidRoom(d) {
+      return d.keys().hasAll(['transactions', 'budgets', 'categories', 'members', 'accounts'])
+        && d.transactions is list
+        && d.budgets is map
+        && d.categories is map
+        && d.members is map
+        && d.accounts is map
+        && d.transactions.size() <= 10000
+        && (!d.keys().hasAny(['deletedMembers']) || d.deletedMembers is map)
+        && (!d.keys().hasAny(['passwordHash']) || d.passwordHash is string);
+    }
+
     match /rooms/{room} {
       allow read: if request.auth != null;
-      allow create: if request.auth != null
-        && request.resource.data.keys().hasAll([
-          'transactions', 'budgets', 'categories', 'members', 'accounts'
-        ])
-        && request.resource.data.transactions is list
-        && request.resource.data.budgets is map
-        && request.resource.data.categories is map
-        && request.resource.data.members is map
-        && request.resource.data.accounts is map
-        && request.resource.data.transactions.size() <= 10000;
-      allow update: if request.auth != null
-        && request.resource.data.keys().hasAll([
-          'transactions', 'budgets', 'categories', 'members', 'accounts'
-        ])
-        && request.resource.data.transactions is list
-        && request.resource.data.budgets is map
-        && request.resource.data.categories is map
-        && request.resource.data.members is map
-        && request.resource.data.accounts is map
-        && request.resource.data.transactions.size() <= 10000;
+      allow create: if request.auth != null && isValidRoom(request.resource.data);
+      allow update: if request.auth != null && isValidRoom(request.resource.data);
       allow delete: if false;
     }
     match /config/meta {
       allow read: if request.auth != null;
-      allow write: if request.auth != null;
+      allow write: if request.auth != null
+        && request.resource.data.keys().hasAll(['roomCount'])
+        && request.resource.data.roomCount is int
+        && request.resource.data.roomCount <= 50;
     }
   }
 }

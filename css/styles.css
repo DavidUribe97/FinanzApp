@@ -12,6 +12,7 @@
   --border: #1e2d42;
   --shadow: rgba(0,0,0,0.3);
   --hover-bg: rgba(255,255,255,0.03);
+  --grid-color: rgba(30,45,66,0.3);
 }
 [data-theme="light"] {
   --bg-primary: #f0f2f5;
@@ -27,6 +28,7 @@
   --border: #d1d5db;
   --shadow: rgba(0,0,0,0.08);
   --hover-bg: rgba(0,0,0,0.02);
+  --grid-color: rgba(100,116,139,0.15);
 }
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 body {

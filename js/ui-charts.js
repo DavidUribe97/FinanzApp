@@ -9,8 +9,25 @@ import { CHART_COLORS, MONTHS } from './config.js';
 import { getFilteredTransactionsExcludingTransfers, TRANSFER_CATEGORY } from './data.js';
 import { getWhoLabel } from './members.js';
 
+const CHART_FONT = "-apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif";
+
+function getThemeColor(varName) {
+  return getComputedStyle(document.body).getPropertyValue(varName).trim();
+}
+
+function themeColors() {
+  return {
+    green: getThemeColor('--accent-green'),
+    red: getThemeColor('--accent-red'),
+    gold: getThemeColor('--accent-gold'),
+    text: getThemeColor('--text-secondary'),
+    grid: getThemeColor('--grid-color')
+  };
+}
+
 /** Renderiza la dona de gastos por categoría y las barras semanales de ingresos/gastos. */
 export function renderCharts() {
+  const tc = themeColors();
   const filtered = getFilteredTransactionsExcludingTransfers(state.currentMonth, state.currentYear);
 
   const gastos = filtered.filter(tx => tx.type === 'gasto');
@@ -36,7 +53,7 @@ export function renderCharts() {
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'bottom', labels: { color: '#8892a4', font: { family: "-apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif", size: 11 }, boxWidth: 12, padding: 10 } },
+        legend: { position: 'bottom', labels: { color: tc.text, font: { family: CHART_FONT, size: 11 }, boxWidth: 12, padding: 10 } },
         tooltip: {
           callbacks: {
             afterLabel: function(ctx) {
@@ -80,18 +97,18 @@ export function renderCharts() {
     data: {
       labels: weekLabels,
       datasets: [
-        { label: 'Ingresos', data: ingresosData, backgroundColor: '#00d4aa', borderRadius: 4 },
-        { label: 'Gastos', data: gastosData, backgroundColor: '#ff4d6d', borderRadius: 4 }
+        { label: 'Ingresos', data: ingresosData, backgroundColor: tc.green, borderRadius: 4 },
+        { label: 'Gastos', data: gastosData, backgroundColor: tc.red, borderRadius: 4 }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'top', labels: { color: '#8892a4', font: { family: "-apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif", size: 11 }, boxWidth: 12, padding: 8 } }
+        legend: { position: 'top', labels: { color: tc.text, font: { family: CHART_FONT, size: 11 }, boxWidth: 12, padding: 8 } }
       },
       scales: {
-        x: { grid: { color: 'rgba(30,45,66,0.3)' }, ticks: { color: '#8892a4', font: { family: "-apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" } } },
-        y: { grid: { color: 'rgba(30,45,66,0.3)' }, ticks: { color: '#8892a4', font: { family: "-apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" }, callback: v => formatCOPShort(v) } }
+        x: { grid: { color: tc.grid }, ticks: { color: tc.text, font: { family: CHART_FONT } } },
+        y: { grid: { color: tc.grid }, ticks: { color: tc.text, font: { family: CHART_FONT }, callback: v => formatCOPShort(v) } }
       }
     }
   });
@@ -99,6 +116,7 @@ export function renderCharts() {
 
 /** Renderiza la línea de evolución mensual con balance, ingresos y gastos de los últimos 12 meses. */
 export function renderLineChart() {
+  const tc = themeColors();
   const monthlyData = {};
   for (let i = 11; i >= 0; i--) {
     const d = new Date(state.currentYear, state.currentMonth - i, 1);
@@ -130,19 +148,19 @@ export function renderLineChart() {
     data: {
       labels,
       datasets: [
-        { label: 'Balance', data: balanceData, borderColor: '#f5c842', backgroundColor: 'rgba(245,200,66,0.1)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#f5c842' },
-        { label: 'Ingresos', data: ingData, borderColor: '#00d4aa', backgroundColor: 'rgba(0,212,170,0.05)', fill: false, tension: 0.3, pointRadius: 2, borderDash: [5,5] },
-        { label: 'Gastos', data: gasData, borderColor: '#ff4d6d', backgroundColor: 'rgba(255,77,109,0.05)', fill: false, tension: 0.3, pointRadius: 2, borderDash: [5,5] }
+        { label: 'Balance', data: balanceData, borderColor: tc.gold, backgroundColor: tc.gold + '1a', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: tc.gold },
+        { label: 'Ingresos', data: ingData, borderColor: tc.green, backgroundColor: tc.green + '0d', fill: false, tension: 0.3, pointRadius: 2, borderDash: [5,5] },
+        { label: 'Gastos', data: gasData, borderColor: tc.red, backgroundColor: tc.red + '0d', fill: false, tension: 0.3, pointRadius: 2, borderDash: [5,5] }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'top', labels: { color: '#8892a4', font: { family: "-apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif", size: 11 }, boxWidth: 12, padding: 8 } }
+        legend: { position: 'top', labels: { color: tc.text, font: { family: CHART_FONT, size: 11 }, boxWidth: 12, padding: 8 } }
       },
       scales: {
-        x: { grid: { color: 'rgba(30,45,66,0.3)' }, ticks: { color: '#8892a4', font: { family: "-apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif", size: 10 } } },
-        y: { grid: { color: 'rgba(30,45,66,0.3)' }, ticks: { color: '#8892a4', font: { family: "-apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" }, callback: v => formatCOPShort(v) } }
+        x: { grid: { color: tc.grid }, ticks: { color: tc.text, font: { family: CHART_FONT, size: 10 } } },
+        y: { grid: { color: tc.grid }, ticks: { color: tc.text, font: { family: CHART_FONT }, callback: v => formatCOPShort(v) } }
       }
     }
   });
