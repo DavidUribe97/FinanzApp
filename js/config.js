@@ -25,8 +25,6 @@ export const DEFAULT_ACCOUNTS = {
   yo: ['Efectivo'],
   pareja: ['Efectivo']
 };
-/** Variantes de texto que se consideran cuentas de efectivo. */
-export const CASH_ACCOUNTS = ['efectivo', 'cash', 'efec', 'billete', 'plata'];
 
 /** API key pública de Firebase — la seguridad real vive en Firestore Security Rules. */
 export const FIREBASE_CONFIG = {

@@ -145,7 +145,7 @@ export function subscribeFirestore() {
         if (state.pendingSyncs > 0) { resolve(); return; }
         const data = snap.data();
         if (data.transactions) {
-          state.transactions = JSON.parse(JSON.stringify(data.transactions)).filter(tx => !(tx.who === COMPARTIDO_ID && tx.type === 'ingreso'));
+          state.transactions = JSON.parse(JSON.stringify(data.transactions)).filter(tx => isValidTx(tx) && !(tx.who === COMPARTIDO_ID && tx.type === 'ingreso'));
         }
         if (data.budgets) {
           state.budgets = JSON.parse(JSON.stringify(data.budgets));
