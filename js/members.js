@@ -5,7 +5,7 @@
  * Nunca importa firebase-sync.js directo.
  */
 import { state } from './state.js';
-import { MEMBERS_KEY, ACCOUNTS_KEY, DELETED_MEMBERS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, CASH_ACCOUNTS, MEMBER_COLORS, COMPARTIDO_ID, DEFAULT_MEMBER_IDS } from './config.js';
+import { MEMBERS_KEY, ACCOUNTS_KEY, DELETED_MEMBERS_KEY, DEFAULT_MEMBERS, DEFAULT_ACCOUNTS, MEMBER_COLORS, COMPARTIDO_ID, DEFAULT_MEMBER_IDS } from './config.js';
 import { $, esc, formatCOPShort, getWhoLabel } from './utils.js';
 export { getWhoLabel };
 
