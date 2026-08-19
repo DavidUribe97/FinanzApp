@@ -245,7 +245,9 @@ export async function initFirebase() {
   try {
     updateSyncStatusUI(false);
     firebase.initializeApp(FIREBASE_CONFIG);
-    await firebase.auth().signInAnonymously();
+    if (!firebase.auth().currentUser) {
+      await firebase.auth().signInAnonymously();
+    }
     state.db = firebase.firestore();
     state.roomCode = localStorage.getItem(ROOM_KEY);
     if (!state.roomCode) {
