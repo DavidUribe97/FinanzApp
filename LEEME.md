@@ -14,7 +14,7 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 | Componente | Detalle |
 |---|---|
 | HTML | `index.html` (~498 líneas, solo estructura + modales) |
-| CSS | `css/styles.css` (~1145 líneas, variables, tema oscuro/claro, sin selectores duplicados) |
+| CSS | `css/styles.css` (~1147 líneas, variables, tema oscuro/claro, sin selectores duplicados) |
 | JS | 22 módulos ES (`js/*.js`), sin frameworks ni build tools |
 | Charts | Chart.js v4.4.7 local (`chart.min.js`, 202KB) |
 | Persistencia local | localStorage (`finanzas_data`, `finanzas_budgets`, `finanzas_categories`, etc.) + `sessionStorage` (password de sala) |
@@ -36,9 +36,9 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 
 ```
 .
-├── index.html              # HTML puro (~453 líneas) + chart.min.js + app.js module
+├── index.html              # HTML puro (~498 líneas) + chart.min.js + app.js module
 ├── css/
-│   └── styles.css          # Todo el CSS (~1142 líneas)
+│   └── styles.css          # Todo el CSS (~1147 líneas)
 ├── js/
 │   ├── app.js              # Orchestador: imports, init(), wiring de callbacks
 │   ├── state.js            # Objeto state centralizado (único dueño de variables mutables)
@@ -77,7 +77,8 @@ App web **100% offline-first** para registrar ingresos/gastos personales, con si
 │   └── archivo/
 │       └── CHANGELOG_v1.3.0.md  # Changelog histórico (features v1.3.0, ya en master)
 ├── REFACTOR.md             # Plan de refactorización (histórico, congelado)
-└── LEEME.md                # Esta documentación
+├── LEEME.md                # Esta documentación
+└── CONTRIBUTING.md         # Guía de contribución (git flow, reglas, validación pre-deploy)
 ```
 
 ---
@@ -175,6 +176,12 @@ git push origin master --tags
 
 ## Mapa de funciones por módulo
 
+### State (`js/state.js`)
+| Función/Export | Qué hace |
+|---------|----------|
+| `state` | Objeto centralizado con toda la data mutable: transactions, budgets, categoriesData, members, accounts, deletedMembers, UI state, Firebase refs |
+| `resetRoomState()` | Limpia estado de sala: resetea transactions/budgets/accounts/members a defaults preservando solo el modo y mes actuales |
+
 ### Utils (`js/utils.js`)
 | Función | Qué hace |
 |---------|----------|
@@ -262,6 +269,20 @@ git push origin master --tags
 | `openRoomModal()` / `closeRoomModal()` | Modal de sala (crear/unirse) |
 | `leaveRoom()` | Salir de sala: limpia localStorage, desconecta Firestore |
 | `setupRoomModal()` | Event listeners del modal de sala |
+
+### UI - Modales (`js/ui-modals.js`)
+| Función | Qué hace |
+|---------|----------|
+| `setUpdateWhoSelects(fn)` | Inyecta callback para refrescar selects de "quién" al cambiar miembros |
+| `showToast(message, actionLabel?, actionFn?)` | Muestra toast con mensaje y opcional acción de deshacer; auto-cierra a los 5s |
+| `dismissAllToasts()` | Cierra todos los toasts visibles |
+| `showConfirmModal(msg)` | Modal de confirmación genérico; retorna promesa `true`/`false` |
+| `showPickModal({title, message, options, okLabel})` | Modal de selección con opciones; retorna promesa con la opción elegida |
+| `openEditModal(id)` | Abre modal de edición de transacción con campos pre-cargados |
+| `closeEditModal()` | Cierra modal de edición |
+| `updateEditCategories()` | Actualiza selects de categorías en el modal de edición |
+| `updateCategories(typeId, catId)` | Actualiza selects de categorías en formularios principales |
+| `updateSubcategories(typeId, catId, subcatId)` | Actualiza select de subcategorías |
 
 ### UI - Modo diario (`js/ui-daily.js`)
 | Función | Qué hace |
@@ -666,10 +687,11 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.4.1` | 2026-08-16 | Refactor: centralizar 'compartido' — `COMPARTIDO_ID`, `isSharedMember()`, `isDefaultMember()`, fixes de UX en `addTransaction`/`editTransaction` | ✅ En master + deployado |
 | `v2.4.2` | 2026-08-16 | Fixes UX: `formatCOPShort` sin abreviar (montos completos), fix cache en `addTransfer` | ✅ En master + deployado |
 | `v2.4.3` | 2026-08-16 | Limpieza código muerto: elimina `canReceiveIncome()`, `migrateSubcats()`, guards `typeof s === 'string'`, warning "Sin contraseña"; fix selectores gasto/transferencia (solo saldo > 0) | ✅ En master + deployado |
-| `v2.4.4` | 2026-08-17 | Seguridad y UX: validación Firestore bidireccional, `getWhoLabel` fix, debounce búsqueda, offline fallback, ROOM_KEY, emojis dedup, warning frecuencia, fix pendingSyncs race condition | ✅ En develop |
-| `v2.4.5` | 2026-08-17 | Fix eliminación: Firestore `set()` sin merge (campos se borran real), nuevo miembro crea cuenta Efectivo, Compartido excluido de eliminación, migración de saldo con selección de cuenta destino, `deletedMembers` para preservar nombres en historial, prevención de colisión de IDs, SW auto-reload, export/import preserva deletedMembers | ✅ En develop |
-| `v2.4.6` | 2026-08-17 | Fix cuentas: `DEFAULT_ACCOUNTS` solo Efectivo para todos, `isCashAccount` solo match exacto (fix Daviplata contado como cash), warning al crear cuenta con nombre tipo efectivo | ✅ En develop |
-| `v2.4.7` | 2026-08-17 | Fase 3: Budget % real (pctReal sin tope), touch drag-to-scroll en subcategorías, `isValidCategories` guard silencioso en snapshots, fix touch delta `dy` | ✅ En develop |
+| `v2.4.4` | 2026-08-17 | Seguridad y UX: validación Firestore bidireccional, `getWhoLabel` fix, debounce búsqueda, offline fallback, ROOM_KEY, emojis dedup, warning frecuencia, fix pendingSyncs race condition | ✅ En master + deployado |
+| `v2.4.5` | 2026-08-17 | Fix eliminación: Firestore `set()` sin merge, nuevo miembro crea cuenta Efectivo, Compartido excluido, migración de saldo con selección de cuenta destino, `deletedMembers`, prevención colisión IDs, SW auto-reload, export/import preserva deletedMembers | ✅ En master + deployado |
+| `v2.4.6` | 2026-08-17 | Fix cuentas: `DEFAULT_ACCOUNTS` solo Efectivo para todos, `isCashAccount` solo match exacto (fix Daviplata contado como cash), warning al crear cuenta con nombre tipo efectivo | ✅ En master + deployado |
+| `v2.4.7` | 2026-08-17 | Fase 3: Budget % real (pctReal sin tope), touch drag-to-scroll en subcategorías, `isValidCategories` guard silencioso en snapshots, fix touch delta `dy` | ✅ En master + deployado |
+| `v2.4.8` | 2026-08-18 | Security: H1+H2 (firestore rules restricted config/meta + validated deletedMembers/passwordHash), isValidTx guard en snapshot receiver, CASH_ACCOUNTS dead code removal, Chart.js theme-aware colors, toggleTheme refresh, _doSyncToFirestore passwordHash guard | ✅ En master + deployado |
 
 ---
 
