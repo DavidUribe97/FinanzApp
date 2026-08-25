@@ -274,7 +274,7 @@ git push origin master --tags
 | Función | Qué hace |
 |---------|----------|
 | `setUpdateWhoSelects(fn)` | Inyecta callback para refrescar selects de "quién" al cambiar miembros |
-| `showToast(message, actionLabel?, actionFn?)` | Muestra toast con mensaje y opcional acción de deshacer; auto-cierra a los 5s |
+| `showToast(message, actionLabel?, actionFn?, timeoutMs?)` | Muestra toast con mensaje y opcional acción de deshacer; auto-cierra a los 5s (o `timeoutMs` si se provee) |
 | `dismissAllToasts()` | Cierra todos los toasts visibles |
 | `showConfirmModal(msg)` | Modal de confirmación genérico; retorna promesa `true`/`false` |
 | `showPickModal({title, message, options, okLabel})` | Modal de selección con opciones; retorna promesa con la opción elegida |
@@ -432,6 +432,17 @@ Eliminación de código legacy que ya no se ejecuta:
 - **Warning límite Firestore** (`data.js`): frecuencia cambiada de cada 500 a cada 100 transacciones después de 9000
 
 **Archivos tocados:** `data.js`, `firebase-sync.js`, `utils.js`, `app.js`, `setup-analysis.js`, `sw.js`, `config.js`
+
+### Seguridad plus (v2.4.9)
+- **Firestore rules hardening:** `members.size() <= 20`, `accounts.size() <= 20`, categories structure validation (`ingreso`/`gasto` as lists), `roomCount >= 0`
+- **Client-side rate limiting** (`firebase-sync.js`): mínimo 1 segundo entre syncs a Firestore, persistido en localStorage
+- **Firestore quota monitoring** (`firebase-sync.js`): contador diario de lecturas (50K/día plan Spark), toast de advertencia al 80% y al agotamiento
+- **Auto-backup** (`data.js`): copia de seguridad en localStorage cada 24 horas con `checkAutoBackup()`
+- **`showToast` timeout param** (`ui-modals.js`): nuevo parámetro opcional `timeoutMs` (backward-compatible)
+- **Timezone fix** (`firebase-sync.js`): `trackReads()` usa fecha local (`toLocaleDateString('en-CA')`) en vez de UTC
+- **Dead code cleanup:** elimina `getDailyReads()` y `restoreFromAutoBackup()` sin consumidores
+
+**Archivos tocados:** `firestore.rules`, `firebase-sync.js`, `data.js`, `config.js`, `ui-modals.js`, `LEEME.md`
 
 ---
 
@@ -692,6 +703,7 @@ Hotfix #2 (cuentas automáticas en salas viejas) fue implementado y revertido el
 | `v2.4.6` | 2026-08-17 | Fix cuentas: `DEFAULT_ACCOUNTS` solo Efectivo para todos, `isCashAccount` solo match exacto (fix Daviplata contado como cash), warning al crear cuenta con nombre tipo efectivo | ✅ En master + deployado |
 | `v2.4.7` | 2026-08-17 | Fase 3: Budget % real (pctReal sin tope), touch drag-to-scroll en subcategorías, `isValidCategories` guard silencioso en snapshots, fix touch delta `dy` | ✅ En master + deployado |
 | `v2.4.8` | 2026-08-18 | Security: H1+H2 (firestore rules restricted config/meta + validated deletedMembers/passwordHash), isValidTx guard en snapshot receiver, CASH_ACCOUNTS dead code removal, Chart.js theme-aware colors, toggleTheme refresh, _doSyncToFirestore passwordHash guard | ✅ En master + deployado |
+| `v2.4.9` | 2026-08-25 | Security+: Firestore rules hardening (members≤20, accounts≤20, categories structure, roomCount≥0), client-side rate limiting (1s), Firestore quota monitoring (50K reads/day), auto-backup localStorage 24h, showToast timeout param, timezone fix trackReads, dead code cleanup | ✅ En master + deployado |
 
 ---
 
