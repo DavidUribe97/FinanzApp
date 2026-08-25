@@ -4,7 +4,7 @@
  * Nunca importa firebase-sync.js directo (regla 1 de dependencias).
  */
 import { state } from './state.js';
-import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT, MONTHS, COMPARTIDO_ID } from './config.js';
+import { STORAGE_KEY, BUDGET_KEY, MAX_AMOUNT, MONTHS, COMPARTIDO_ID, BACKUP_KEY, BACKUP_DATA_KEY } from './config.js';
 import { $, downloadBlob, parseLocalDate, getWhoLabel, generateId, getToday, toLocalDateStr } from './utils.js';
 
 /** Soft limit warning threshold for Firestore's 10K hard limit. */
@@ -56,6 +56,30 @@ export function saveData() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state.transactions));
   invalidateBalanceCache();
   syncToFirestoreFn();
+  checkAutoBackup();
+}
+
+/** Backup automático: guarda una copia de seguridad en localStorage cada 24 horas. */
+function checkAutoBackup() {
+  const now = Date.now();
+  const lastBackup = parseInt(localStorage.getItem(BACKUP_KEY) || '0');
+  const ONE_DAY_MS = 86400000;
+  if (now - lastBackup < ONE_DAY_MS) return;
+  try {
+    const data = {
+      transactions: state.transactions,
+      budgets: state.budgets,
+      categories: state.categoriesData,
+      members: state.members,
+      accounts: state.accounts,
+      deletedMembers: state.deletedMembers || {},
+      backedUpAt: new Date().toISOString()
+    };
+    localStorage.setItem(BACKUP_DATA_KEY, JSON.stringify(data));
+    localStorage.setItem(BACKUP_KEY, String(now));
+  } catch (e) {
+    console.warn('Auto backup failed (localStorage quota exceeded):', e.message);
+  }
 }
 
 /** Persiste presupuestos en localStorage y dispara sync a Firestore. */

@@ -10,6 +10,11 @@ service cloud.firestore {
         && d.members is map
         && d.accounts is map
         && d.transactions.size() <= 10000
+        && d.members.size() <= 20
+        && d.accounts.size() <= 20
+        && d.categories.keys().hasAll(['ingreso', 'gasto'])
+        && d.categories.ingreso is list
+        && d.categories.gasto is list
         && (!d.keys().hasAny(['deletedMembers']) || d.deletedMembers is map)
         && (!d.keys().hasAny(['passwordHash']) || d.passwordHash is string);
     }
@@ -25,6 +30,7 @@ service cloud.firestore {
       allow write: if request.auth != null
         && request.resource.data.keys().hasAll(['roomCount'])
         && request.resource.data.roomCount is int
+        && request.resource.data.roomCount >= 0
         && request.resource.data.roomCount <= 50;
     }
   }

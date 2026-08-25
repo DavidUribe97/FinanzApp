@@ -13,8 +13,8 @@ let updateWhoSelectsFn = () => {};
 /** Registra el callback que refresca los <select> de "quién" al cambiar miembros. */
 export function setUpdateWhoSelects(fn) { updateWhoSelectsFn = fn; }
 
-/** Muestra un toast con mensaje y opcionalmente una acción de deshacer. */
-export function showToast(message, actionLabel, actionFn) {
+/** Muestra un toast con mensaje, opcionalmente con acción de deshacer y/o timeout custom. */
+export function showToast(message, actionLabel, actionFn, timeoutMs) {
   const container = $('toastContainer');
   if (!container) return;
   const toast = document.createElement('div');
@@ -28,7 +28,7 @@ export function showToast(message, actionLabel, actionFn) {
     toast.appendChild(btn);
   }
   container.appendChild(toast);
-  const timeout = setTimeout(() => dismiss(toast), 5000);
+  const timeout = setTimeout(() => dismiss(toast), typeof timeoutMs === 'number' ? timeoutMs : 5000);
   toast._timeout = timeout;
 }
 
