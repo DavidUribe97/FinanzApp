@@ -274,7 +274,7 @@ git push origin master --tags
 | Función | Qué hace |
 |---------|----------|
 | `setUpdateWhoSelects(fn)` | Inyecta callback para refrescar selects de "quién" al cambiar miembros |
-| `showToast(message, actionLabel?, actionFn?)` | Muestra toast con mensaje y opcional acción de deshacer; auto-cierra a los 5s |
+| `showToast(message, actionLabel?, actionFn?, timeoutMs?)` | Muestra toast con mensaje y opcional acción de deshacer; auto-cierra a los 5s (o `timeoutMs` si se provee) |
 | `dismissAllToasts()` | Cierra todos los toasts visibles |
 | `showConfirmModal(msg)` | Modal de confirmación genérico; retorna promesa `true`/`false` |
 | `showPickModal({title, message, options, okLabel})` | Modal de selección con opciones; retorna promesa con la opción elegida |
